@@ -9,16 +9,16 @@ number:
 date:
 consensus: true
 v: 3
-area: AREA
-workgroup: WG Working Group
+area: "IRTF"
+workgroup: "Crypto Forum"
 keyword:
  - Internet-Draft
 venue:
-  group: CFRG
-  type: Research Group
-  mail: cfrg@ietf.org
-  arch: https://datatracker.ietf.org/rg/cfrg/about
-  github: https://github.com/jimouris/draft-irtf-cfrg-plasma
+  group: "Crypto Forum"
+  type: "Research Group"
+  mail: "cfrg@ietf.org"
+  arch: "https://mailarchive.ietf.org/arch/search/?email_list=cfrg"
+  github: "jimouris/draft-irtf-cfrg-plasma"
 <!--   latest: https://example.com/LATEST -->
 
 author:
