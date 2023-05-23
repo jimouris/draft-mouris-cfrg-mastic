@@ -21,3 +21,9 @@ draft-irtf-cfrg-plasma.xml
 package-lock.json
 report.xml
 !requirements.txt
+sagelib
+*.sage.py
+*.bak
+*.pyc
+*.pyo
+__pycache__
