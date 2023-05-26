@@ -34,7 +34,7 @@ class Vdpf:
     BINDER = b'some nonce'
 
     # The ring used to represent the leaf nodes of the vdpf tree.
-    RING = ring.Ring(2^16)
+    RING = ring.Ring(2**16)
 
     # The ring for the control bits.
     R2 = ring.Ring(2)
@@ -89,7 +89,7 @@ class Vdpf:
         '''
         https://eprint.iacr.org/2021/580.pdf Fig. 1
         '''
-        if alpha >= 2^cls.BITS:
+        if alpha >= 2**cls.BITS:
             raise ERR_INPUT # alpha too long
         if len(rand) != cls.RAND_SIZE:
             raise ERR_INPUT # unexpected length for random input
@@ -231,11 +231,11 @@ def main():
     vdpf = Vdpf
     vdpf.VALUE_LEN = 1
     vdpf.BITS = 2
-    vdpf.RING = ring.Ring(2^16)
+    vdpf.RING = ring.Ring(2**16)
     vdpf.BINDER = b'some nonce'
 
     beta = [vdpf.RING.one()] * vdpf.VALUE_LEN
-    eval_points = list(range(2 ^ vdpf.BITS)) # [0b00, 0b01, 0b10, 0b11, ...]
+    eval_points = list(range(2**vdpf.BITS)) # [0b00, 0b01, 0b10, 0b11, ...]
     rand = gen_rand(vdpf.RAND_SIZE)
 
     init_seed, cor_words, cor_seed, out_cor_word = vdpf.gen(0b11, beta, rand)
