@@ -8,7 +8,6 @@ from common import \
     vec_add, \
     vec_sub, \
     xor
-from field import Field2
 import hashlib
 import ring
 from prg import PrgFixedKeyAes128
@@ -36,6 +35,9 @@ class Vdpf:
 
     # The ring used to represent the leaf nodes of the vdpf tree.
     RING = ring.Ring(2^16)
+
+    # The ring for the control bits.
+    R2 = ring.Ring(2)
 
     @classmethod
     def node_expand(cls, seed, ctrl, cor_word):
@@ -67,8 +69,8 @@ class Vdpf:
 
         s_c = xor(s_0[same], s_1[same])
         t_c = (
-            t_0[0] + t_1[0] + Field2(1) + Field2(input_bit), # t_c^L
-            t_0[1] + t_1[1] + Field2(input_bit),             # t_c^R
+            t_0[0] + t_1[0] + cls.R2.one() + cls.R2.new_elm(input_bit), # t_c^L
+            t_0[1] + t_1[1] + cls.R2.new_elm(input_bit),                # t_c^R
         )
         cor_word = (s_c, t_c[0], t_c[1]) # s_c || t_c^L || t_c^R
 
@@ -99,7 +101,7 @@ class Vdpf:
 
         # s0^0, s1^0, t0^0, t1^0
         seed = init_seed.copy()
-        ctrl = [Field2(0), Field2(1)]
+        ctrl = [cls.R2.zero(), cls.R2.one()]
         correction_words = []
         for i in range(cls.BITS):
             alpha_i = (alpha >> (cls.BITS - i - 1)) & 1
@@ -126,7 +128,7 @@ class Vdpf:
         _, convert_0 = cls.convert(seed_last[0])
         _, convert_1 = cls.convert(seed_last[1])
         out_cor_word = vec_add(vec_sub(beta, convert_0), convert_1)
-        mask = cls.RING.new_elm(1) - \
+        mask = cls.RING.one() - \
             cls.RING.new_elm(2) * cls.RING.new_elm(ctrl[1].as_unsigned())
         for i in range(len(out_cor_word)):
             out_cor_word[i] *= mask
@@ -145,7 +147,7 @@ class Vdpf:
         # for l in range(eval_points):
         for x_l in eval_points:
             seed = init_seed
-            ctrl = Field2(agg_id)
+            ctrl = cls.R2.new_elm(agg_id)
 
             for i in range(cls.BITS):
                 (s_0, t_0), (s_1, t_1) = cls.node_expand(seed, ctrl, 
@@ -164,7 +166,7 @@ class Vdpf:
             y_l = correct(y_l, out_cor_word, 
                           cls.RING.new_elm(ctrl.as_unsigned()))
 
-            mask = cls.RING.new_elm(1) - \
+            mask = cls.RING.one() - \
                 cls.RING.new_elm(2) * cls.RING.new_elm(agg_id)
             for i in range(len(y_l)):
                 y_l[i] *= mask
@@ -198,7 +200,7 @@ class Vdpf:
             prg.next(PrgFixedKeyAes128.SEED_SIZE),
         ]
         bit = prg.next(1)[0]
-        ctrl = [Field2(bit & 1), Field2((bit >> 1) & 1)]
+        ctrl = [cls.R2.new_elm(bit & 1), cls.R2.new_elm((bit >> 1) & 1)]
         return (new_seed, ctrl)
 
     @classmethod
@@ -215,11 +217,11 @@ def correct(k_0, k_1, ctrl):
     ''' return k_0 if ctrl == 0 else xor(k_0, k_1) '''
     if isinstance(k_0, Bytes):
         return xor(k_0, ctrl.conditional_select(k_1))
-    if isinstance(k_0, list): # list of ints or Field elements
+    if isinstance(k_0, list): # list of ints or ring elements
         for i in range(len(k_0)):
             k_0[i] += ctrl * k_1[i]
         return k_0
-    # int or Field element
+    # int or ring element
     return k_0 + ctrl * k_1
 
 
