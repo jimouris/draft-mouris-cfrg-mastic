@@ -12,16 +12,22 @@ class RingElem:
         self.MODULUS = mod
 
     def __add__(self, other):
+        if self.MODULUS != other.MODULUS:
+            raise ValueError("Different moduli in add:", self.MODULUS, other.MODULUS)
         if isinstance(other, RingElem):
             return RingElem((self.val + other.val) % self.MODULUS, self.MODULUS)
         raise ValueError("Unsupported operand type for +")
 
     def __sub__(self, other):
+        if self.MODULUS != other.MODULUS:
+            raise ValueError("Different moduli in sub:", self.MODULUS, other.MODULUS)
         if isinstance(other, RingElem):
             return RingElem((self.val - other.val) % self.MODULUS, self.MODULUS)
         raise ValueError("Unsupported operand type for -")
 
     def __mul__(self, other):
+        if self.MODULUS != other.MODULUS:
+            raise ValueError("Different moduli in mul:", self.MODULUS, other.MODULUS)
         if isinstance(other, RingElem):
             return RingElem((self.val * other.val) % self.MODULUS, self.MODULUS)
         raise ValueError("Unsupported operand type for *")
@@ -69,31 +75,31 @@ class RingElem:
 class Ring:
     """The base class for rings."""
 
-    @classmethod
-    def __init__(cls, mod):
-        cls.MODULUS = mod
-        cls.ENCODED_SIZE = 8
+    def __init__(self, mod):
+        self.MODULUS = mod
+        self.ENCODED_SIZE = 8
 
-    @classmethod
-    def new_elm(cls, val):
-        return RingElem(val, cls.MODULUS)
+    def __str__(self):
+        return 'Ring(' + str(self.MODULUS) + ')'
 
-    @classmethod
-    def zero(cls):
-        return RingElem(0, cls.MODULUS)
+    def new_elm(self, val):
+        return RingElem(val, self.MODULUS)
 
-    @classmethod
-    def one(cls):
-        return RingElem(1, cls.MODULUS)
+    def zero(self):
+        return RingElem(0, self.MODULUS)
 
-    @classmethod
-    def zeros(cls, length: Unsigned) -> Vec[Field]:
-        vec = [cls.zero() for _ in range(length)]
+    def one(self):
+        return RingElem(1, self.MODULUS)
+
+    def zeros(self, length: Unsigned) -> Vec[Field]:
+        vec = [self.zero() for _ in range(length)]
         return vec
 
 
-if __name__ == '__main__':
+def main():
+    '''Run some tests.'''
     r = Ring(2**6)
+    print(r, 'tests')
     el_1 = r.new_elm(42)
     el_2 = r.new_elm(20)
     sum = el_1 + el_2
@@ -106,3 +112,23 @@ if __name__ == '__main__':
 
     assert sum.as_unsigned() == 8
     assert (r.new_elm(-1) * sum).as_unsigned() == 56
+
+    r2 = Ring(2)
+    print(r2, 'tests')
+    assert r2.one().as_unsigned() == 1
+    assert r2.zero().as_unsigned() == 0
+    assert r2.one() + r2.one() == r2.zero()
+    assert r2.one() * r2.one() == r2.one()
+    assert -r2.one() == r2.one()
+    assert r2.one().conditional_select(b'hello') == b'hello'
+    assert r2.zero().conditional_select(b'hello') == bytes([0, 0, 0, 0, 0])
+
+    try:
+        r2.one() + r.one()
+        assert False
+    except Exception as e:
+        print("Caught error correctly:", str(e))
+
+
+if __name__ == '__main__':
+    main()
