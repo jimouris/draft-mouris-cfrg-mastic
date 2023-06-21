@@ -19,4 +19,3 @@ test: pyfiles
 	sage -python field.py
 	sage -python prg.py
 	sage idpf.sage
-	sage vdpf.sage
