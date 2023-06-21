@@ -45,7 +45,7 @@ class Prg:
             if x < Field.MODULUS:
                 vec.append(Field(x))
         return vec
-    
+
     def next_vec_ring(self, Ring, length: Unsigned):
         """Output the next `length` pseudorandom elements of `Ring`."""
         m = next_power_of_2(Ring.MODULUS) - 1

@@ -48,7 +48,7 @@ class RingElem:
 
     def as_unsigned(self) -> Unsigned:
         return int(self.val)
-    
+
     def hash(self):
         """Compute the hash val of the ring element."""
         sha256 = hashlib.sha256()

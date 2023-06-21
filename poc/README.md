@@ -6,8 +6,8 @@ themselves.
 
 ## Installation
 
-This code is compatilbe with SageMath version 9.6. In order to run the code you 
-will need to install 
+This code is compatilbe with SageMath version 9.6. In order to run the code you
+will need to install
 [PyCryptodome](https://pycryptodome.readthedocs.io/en/latest/index.html).
 
 ```shell

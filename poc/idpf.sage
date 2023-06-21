@@ -35,10 +35,10 @@ class Idpf:
 
     # Number of random bytes consumed by the `gen()` algorithm.
     RAND_SIZE = 2 * PrgFixedKeyAes128.SEED_SIZE
-    
+
     # The finite field used to represent the inner nodes of the IDPF tree.
     FieldInner = field.Field64
-    
+
     # The finite field used to represent the leaf nodes of the IDPF tree.
     FieldLeaf = field.Field255
 

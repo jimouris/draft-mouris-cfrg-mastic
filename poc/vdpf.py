@@ -150,7 +150,7 @@ class Vdpf:
             ctrl = cls.R2.new_elm(agg_id)
 
             for i in range(cls.BITS):
-                (s_0, t_0), (s_1, t_1) = cls.node_expand(seed, ctrl, 
+                (s_0, t_0), (s_1, t_1) = cls.node_expand(seed, ctrl,
                                                          cor_words[i])
 
                 # b_1...b_n = msb(x_l)...lsb(x_l)
@@ -163,7 +163,7 @@ class Vdpf:
             proof_prime = sha3.digest()
 
             _, y_l = cls.convert(seed)
-            y_l = correct(y_l, out_cor_word, 
+            y_l = correct(y_l, out_cor_word,
                           cls.RING.new_elm(ctrl.as_unsigned()))
 
             mask = cls.RING.one() - \
@@ -244,7 +244,7 @@ def main():
     proofs = []
     for agg_id in range(vdpf.SHARES):
         y_agg_id, proof_agg_id = vdpf.batch_verifiable_eval(
-            agg_id, init_seed[agg_id], cor_words, 
+            agg_id, init_seed[agg_id], cor_words,
             cor_seed, out_cor_word, eval_points
         )
         proofs.append(proof_agg_id)
