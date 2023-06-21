@@ -27,6 +27,10 @@ author:
     organization: University of Delaware
     email: jimouris@udel.edu
  -
+    name: Christopher Patton
+    organization: Cloudflare
+    email: chrispatton+ietf@gmail.com
+ -
     fullname: Pratik Sarkar
     organization: Boston University
     email: pratik93@bu.edu
