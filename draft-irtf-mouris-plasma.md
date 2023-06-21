@@ -3,7 +3,7 @@ title: "Private, Lightweight Aggregated Statistics against Malicious Adversaries
 abbrev: "PLASMA"
 category: info
 
-docname: draft-irtf-cfrg-plasma-latest
+docname: draft-irtf-mouris-plasma-latest
 submissiontype: IRTF
 number:
 date:
@@ -18,7 +18,7 @@ venue:
   type: "Research Group"
   mail: "cfrg@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/search/?email_list=cfrg"
-  github: "jimouris/draft-irtf-cfrg-plasma"
+  github: "jimouris/draft-irtf-mouris-plasma"
 <!--   latest: https://example.com/LATEST -->
 
 author:

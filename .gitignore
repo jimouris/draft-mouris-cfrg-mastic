@@ -17,7 +17,7 @@
 /versioned/
 Gemfile.lock
 archive.json
-draft-irtf-cfrg-plasma.xml
+draft-irtf-mouris-plasma.xml
 package-lock.json
 report.xml
 !requirements.txt

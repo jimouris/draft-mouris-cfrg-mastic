@@ -1,4 +1,4 @@
 # License
 
 See the
-[guidelines for contributions](https://github.com/jimouris/draft-irtf-cfrg-plasma/blob//CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/jimouris/draft-irtf-mouris-plasma/blob//CONTRIBUTING.md).

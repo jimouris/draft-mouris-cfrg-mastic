@@ -2,16 +2,16 @@
 
 This is the working area for the individual Internet-Draft, "Private, Lightweight Aggregated Statistics against Malicious Adversaries".
 
-* [Editor's Copy](https://jimouris.github.io/draft-irtf-cfrg-plasma/#go.draft-irtf-cfrg-plasma.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-irtf-cfrg-plasma)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-plasma)
-* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-irtf-cfrg-plasma/#go.draft-irtf-cfrg-plasma.diff)
+* [Editor's Copy](https://jimouris.github.io/draft-irtf-mouris-plasma/#go.draft-irtf-mouris-plasma.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-irtf-mouris-plasma)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-irtf-mouris-plasma)
+* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-irtf-mouris-plasma/#go.draft-irtf-mouris-plasma.diff)
 
 
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/jimouris/draft-irtf-cfrg-plasma/blob//CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/jimouris/draft-irtf-mouris-plasma/blob//CONTRIBUTING.md).
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
