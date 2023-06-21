@@ -110,13 +110,13 @@ class Vdpf:
         seed_n = seed
         t_n = ctrl
 
-        sha256 = hashlib.sha256()
-        sha256.update(str(alpha).encode('ascii') + seed_n[0])
-        proof_0 = sha256.digest()
+        sha3 = hashlib.sha3_256()
+        sha3.update(str(alpha).encode('ascii') + seed_n[0])
+        proof_0 = sha3.digest()
 
-        sha256 = hashlib.sha256()
-        sha256.update(str(alpha).encode('ascii') + seed_n[1])
-        proof_1 = sha256.digest()
+        sha3 = hashlib.sha3_256()
+        sha3.update(str(alpha).encode('ascii') + seed_n[1])
+        proof_1 = sha3.digest()
 
         cor_seed = xor(proof_0, proof_1)
 
@@ -158,9 +158,9 @@ class Vdpf:
                 seed, ctrl = (s_0, t_0) if b_i == 0 else (s_1, t_1)
 
             # proof_prime = hash(x_l | s)
-            sha256 = hashlib.sha256()
-            sha256.update(str(x_l).encode('ascii') + seed)
-            proof_prime = sha256.digest()
+            sha3 = hashlib.sha3_256()
+            sha3.update(str(x_l).encode('ascii') + seed)
+            proof_prime = sha3.digest()
 
             _, y_l = cls.convert(seed)
             y_l = correct(y_l, out_cor_word, 
@@ -172,15 +172,15 @@ class Vdpf:
                 y_l[i] *= mask
             y_vec.append(y_l)
 
-            sha256 = hashlib.sha256()
-            sha256.update(
+            sha3 = hashlib.sha3_256()
+            sha3.update(
                 xor(
                     proof,
                     correct(proof_prime,cor_seed,
                             cls.RING.new_elm(ctrl.as_unsigned()))
                 )
             )
-            proof = xor(proof, sha256.digest())
+            proof = xor(proof, sha3.digest())
 
         return (y_vec, proof)
 
