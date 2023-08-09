@@ -4,39 +4,40 @@ from __future__ import annotations
 import hashlib
 
 
-class RingElem:
+class Ring:
     """The base class for ring elements."""
+    MODULUS: Unsigned
+    ENCODED_SIZE: Unsigned
 
-    def __init__(self, val, mod):
-        self.val = val % mod
-        self.MODULUS = mod
+    def __init__(self, val):
+        self.val = val % self.MODULUS
 
     def __add__(self, other):
         if self.MODULUS != other.MODULUS:
             raise ValueError("Different moduli in add:", self.MODULUS, other.MODULUS)
-        if isinstance(other, RingElem):
-            return RingElem((self.val + other.val) % self.MODULUS, self.MODULUS)
+        if isinstance(other, self.__class__):
+            return self.__class__(self.val + other.val)
         raise ValueError("Unsupported operand type for +")
 
     def __sub__(self, other):
         if self.MODULUS != other.MODULUS:
             raise ValueError("Different moduli in sub:", self.MODULUS, other.MODULUS)
-        if isinstance(other, RingElem):
-            return RingElem((self.val - other.val) % self.MODULUS, self.MODULUS)
+        if isinstance(other, self.__class__):
+            return self.__class__(self.val - other.val)
         raise ValueError("Unsupported operand type for -")
 
     def __mul__(self, other):
         if self.MODULUS != other.MODULUS:
             raise ValueError("Different moduli in mul:", self.MODULUS, other.MODULUS)
-        if isinstance(other, RingElem):
-            return RingElem((self.val * other.val) % self.MODULUS, self.MODULUS)
+        if isinstance(other, self.__class__):
+            return self.__class__(self.val * other.val)
         raise ValueError("Unsupported operand type for *")
 
     def __neg__(self):
-        return RingElem((-self.val) % self.MODULUS, self.MODULUS)
+        return self.__class__((-self.val) % self.MODULUS)
 
     def __eq__(self, other):
-        if isinstance(other, RingElem):
+        if isinstance(other, self.__class__):
             return self.val == other.val
         return False
 
@@ -72,59 +73,68 @@ class RingElem:
             m |= v << i
         return bytes(map(lambda x: m & x, inp))
 
-class Ring:
-    """The base class for rings."""
+    @classmethod
+    def zeros(Ring, length: Unsigned) -> list[Ring]:
+        vec = [Ring(0) for _ in range(length)]
+        return vec
 
-    def __init__(self, mod):
-        self.MODULUS = mod
-        self.ENCODED_SIZE = 8
+    @classmethod
+    def ones(Ring, length: Unsigned) -> list[Ring]:
+        vec = [Ring(1) for _ in range(length)]
+        return vec
+
+
+class Ring2(Ring):
+    """The base class for 16-bit ring."""
+    MODULUS = 2
+    ENCODED_SIZE = 1
 
     def __str__(self):
-        return 'Ring(' + str(self.MODULUS) + ')'
+        return 'Ring2(' + str(self.MODULUS) + ')'
 
-    def new_elm(self, val):
-        return RingElem(val, self.MODULUS)
+class Ring16(Ring):
+    """The base class for 16-bit ring."""
+    MODULUS = 2**16
+    ENCODED_SIZE = 2
 
-    def zero(self):
-        return RingElem(0, self.MODULUS)
+    def __str__(self):
+        return 'Ring16(' + str(self.MODULUS) + ')'
 
-    def one(self):
-        return RingElem(1, self.MODULUS)
-
-    def zeros(self, length: Unsigned) -> Vec[Field]:
-        vec = [self.zero() for _ in range(length)]
-        return vec
 
 
 def main():
     '''Run some tests.'''
-    r = Ring(2**6)
+    class Ring6(Ring):
+        MODULUS = 2**6
+        ENCODED_SIZE = 1
+    r = Ring6
+
     print(r, 'tests')
-    el_1 = r.new_elm(42)
-    el_2 = r.new_elm(20)
+    el_1 = r(42)
+    el_2 = r(20)
     sum = el_1 + el_2
 
     assert el_1.as_unsigned() == 42
     assert el_2.as_unsigned() == 20
     assert sum.as_unsigned() == 62
 
-    sum += r.new_elm(10)
+    sum += r(10)
 
     assert sum.as_unsigned() == 8
-    assert (r.new_elm(-1) * sum).as_unsigned() == 56
+    assert (r(-1) * sum).as_unsigned() == 56
 
-    r2 = Ring(2)
+    r2 = Ring2
     print(r2, 'tests')
-    assert r2.one().as_unsigned() == 1
-    assert r2.zero().as_unsigned() == 0
-    assert r2.one() + r2.one() == r2.zero()
-    assert r2.one() * r2.one() == r2.one()
-    assert -r2.one() == r2.one()
-    assert r2.one().conditional_select(b'hello') == b'hello'
-    assert r2.zero().conditional_select(b'hello') == bytes([0, 0, 0, 0, 0])
+    assert r2(1).as_unsigned() == 1
+    assert r2(0).as_unsigned() == 0
+    assert r2(1) + r2(1) == r2(0)
+    assert r2(1) * r2(1) == r2(1)
+    assert -r2(1) == r2(1)
+    assert r2(1).conditional_select(b'hello') == b'hello'
+    assert r2(0).conditional_select(b'hello') == bytes([0, 0, 0, 0, 0])
 
     try:
-        r2.one() + r.one()
+        r2(1) + r.one()
         assert False
     except Exception as e:
         print("Caught error correctly:", str(e))
