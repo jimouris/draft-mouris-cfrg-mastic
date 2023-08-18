@@ -128,9 +128,7 @@ string is a prefix of the client's input. The protocol also specifies a
 multi-party computation for verifying that at most one string among a set of
 candidates is a prefix of the client's input.
 
-
 Verifiable Distributed Aggregation Functions (VDAFs) {{DPRS23}} ...
-
 
 De Castro and Polychroniadou {{CP22}} introduced Verifiable DPF (VDPF), a DPF
 scheme that supports a well-formedness check. More specifically, VDPFs allows
@@ -138,12 +136,52 @@ verifying that the client’s inputs are well-formed, meaning that the client
 will not learn any unauthorized information about the servers' database or
 modify the database in an unauthorized way.
 
-
 PLASMA {{MST23}} introduced the notion of Verifiable Incremental DPF (VIDPF)
 that builds upon IDPF {{BBCGGI21}} and VDPF {{CP22}}. VIDPF is an IDPF that
 allows verifying that clients’ inputs are valid by relying on hashing while
 preserving the client’s input privacy.
 
+## The "Aggregation-by-Labels" Use Case
+
+The goal is devise a VDAF for an aggregation function that partitions the
+aggregates by grouping Clients that share the same "label". (For instance, you
+might want to know the average age of the Clients per country.) More generally,
+given an aggregation function `F0`, devise a VDAF for the following aggregation
+function:
+
+~~~
+def F(candidate_labels, measurements):
+    meaus_per_label = {}
+    for (label, meas0) in measurements:
+        if meas_per_label.get(label) == None:
+            meas_per_label[label] = []
+        meas_per_label.append(meas0)
+
+    agg_result = []
+    for candidate_label in candidate_labels:
+        if meas_per_label.get(candidate_label):
+            agg_result.append(F(meas_per_label[candidate_label]))
+        else:
+            agg_result.append(F([]))
+    return agg_result
+~~~
+
+Each measurement consists of a label and an "inner" measurement. For each
+candidate label, `F` computes the aggregate `F0` of all inner measurements with
+that label.
+
+### Option #1: Extend PLASMA
+
+[CP: As discussed in the sync on 20223-08-18.] VIDPF already solves a special
+case: if the inner measurements are `0` and `1`, then just apply the VIDPF
+directly. It seems like we can extend VIDPFs to handle more sophisticated
+"range checks", i.e., inner measurements in range `[0, k)` for small `k`.
+
+### Option #2: Compose PLASMA with an FLP
+
+With an FLP we can handle virtually arbitrary range checks. Basically, any `F0`
+for which Prio3 is suitable. The idea would be to prove that the sum of the
+VIDPF outputs is a valid inner measurement.
 
 
 # Conventions and Definitions
