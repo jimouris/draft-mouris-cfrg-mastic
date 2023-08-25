@@ -134,7 +134,7 @@ def main():
     assert r2(0).conditional_select(b'hello') == bytes([0, 0, 0, 0, 0])
 
     try:
-        r2(1) + r.one()
+        r2(1) + r.ones(1)
         assert False
     except Exception as e:
         print("Caught error correctly:", str(e))
