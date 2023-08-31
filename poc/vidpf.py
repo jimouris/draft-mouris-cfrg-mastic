@@ -63,8 +63,10 @@ class Vidpf:
         ctrl = [cls.R2(0), cls.R2(1)]
         correction_words = []
         cs_proofs = []
+        alpha_less_than_i = 0
         for i in range(cls.BITS):
             alpha_i = (alpha >> (cls.BITS - i - 1)) & 1
+            alpha_less_than_i = (alpha_less_than_i << 1) + alpha_i
             keep, lose = (1, 0) if alpha_i else (0, 1) # if x = 0 then keep <- L, lose <- R
 
             (s_0, t_0) = cls.extend(seed[0]) # s_0^L || s_0^R || t_0^L || t_0^R
@@ -87,10 +89,10 @@ class Vidpf:
 
             # Compute hashes for level i
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha_i).encode('ascii') + seed[0])
+            sha3.update(str(alpha_less_than_i).encode('ascii') + seed[0])
             proof_0 = sha3.digest()
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha_i).encode('ascii') + seed[1])
+            sha3.update(str(alpha_less_than_i).encode('ascii') + seed[1])
             proof_1 = sha3.digest()
 
             cs_proofs.append(xor(proof_0, proof_1))
@@ -119,9 +121,10 @@ class Vidpf:
             # (`seed`) and a set of control bits (`ctrl`).
             seed = init_seed
             ctrl = cls.R2(agg_id)
-
+            x_less_than_i = 0
             for current_level in range(level+1):
                 x_i = (prefix >> (level - current_level)) & 1
+                x_less_than_i = (x_less_than_i << 1) + x_i
 
                 pi_proof = cs_proofs[current_level]
                 # Implementation note: Typically the current round of
@@ -145,15 +148,14 @@ class Vidpf:
                     correction_words[current_level],
                     cs_proofs[current_level],
                     current_level,
-                    x_i,
-                    # prefix[..],
+                    x_less_than_i,
                     pi_proof
                 )
             out_share.append(y if agg_id == 0 else vec_neg(y))
         return out_share, pi_proof
 
     @classmethod
-    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_i, pi_proof):
+    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_less_than_i, pi_proof):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
@@ -167,6 +169,7 @@ class Vidpf:
         t[0] += ctrl_cw[0] * prev_ctrl # t^L
         t[1] += ctrl_cw[1] * prev_ctrl # t^R
 
+        x_i = x_less_than_i & 1
         next_ctrl = t[x_i] # t'^i
         (next_seed, w) = cls.convert(s[x_i], level) # s^i, W^i
         # Implementation note: Here we add the correction word to the
@@ -180,7 +183,7 @@ class Vidpf:
         # TODO(@jimouris): Update x_i to be x_{<=i}
         sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(x_i).encode('ascii') + next_seed)
+        sha3.update(str(x_less_than_i).encode('ascii') + next_seed)
         pi_prime = sha3.digest()
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
@@ -269,6 +272,32 @@ def main():
 
     print('Aggregated:', out)
     assert out == [[vidpf.RING(2)], [vidpf.RING(3)]]
+
+
+    vidpf.BITS = 16
+    measurements = [
+        0b1111000011110000, 0b1111000011110001, 0b1111000011110010, 0b0000010011110010
+        ] # alpha values from different users
+    beta = vidpf.RING.ones(vidpf.BITS)
+    prefixes = [0b000001, 0b111100]
+    level = 5
+
+    out = [vidpf.RING.zeros(vidpf.VALUE_LEN)] * len(prefixes)
+    for measurement in measurements:
+        rand = gen_rand(vidpf.RAND_SIZE)
+        init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, rand)
+
+        proofs = []
+        for agg_id in range(vidpf.SHARES):
+            y_id, pi_id = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level, prefixes, cs_proofs)
+
+            proofs.append(pi_id)
+            for i in range(len(prefixes)):
+                out[i] = vec_add(out[i], y_id[i])
+        assert vidpf.verify(proofs[0], proofs[1])
+
+    print('Aggregated:', out)
+    assert out == [[vidpf.RING(1)], [vidpf.RING(3)]]
 
 
 if __name__ == '__main__':
