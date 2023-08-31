@@ -65,42 +65,41 @@ class Vidpf:
         cs_proofs = []
         for i in range(cls.BITS):
             alpha_i = (alpha >> (cls.BITS - i - 1)) & 1
-            diff, same = (1, 0) if alpha_i else (0, 1) # if x = 0 then Diff <- L, Same <- R
+            keep, lose = (1, 0) if alpha_i else (0, 1) # if x = 0 then keep <- L, lose <- R
 
             (s_0, t_0) = cls.extend(seed[0]) # s_0^L || s_0^R || t_0^L || t_0^R
             (s_1, t_1) = cls.extend(seed[1]) # s_1^L || s_1^R || t_1^L || t_1^R
-            seed_cw = xor(s_0[same], s_1[same])
+            seed_cw = xor(s_0[lose], s_1[lose])
             ctrl_cw = (
                 t_0[0] + t_1[0] + cls.R2(1) + cls.R2(alpha_i), # t_c^L
                 t_0[1] + t_1[1] + cls.R2(alpha_i),             # t_c^R
             )
 
-            (seed[0], w_0) = cls.convert(correct(s_0[diff], seed_cw, ctrl[0]), i)
-            (seed[1], w_1) = cls.convert(correct(s_1[diff], seed_cw, ctrl[1]), i)
-            ctrl[0] = correct(t_0[diff], ctrl_cw[diff], ctrl[0]) # t0'
-            ctrl[1] = correct(t_1[diff], ctrl_cw[diff], ctrl[1]) # t1'
+            (seed[0], w_0) = cls.convert(correct(s_0[keep], seed_cw, ctrl[0]), i)
+            (seed[1], w_1) = cls.convert(correct(s_1[keep], seed_cw, ctrl[1]), i)
+            ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0]) # t0'
+            ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1]) # t1'
 
             w_cw = vec_add(vec_sub(beta, w_0), w_1)
             mask = cls.RING(1) - cls.RING(2) * cls.RING(ctrl[1].as_unsigned())
             for j in range(len(w_cw)):
                 w_cw[j] *= mask
 
+            # Compute hashes for level i
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha).encode('ascii') + seed[0])
+            sha3.update(str(alpha_i).encode('ascii') + seed[0])
             proof_0 = sha3.digest()
-
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha).encode('ascii') + seed[1])
+            sha3.update(str(alpha_i).encode('ascii') + seed[1])
             proof_1 = sha3.digest()
 
-            # TODO
             cs_proofs.append(xor(proof_0, proof_1))
             correction_words.append((seed_cw, ctrl_cw, w_cw))
 
         return (init_seed, correction_words, cs_proofs)
 
     @classmethod
-    def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs, pi_proof):
+    def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs):
         if agg_id >= cls.SHARES:
             raise ERR_INPUT  # invalid aggregator ID
         if level >= cls.BITS:
@@ -120,9 +119,11 @@ class Vidpf:
             # (`seed`) and a set of control bits (`ctrl`).
             seed = init_seed
             ctrl = cls.R2(agg_id)
-            for current_level in range(level+1):
-                bit = (prefix >> (level - current_level)) & 1
 
+            for current_level in range(level+1):
+                x_i = (prefix >> (level - current_level)) & 1
+
+                pi_proof = cs_proofs[current_level]
                 # Implementation note: Typically the current round of
                 # candidate prefixes would have been derived from
                 # aggregate results computed during previous rounds. For
@@ -137,54 +138,59 @@ class Vidpf:
                 # wasteful. Implementations can eliminate this added
                 # complexity by caching nodes (i.e., `(seed, ctrl)`
                 # pairs) output by previous calls to `eval_next()`.
+
                 (seed, ctrl, y, pi_proof) = cls.eval_next(
                     seed,
                     ctrl,
                     correction_words[current_level],
                     cs_proofs[current_level],
                     current_level,
-                    bit,
+                    x_i,
+                    # prefix[..],
                     pi_proof
                 )
             out_share.append(y if agg_id == 0 else vec_neg(y))
         return out_share, pi_proof
 
     @classmethod
-    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, bit, pi_proof):
+    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_i, pi_proof):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
         the prefix corresponding to the next level of the tree.
         """
-
         (seed_cw, ctrl_cw, w_cw) = correction_word
 
-        (s, t) = cls.extend(prev_seed)
-        s[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw))
-        s[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw))
-        t[0] += ctrl_cw[0] * prev_ctrl
-        t[1] += ctrl_cw[1] * prev_ctrl
+        (s, t) = cls.extend(prev_seed) # (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+        s[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw)) # s^L
+        s[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw)) # s^R
+        t[0] += ctrl_cw[0] * prev_ctrl # t^L
+        t[1] += ctrl_cw[1] * prev_ctrl # t^R
 
-        next_ctrl = t[bit]
-        (next_seed, y) = cls.convert(s[bit], level)
-
-        sha3 = hashlib.sha3_256()
-        # TODO(@jimouris): Update bit to be x_{<=i}
-        sha3.update(str(bit).encode('ascii') + next_seed)
-        proof_prime = sha3.digest()
-
-
-        # \pi = \pi xor H(\pi \xor (1 - next_ctrl) * proof_prime \xor next_ctrl * cs_proof)
-        # xor(proof_0, proof_1)
-        # pi_proof =
-
+        next_ctrl = t[x_i] # t'^i
+        (next_seed, w) = cls.convert(s[x_i], level) # s^i, W^i
         # Implementation note: Here we add the correction word to the
         # output if `next_ctrl` is set. We avoid branching on the value of
         # the control bit in order to reduce side channel leakage.
-        # mask = Field(next_ctrl.as_unsigned())
+        y = []
         mask = cls.RING(next_ctrl.as_unsigned())
-        for i in range(len(y)):
-            y[i] += w_cw[i] * mask
+        for i in range(len(w)):
+            y.append(w[i] + w_cw[i] * mask)
+
+        # TODO(@jimouris): Update x_i to be x_{<=i}
+        sha3 = hashlib.sha3_256()
+        # pi' = H(x^{<= i} || s^i)
+        sha3.update(str(x_i).encode('ascii') + next_seed)
+        pi_prime = sha3.digest()
+
+        # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
+        sha3 = hashlib.sha3_256()
+        if next_ctrl.as_unsigned() == 1:
+            h2 = xor(pi_proof, xor(pi_prime, cs_proof))
+        else:
+            h2 = xor(pi_proof, pi_prime)
+        sha3.update(h2)
+        pi_proof = xor(pi_proof, sha3.digest())
 
         return (next_seed, next_ctrl, y, pi_proof)
 
@@ -254,14 +260,14 @@ def main():
 
         proofs = []
         for agg_id in range(vidpf.SHARES):
-            y_agg_id, proof_agg_id = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level, prefixes, cs_proofs, cs_proofs)
+            y_id, pi_id = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level, prefixes, cs_proofs)
 
-            proofs.append(proof_agg_id)
+            proofs.append(pi_id)
             for i in range(len(prefixes)):
-                out[i] = vec_add(out[i], y_agg_id[i])
+                out[i] = vec_add(out[i], y_id[i])
         assert vidpf.verify(proofs[0], proofs[1])
 
-    print(out)
+    print('Aggregated:', out)
     assert out == [[vidpf.RING(2)], [vidpf.RING(3)]]
 
 
