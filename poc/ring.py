@@ -90,7 +90,7 @@ class Ring2(Ring):
     ENCODED_SIZE = 1
 
     def __str__(self):
-        return 'Ring2(' + str(self.MODULUS) + ')'
+        return 'Ring2(' + str(self.val) + ')'
 
 class Ring16(Ring):
     """The base class for 16-bit ring."""
@@ -98,7 +98,7 @@ class Ring16(Ring):
     ENCODED_SIZE = 2
 
     def __str__(self):
-        return 'Ring16(' + str(self.MODULUS) + ')'
+        return 'Ring16(' + str(self.val) + ')'
 
 
 
