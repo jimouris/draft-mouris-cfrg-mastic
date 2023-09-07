@@ -55,8 +55,7 @@ class Plabels(Vdaf):
                                     measurement: Measurement,
                                     nonce: Bytes["Vdaf.NONCE_SIZE"],
                                     rand: Bytes["Vdaf.RAND_SIZE"],
-                                    ) -> tuple[Bytes,  #public share; joint_r
-                                               Vec[Bytes]]: #input shares
+                                    ): #input shares
         """
         Shard a measurement into a "public share" and a sequence of input
         shares, one for each Aggregator. This method is run by the Client.
@@ -105,7 +104,7 @@ class Plabels(Vdaf):
 
     @classmethod
     def is_valid(Vdaf, agg_param: AggParam,
-                 previous_agg_params: set[AggParam]) -> Bool:
+                 previous_agg_params):
         """
         Check if `agg_param` is valid for use with an input share that has
         previously been used with all `previous_agg_params`.
@@ -243,8 +242,6 @@ class Plabels(Vdaf):
             return (prep, prep_msg)
         
         return out_share
-        
-
 
     @classmethod
     def prep_shares_to_prep(Plabels,
