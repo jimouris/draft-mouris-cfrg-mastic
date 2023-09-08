@@ -93,28 +93,26 @@ informative:
 
 --- abstract
 
-This document describes PLASMA: a framework for Private, Lightweight Aggregated
-Statistics against Malicious Adversaries. PLASMA is a multi-party protocol for
-computing aggregate statistics over user measurements in the three-server
-setting while protecting the privacy of honest clients and the correctness of
-the protocol against a coalition of malicious clients and a malicious server.
-PLASMA ensures that as long as at least one aggregation server executes the
-protocol honestly, individual measurements are never seen by any server in the
-clear. At the same time, PLASMA allow the servers to detect if a malicious
-client submitted an input that would result in an incorrect aggregate result.
-The core primitives in PLASMA are a verifiable incremental distributed point
-function (VIDPF) and a batched consistency check, which are of independent
-interest. The VIDPF reduces the server runtime by introducing new methods to
-validate client inputs based on hashing and preemptively reject malformed ones.
-The batched consistency check uses Merkle trees to validate multiple client
-sessions together in a batch and reduce the server communication across
-multiple client sessions.
+This document describes Plabels, a two-party VDAF for the following aggregation
+task: each Client holds a bit string, and the Collector wishes to count how
+many of these strings begin with a candidate prefix. Such a VDAF can be used to
+solve the heavy hitters problem, where the goal is compute the subset of the
+measurements that occur most frequently. This document also describes various
+modes of operation for Plabels. First, its output type can be enriched to
+support aggregation functions beyond prefix counts. Second, an extension to the
+aggregation phase is described that significantly reduces communication cost
+compared to existing techniques. Third, a three-party variant is described that
+is robust in the honest majority setting.
 
 --- middle
 
 # Introduction
 
-TODO Introduction
+> TODO Introduction. Outline:
+> - Recall the heavy hitters problem
+> - Describe Poplar {{BBCGGI21}}, IDPF, and how the VDAF abstraction relates to IDPF
+> - Say that Poplar isn't ideal for solving this problem
+> - Introduce {{MST23}}
 
 Poplar {{BBCGGI21}} described a protocol for solving the `t`-heavy-hitters
 problem in a privacy-preserving manner. Each client holds a bit-string of
@@ -128,7 +126,19 @@ string is a prefix of the client's input. The protocol also specifies a
 multi-party computation for verifying that at most one string among a set of
 candidates is a prefix of the client's input.
 
-Verifiable Distributed Aggregation Functions (VDAFs) {{DPRS23}} ...
+# Conventions and Definitions
+
+{::boilerplate bcp14-tagged}
+
+# Preliminaries
+
+This document makes use of Fully Linear Proofs (FLPs) and eXtendable Output
+Functions (XOFs) as described in {{?VDAF=I-D.draft-irtf-cfrg-vdaf}}. It also
+makes use of an extension of Incremental Distributed Point Functions (IDPFs),
+known as "Verifiable IDPFs (VIDFS)" first described by {{MST23}}. VIDPFs are
+specified below.
+
+## Verifiable IDPF (VIDPF) {#vidpf}
 
 De Castro and Polychroniadou {{CP22}} introduced Verifiable DPF (VDPF), a DPF
 scheme that supports a well-formedness check. More specifically, VDPFs allows
@@ -141,83 +151,58 @@ that builds upon IDPF {{BBCGGI21}} and VDPF {{CP22}}. VIDPF is an IDPF that
 allows verifying that clients’ inputs are valid by relying on hashing while
 preserving the client’s input privacy.
 
-## The "Aggregation-by-Labels" Use Case
+> TODO(Dimitris)
 
-The goal is devise a VDAF for an aggregation function that partitions the
-aggregates by grouping Clients that share the same "label". (For instance, you
-might want to know the average age of the Clients per country.) More generally,
-given an aggregation function `F0`, devise a VDAF for the following aggregation
-function:
+## Interactive Aggregation for VDAFs {#vdaf-interactive-agg-extension}
 
-~~~
-def F(candidate_labels, measurements):
-    meaus_per_label = {}
-    for (label, meas0) in measurements:
-        if meas_per_label.get(label) == None:
-            meas_per_label[label] = []
-        meas_per_label.append(meas0)
+In order to accommadating Plabel's improvemnt in communication cost require, it
+is necessary to replace the non-interactive aggregation algorithm
+`Vdaf.aggregate()`  with a 1-round, interactive protocol implemented by the
+following methods:
 
-    agg_result = []
-    for candidate_label in candidate_labels:
-        if meas_per_label.get(candidate_label):
-            agg_result.append(F(meas_per_label[candidate_label]))
-        else:
-            agg_result.append(F([]))
-    return agg_result
-~~~
+* `Vdaf.aggregate_init(agg_info: AggInfo, out_shares: list[OutShare]) ->
+  tuple[AggState, AggMessage]` is the deterministic aggregation initialization
+  algorithm called by each Aggregator. It takes as input the set output shares
+  to be aggregated and a parameter called the "aggregation information". Its
+  outputs are the Aggregator's state and broadcast message.
 
-Each measurement consists of a label and an "inner" measurement. For each
-candidate label, `F` computes the aggregate `F0` of all inner measurements with
-that label.
+* `Vdaf.aggregate_finish(agg_state: AggState, agg_msgs: list[AggMessage]) ->
+  AggShare`. is the deterministic aggregation finalization aglorithm called by
+  each Aggregator on its aggregation state and the sequence of messages
+  broadcast by each Aggregator.
 
-### Option #1: Extend PLASMA
+> CP: The binary search described in {{MST23}} obviously doesn't fit into a
+> 1-round protocol, as the number of rounds required depends on how deep down
+> the Merkle we have to before we've identified all bad reports. The idea is
+> that aggregation protocol would be invoked multiple times, each time with a
+> different `agg_info`.
 
-[CP: As discussed in the sync on 20223-08-18.] VIDPF already solves a special
-case: if the inner measurements are `0` and `1`, then just apply the VIDPF
-directly. It seems like we can extend VIDPFs to handle more sophisticated
-"range checks", i.e., inner measurements in range `[0, k)` for small `k`.
+> CP: Let's try to come up with a better name than `agg_info`.
 
-### Option #2: Compose PLASMA with an FLP
+# The Plabels VDAF {#vdaf}
 
-With an FLP we can handle virtually arbitrary range checks. Basically, any `F0`
-for which Prio3 is suitable. The idea would be to prove that the sum of the
-VIDPF outputs is a valid inner measurement.
+> TODO(Hannah) Describe the implementation of the base `Vdaf` interface.
 
+# Reducing Communication Cost via Interactive Aggregation
 
-# Conventions and Definitions
+> TODO(Dimitris) Describe the implementation of the interface in
+> {{vdaf-interactive-agg-extension}}
 
-{::boilerplate bcp14-tagged}
+# Improved Robustness via
 
-
-# Definition of Verifiable DPF (VDPF) {#vdpf}
-
-TODO from {{CP22}}
-
-## Key Generation  {#sec-vdpf-key-gen}
-
-TODO
-
-## Evaluation  {#sec-vdpf-eval}
-
-TODO
-
-# Definition of Verifiable Incremental DPF (VIDPF) {#vidpf}
-
-TODO from {{MST23}}
+> TODO Describe 3-party PLASMA
 
 # Security Considerations
 
-TODO Security
-
+> TODO Security
 
 # IANA Considerations
 
 This document has no IANA actions.
-
 
 --- back
 
 # Acknowledgments
 {:numbered="false"}
 
-TODO acknowledge.
+> TODO(Dimitris)
