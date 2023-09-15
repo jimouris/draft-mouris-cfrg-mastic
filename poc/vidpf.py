@@ -109,7 +109,7 @@ class Vidpf:
         if len(set(prefixes)) != len(prefixes):
             raise ERR_INPUT  # candidate prefixes are non-unique
 
-        out_share = []
+        out_share = {}
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
                 raise ERR_INPUT  # prefix too long
@@ -151,7 +151,99 @@ class Vidpf:
                     x_less_than_i,
                     pi_proof
                 )
-            out_share.append(y if agg_id == 0 else vec_neg(y))
+            out_share[prefix] = (y if agg_id == 0 else vec_neg(y))
+        return out_share, pi_proof
+
+    @classmethod
+    def eval_extend(cls, agg_id, correction_words, init_seed, level,
+                    prefixes, cs_proofs):
+        if agg_id >= cls.SHARES:
+            raise ERR_INPUT  # invalid aggregator ID
+        if level >= cls.BITS-1:
+            raise ERR_INPUT  # level too deep
+        if len(set(prefixes)) != len(prefixes):
+            raise ERR_INPUT  # candidate prefixes are non-unique
+
+        out_share = {}
+        cache = {}
+        for prefix in prefixes:
+            if prefix >= 2 ** (level+1):
+                raise ERR_INPUT  # prefix too long
+
+            # The Aggregator's output share is the value of a node of
+            # the IDPF tree at the given `level`. The node's value is
+            # computed by traversing the path defined by the candidate
+            # `prefix`. Each node in the tree is represented by a seed
+            # (`seed`) and a set of control bits (`ctrl`).
+            seed = init_seed
+            ctrl = cls.R2(agg_id)
+            x_less_than_i = 0
+            for current_level in range(level+1):
+                x_i = (prefix >> (level - current_level)) & 1
+                x_less_than_i = (x_less_than_i << 1) + x_i
+
+                pi_proof = cs_proofs[current_level]
+                # Implementation note: Typically the current round of
+                # candidate prefixes would have been derived from
+                # aggregate results computed during previous rounds. For
+                # example, when using `IdpfPoplar` to compute heavy
+                # hitters, a string whose hit count exceeded the given
+                # threshold in the last round would be the prefix of each
+                # `prefix` in the current round. (See [BBCGGI21,
+                # Section 5.1].) In this case, part of the path would
+                # have already been traversed.
+                #
+                # Re-computing nodes along previously traversed paths is
+                # wasteful. Implementations can eliminate this added
+                # complexity by caching nodes (i.e., `(seed, ctrl)`
+                # pairs) output by previous calls to `eval_next()`.
+
+                (seed, ctrl, y, pi_proof) = cls.eval_next(
+                    seed,
+                    ctrl,
+                    correction_words[current_level],
+                    cs_proofs[current_level],
+                    current_level,
+                    x_less_than_i,
+                    pi_proof
+                )
+            out_share[prefix] = (y if agg_id == 0 else vec_neg(y))
+            cache[prefix] = (seed, ctrl, x_less_than_i)
+        return out_share, pi_proof, cache
+    
+    @classmethod
+    def eval_level(cls, cache, correction_word, level, prefixes, pi_proof):
+        if agg_id >= cls.SHARES:
+            raise ERR_INPUT  # invalid aggregator ID
+        if level >= cls.BITS:
+            raise ERR_INPUT  # level too deep
+        if len(set(prefixes)) != len(prefixes):
+            raise ERR_INPUT  # candidate prefixes are non-unique
+
+        out_share = {}
+        cs_proof = pi_proof
+        for prefix in prefixes:
+            if prefix >= 2 ** (level+1):
+                raise ERR_INPUT  # prefix too long
+
+            # The Aggregator's output share is the value of a node of
+            # the IDPF tree at the given `level`. The node's value is
+            # computed by traversing the path defined by the candidate
+            # `prefix`. Each node in the tree is represented by a seed
+            # (`seed`) and a set of control bits (`ctrl`).
+            seed, ctrl, x_less_than_i = cache[prefix>>1]
+            x_i = (prefix >> level) & 1
+            x_less_than_i = (x_less_than_i << 1) + x_i
+
+            (_, _, y, pi_proof) = cls.eval_next(
+                seed,
+                ctrl,
+                correction_word,
+                cs_proof,
+                x_less_than_i,
+                cs_proof
+            )
+            out_share[prefix] = (y if agg_id == 0 else vec_neg(y))
         return out_share, pi_proof
 
     @classmethod

@@ -144,33 +144,16 @@ class Plabels(Vdaf):
             if prefixes[i-1] >= prefixes[i]:
                 raise ERR_INPUT  # out-of-order prefix
 
-        # Expand the set of prefixes to the next level
-        prefixes_with_zero = [2*p for p in prefixes]
-        prefixes_with_one = [p+1 for p in prefixes_with_zero]
-
-        # Evaluate the VIDPF at the given set of prefixes.
-        (out_share, pi_proof) = Plabels.Vidpf.eval(agg_id,
+        # At level 0, we validate the FLP instead of verifying the VIDPF
+        if level == 0:  # no sum check will be necessary
+            (out_share_dict, _) = Plabels.Vidpf.eval(agg_id,
                                                    correction_words,
                                                    init_seed,
-                                                   level-1,
+                                                   0,
                                                    prefixes,
                                                    cs_proofs)
-        # Evaluate the VIDPF at all children of the given set of prefixes
-        (out_share_zeroes, pi_proof_zero) = Plabels.Vidpf.eval(agg_id,
-                                                   correction_words,
-                                                   init_seed,
-                                                   level,
-                                                   prefixes_with_zero,
-                                                   cs_proofs)
-        (out_share_ones, pi_proof_one) = Plabels.Vidpf.eval(agg_id,
-                                                   correction_words,
-                                                   init_seed,
-                                                   level,
-                                                   prefixes_with_one,
-                                                   cs_proofs)
-        
-        # If level = 0 then we validate the output using the FLP. 
-        if level == 0:
+            out_share = [outshare[p] for p in prefixes]
+
             query_rand = Plabels.Prg.expand_into_vec(
                 Plabels.Flp.Field,
                 verify_key,
@@ -195,30 +178,50 @@ class Plabels(Vdaf):
                                                query_rand,
                                                joint_rand,
                                                Plabels.SHARES)
-
             prep_msg = verifier_share
-        
-        # Otherwise we validate that each node's value equals the sum of its
-        # children's values. 
-        else:
-            for i in range(len(prefixes)):
-                hash.update(prefixes[i])
+            
+        # At every other level, we verify the VIDPF proofs and perform a check
+        # that the nodes at this level sum to the value of their parents.  
+        else: 
+            # First we evaluate the VIDPF for the prefixes, their parents nodes
+            # and their sibling nodes
+            parents = []
+            [parents.append(p>>1) if p>>1 not in parents for p in prefixes]
+            parent_share, _, cache = Plabels.Vidpf.eval_extend(agg_id,
+                                                   correction_words,
+                                                   init_seed,
+                                                   level-1,
+                                                   parents,
+                                                   cs_proofs)
+            children = []
+            [children.extend([p<<1, p<<1 + 1]) for p in parents]
+
+            children_share, pi_proof = Plabels.Vidpf.eval_level(cache, 
+                                                        correction_words[level],
+                                                        level, 
+                                                        children, 
+                                                        cs_proofs[level])
+            out_share = [children_share[p] for p in prefixes]
+
+            # Next we collect a single digest encompassing the VIDPF proof and
+            # the sum checks for all parent nodes.
+            for i in range(len(parents)):
+                hash.update(parents[i])
                 local_hash = Plabels.Hash()
-                local_hash.update(prefixes[i])
+                local_hash.update(parents[i])
                 if agg_id == 0:
-                    local_hash.update(out_share[i] \
-                                - out_share_zeroes[i] \
-                                - out_share_ones[i])
+                    local_hash.update(parent_share[parents[i]] \
+                                - children_share[children[2*i]] \
+                                - children_share[children[2*i + 1]])
                 else:
-                    local_hash.update(-out_share[i] \
-                                + out_share_zeroes[i] \
-                                + out_share_ones[i])
+                    local_hash.update(-parent_share[parents[i]] \
+                                + children_share[children[2*i]] \
+                                + children_share[children[2*i + 1]])
                 h = Plabels.Prg.derive_seed(verify_key, 
                             Plabels.domain_separation_tag(USAGE_PLASMA_H1),
                             local_hash.digest())
                 hash.update(local_hash.digest())
-                hash.update(pi_proof_zero[i])
-                hash.update(pi_proof_one[i])
+            hash.update(pi_proof)
 
             prep_msg = Plabels.Prg.derive_seed(verify_key, 
                             Plabels.domain_separation_tag(USAGE_PLASMA_H2),
