@@ -186,7 +186,7 @@ class Plabels(Vdaf):
             # First we evaluate the VIDPF for the prefixes, their parents nodes
             # and their sibling nodes
             parents = []
-            [parents.append(p>>1) if p>>1 not in parents for p in prefixes]
+            [parents.append(p>>1) for p in prefixes if p>>1 not in parents]
             parent_share, _, cache = Plabels.Vidpf.eval_extend(agg_id,
                                                    correction_words,
                                                    init_seed,

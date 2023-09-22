@@ -247,7 +247,8 @@ class Vidpf:
         return out_share, pi_proof
 
     @classmethod
-    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_less_than_i, pi_proof):
+    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
+                  level, x_less_than_i, pi_proof):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
