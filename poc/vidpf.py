@@ -101,7 +101,7 @@ class Vidpf:
         return (init_seed, correction_words, cs_proofs)
 
     @classmethod
-    def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs):
+    def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs, pi_proof):
         if agg_id >= cls.SHARES:
             raise ERR_INPUT  # invalid aggregator ID
         if level >= cls.BITS:
@@ -126,7 +126,6 @@ class Vidpf:
                 x_i = (prefix >> (level - current_level)) & 1
                 x_less_than_i = (x_less_than_i << 1) + x_i
 
-                pi_proof = cs_proofs[current_level]
                 # Implementation note: Typically the current round of
                 # candidate prefixes would have been derived from
                 # aggregate results computed during previous rounds. For
@@ -155,7 +154,8 @@ class Vidpf:
         return out_share, pi_proof
 
     @classmethod
-    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_less_than_i, pi_proof):
+    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_less_than_i,
+                  pi_proof):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
@@ -180,7 +180,6 @@ class Vidpf:
         for i in range(len(w)):
             y.append(w[i] + w_cw[i] * mask)
 
-        # TODO(@jimouris): Update x_i to be x_{<=i}
         sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
         sha3.update(str(x_less_than_i).encode('ascii') + next_seed)
@@ -256,16 +255,20 @@ def main():
     prefixes = [0b0, 0b1]
     level = 0
 
+    sha3 = hashlib.sha3_256()
+    sha3.update(str(0).encode('ascii'))
+    pi_proof = sha3.digest()
+    proofs = [pi_proof, pi_proof]
+
     out = [vidpf.RING.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, rand)
 
-        proofs = []
         for agg_id in range(vidpf.SHARES):
-            y_id, pi_id = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level, prefixes, cs_proofs)
+            y_id, proofs[agg_id] = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level,
+                                              prefixes, cs_proofs, proofs[agg_id])
 
-            proofs.append(pi_id)
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], y_id[i])
         assert vidpf.verify(proofs[0], proofs[1])
@@ -282,16 +285,20 @@ def main():
     prefixes = [0b000001, 0b111100]
     level = 5
 
+    sha3 = hashlib.sha3_256()
+    sha3.update(str(0).encode('ascii'))
+    pi_proof = sha3.digest()
+    proofs = [pi_proof, pi_proof]
+
     out = [vidpf.RING.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, rand)
 
-        proofs = []
         for agg_id in range(vidpf.SHARES):
-            y_id, pi_id = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level, prefixes, cs_proofs)
+            y_id, proofs[agg_id] = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level,
+                                              prefixes, cs_proofs, proofs[agg_id])
 
-            proofs.append(pi_id)
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], y_id[i])
         assert vidpf.verify(proofs[0], proofs[1])
