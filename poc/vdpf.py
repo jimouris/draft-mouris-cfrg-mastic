@@ -13,7 +13,7 @@ from common import \
     xor
 import hashlib
 import ring
-from prg import PrgFixedKeyAes128
+from xof import XofFixedKeyAes128
 
 class Vdpf:
     """A Verifiable Distributed Point Function (VDPF)."""
@@ -28,10 +28,10 @@ class Vdpf:
     VALUE_LEN = 2
 
     # Size in bytes of each vdpf key share.
-    KEY_SIZE = PrgFixedKeyAes128.SEED_SIZE
+    KEY_SIZE = XofFixedKeyAes128.SEED_SIZE
 
     # Number of random bytes consumed by the `gen()` algorithm.
-    RAND_SIZE = 2 * PrgFixedKeyAes128.SEED_SIZE
+    RAND_SIZE = 2 * XofFixedKeyAes128.SEED_SIZE
 
     # A nonce.
     BINDER = b'some nonce'
@@ -98,8 +98,8 @@ class Vdpf:
             raise ERR_INPUT # unexpected length for random input
 
         init_seed = [
-            rand[:PrgFixedKeyAes128.SEED_SIZE],
-            rand[PrgFixedKeyAes128.SEED_SIZE:],
+            rand[:XofFixedKeyAes128.SEED_SIZE],
+            rand[XofFixedKeyAes128.SEED_SIZE:],
         ]
 
         # s0^0, s1^0, t0^0, t1^0
@@ -197,10 +197,10 @@ class Vdpf:
         '''
         Extend seed to (seed_L, t_L, seed_R, t_R)
         '''
-        prg = PrgFixedKeyAes128(seed, format_dst(1, 0, 0), cls.BINDER)
+        prg = XofFixedKeyAes128(seed, format_dst(1, 0, 0), cls.BINDER)
         new_seed = [
-            prg.next(PrgFixedKeyAes128.SEED_SIZE),
-            prg.next(PrgFixedKeyAes128.SEED_SIZE),
+            prg.next(XofFixedKeyAes128.SEED_SIZE),
+            prg.next(XofFixedKeyAes128.SEED_SIZE),
         ]
         bit = prg.next(1)[0]
         ctrl = [cls.R2(bit & 1), cls.R2((bit >> 1) & 1)]
@@ -211,8 +211,8 @@ class Vdpf:
         '''
         Converting seed to a pseudorandom element of G.
         '''
-        prg = PrgFixedKeyAes128(seed, format_dst(1, 0, 1), cls.BINDER)
-        next_seed = prg.next(PrgFixedKeyAes128.SEED_SIZE)
+        prg = XofFixedKeyAes128(seed, format_dst(1, 0, 1), cls.BINDER)
+        next_seed = prg.next(XofFixedKeyAes128.SEED_SIZE)
         # TODO(cjpatton) This is slightly abusing the `Prg` API, as
         # `next_vec()` expects a `Field` as its first parameter. Either
         # re-implement the method here (if the ring modulus is a power of 2,
