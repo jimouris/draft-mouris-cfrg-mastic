@@ -22,6 +22,10 @@ venue:
 <!--   latest: https://example.com/LATEST -->
 
 author:
+ -  fullname: Hannah Davis
+    organization: Seagate
+    email: hannahedavis@protonmail.com
+
  -
     fullname: Dimitris Mouris
     organization: University of Delaware
