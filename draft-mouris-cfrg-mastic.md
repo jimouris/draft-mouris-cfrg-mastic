@@ -3,7 +3,7 @@ title: "The Mastic VDAF"
 abbrev: "Mastic"
 category: info
 
-docname: draft-irtf-mouris-mastic-latest
+docname: draft-mouris-cfrg-mastic-latest
 submissiontype: IRTF
 number:
 date:
@@ -18,7 +18,7 @@ venue:
   type: "Research Group"
   mail: "cfrg@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/search/?email_list=cfrg"
-  github: "jimouris/draft-irtf-mouris-mastic"
+  github: "jimouris/draft-mouris-cfrg-mastic"
 <!--   latest: https://example.com/LATEST -->
 
 author:

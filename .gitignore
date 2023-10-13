@@ -17,7 +17,7 @@
 /versioned/
 Gemfile.lock
 archive.json
-draft-irtf-mouris-mastic.xml
+draft-mouris-cfrg-mastic.xml
 package-lock.json
 report.xml
 !requirements.txt

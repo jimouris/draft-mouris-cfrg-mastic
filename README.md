@@ -2,16 +2,16 @@
 
 This is the working area for the individual Internet-Draft, "The Mastic VDAF".
 
-* [Editor's Copy](https://jimouris.github.io/draft-irtf-mouris-mastic/#go.draft-irtf-mouris-mastic.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-irtf-mouris-mastic)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-irtf-mouris-mastic)
-* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-irtf-mouris-mastic/#go.draft-irtf-mouris-mastic.diff)
+* [Editor's Copy](https://jimouris.github.io/draft-mouris-cfrg-mastic/#go.draft-mouris-cfrg-mastic.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mouris-cfrg-mastic)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mouris-cfrg-mastic)
+* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-mouris-cfrg-mastic/#go.draft-mouris-cfrg-mastic.diff)
 
 
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/jimouris/draft-irtf-mouris-mastic/blob//CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/jimouris/draft-mouris-cfrg-mastic/blob//CONTRIBUTING.md).
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
