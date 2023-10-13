@@ -1,9 +1,9 @@
 ---
-title: "Private, Lightweight Aggregated Statistics against Malicious Adversaries"
-abbrev: "PLASMA"
+title: "The Mastic VDAF"
+abbrev: "Mastic"
 category: info
 
-docname: draft-irtf-mouris-plasma-latest
+docname: draft-irtf-mouris-mastic-latest
 submissiontype: IRTF
 number:
 date:
@@ -18,7 +18,7 @@ venue:
   type: "Research Group"
   mail: "cfrg@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/search/?email_list=cfrg"
-  github: "jimouris/draft-irtf-mouris-plasma"
+  github: "jimouris/draft-irtf-mouris-mastic"
 <!--   latest: https://example.com/LATEST -->
 
 author:

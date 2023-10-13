@@ -1,17 +1,17 @@
-# Private, Lightweight Aggregated Statistics against Malicious Adversaries
+# Mastic VDAF
 
-This is the working area for the individual Internet-Draft, "Private, Lightweight Aggregated Statistics against Malicious Adversaries".
+This is the working area for the individual Internet-Draft, "The Mastic VDAF".
 
-* [Editor's Copy](https://jimouris.github.io/draft-irtf-mouris-plasma/#go.draft-irtf-mouris-plasma.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-irtf-mouris-plasma)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-irtf-mouris-plasma)
-* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-irtf-mouris-plasma/#go.draft-irtf-mouris-plasma.diff)
+* [Editor's Copy](https://jimouris.github.io/draft-irtf-mouris-mastic/#go.draft-irtf-mouris-mastic.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-irtf-mouris-mastic)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-irtf-mouris-mastic)
+* [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-irtf-mouris-mastic/#go.draft-irtf-mouris-mastic.diff)
 
 
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/jimouris/draft-irtf-mouris-plasma/blob//CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/jimouris/draft-irtf-mouris-mastic/blob//CONTRIBUTING.md).
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
