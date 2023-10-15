@@ -23,6 +23,9 @@ venue:
 
 author:
  -
+    fullname: Hannah Davis
+    email: hannahedavis@protonmail.com
+ -
     fullname: Dimitris Mouris
     organization: University of Delaware
     email: jimouris@udel.edu
@@ -32,7 +35,7 @@ author:
     email: chrispatton+ietf@gmail.com
  -
     fullname: Pratik Sarkar
-    organization: Boston University
+    organization: Supra Research
     email: pratik93@bu.edu
  -
     fullname: Nektarios G. Tsoutsos
@@ -60,7 +63,7 @@ informative:
     author:
       - ins: Leo de Castro
       - ins: Anitgoni Polychroniadou
-    date : 2022,
+    date : 2022
     seriesinfo: EUROCRYPT 2022
     target: https://iacr.org/cryptodb/data/paper.php?pubkey=31935
 
@@ -71,7 +74,9 @@ informative:
       - ins: C. Patton
       - ins: M. Rosulek
       - ins: P. Schoppmann
-    target: https://ia.cr/2023/130
+    date: 2023
+    seriesinfo: Proceedings on Privacy Enhancing Technologies (PoPETs)
+    target: https://doi.org/10.56553/popets-2023-0126
 
   GI14:
     title: "Distributed Point Functions and Their Applications"
@@ -88,17 +93,17 @@ informative:
       - ins: Dimitris Mouris
       - ins: Pratik Sarkar
       - ins: Nektarios Georgios Tsoutsos
-    date : 2023,
+    date : 2023
     target: https://ia.cr/2023/080
 
 --- abstract
 
-This document describes Plabels, a two-party VDAF for the following aggregation
+This document describes Mastic, a two-party VDAF for the following aggregation
 task: each Client holds a bit string, and the Collector wishes to count how
 many of these strings begin with a candidate prefix. Such a VDAF can be used to
 solve the heavy hitters problem, where the goal is compute the subset of the
 measurements that occur most frequently. This document also describes various
-modes of operation for Plabels. First, its output type can be enriched to
+modes of operation for Mastic. First, its output type can be enriched to
 support aggregation functions beyond prefix counts. Second, an extension to the
 aggregation phase is described that significantly reduces communication cost
 compared to existing techniques. Third, a three-party variant is described that
@@ -179,7 +184,7 @@ following methods:
 
 > CP: Let's try to come up with a better name than `agg_info`.
 
-# The Plabels VDAF {#vdaf}
+# The Mastic VDAF {#vdaf}
 
 > TODO(Hannah) Describe the implementation of the base `Vdaf` interface.
 
