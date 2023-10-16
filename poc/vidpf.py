@@ -3,17 +3,10 @@
 import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')
 
-from common import \
-    ERR_INPUT, \
-    Bytes, \
-    format_dst, \
-    gen_rand, \
-    vec_add, \
-    vec_sub, \
-    vec_neg, \
-    xor
+from common import (ERR_INPUT, format_dst, gen_rand, vec_add, vec_sub, vec_neg,
+                    xor)
+from field import Field128, Field2
 import hashlib
-import ring
 from xof import XofFixedKeyAes128
 
 class Vidpf:
@@ -34,15 +27,6 @@ class Vidpf:
     # Number of random bytes consumed by the `gen()` algorithm.
     RAND_SIZE = 2 * XofFixedKeyAes128.SEED_SIZE
 
-    # A nonce.
-    BINDER = b'some nonce'
-
-    # The ring used to represent the leaf nodes of the vidpf tree.
-    RING = ring.Ring16
-
-    # The ring for the control bits.
-    R2 = ring.Ring2
-
     @classmethod
     def gen(cls, alpha, beta, rand):
         '''
@@ -60,7 +44,7 @@ class Vidpf:
 
         # s0^0, s1^0, t0^0, t1^0
         seed = init_seed.copy()
-        ctrl = [cls.R2(0), cls.R2(1)]
+        ctrl = [Field2(0), Field2(1)]
         correction_words = []
         cs_proofs = []
         alpha_less_than_i = 0
@@ -73,8 +57,8 @@ class Vidpf:
             (s_1, t_1) = cls.extend(seed[1]) # s_1^L || s_1^R || t_1^L || t_1^R
             seed_cw = xor(s_0[lose], s_1[lose])
             ctrl_cw = (
-                t_0[0] + t_1[0] + cls.R2(1) + cls.R2(alpha_i), # t_c^L
-                t_0[1] + t_1[1] + cls.R2(alpha_i),             # t_c^R
+                t_0[0] + t_1[0] + Field2(1) + Field2(alpha_i), # t_c^L
+                t_0[1] + t_1[1] + Field2(alpha_i),             # t_c^R
             )
 
             (seed[0], w_0) = cls.convert(correct(s_0[keep], seed_cw, ctrl[0]), i)
@@ -83,7 +67,7 @@ class Vidpf:
             ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1]) # t1'
 
             w_cw = vec_add(vec_sub(beta, w_0), w_1)
-            mask = cls.RING(1) - cls.RING(2) * cls.RING(ctrl[1].as_unsigned())
+            mask = Field128(1) - Field128(2) * Field128(ctrl[1].as_unsigned())
             for j in range(len(w_cw)):
                 w_cw[j] *= mask
 
@@ -120,7 +104,7 @@ class Vidpf:
             # `prefix`. Each node in the tree is represented by a seed
             # (`seed`) and a set of control bits (`ctrl`).
             seed = init_seed
-            ctrl = cls.R2(agg_id)
+            ctrl = Field2(agg_id)
             x_less_than_i = 0
             for current_level in range(level+1):
                 x_i = (prefix >> (level - current_level)) & 1
@@ -176,7 +160,7 @@ class Vidpf:
         # output if `next_ctrl` is set. We avoid branching on the value of
         # the control bit in order to reduce side channel leakage.
         y = []
-        mask = cls.RING(next_ctrl.as_unsigned())
+        mask = Field128(next_ctrl.as_unsigned())
         for i in range(len(w)):
             y.append(w[i] + w_cw[i] * mask)
 
@@ -212,7 +196,7 @@ class Vidpf:
             prg.next(XofFixedKeyAes128.SEED_SIZE),
         ]
         bit = prg.next(1)[0]
-        ctrl = [cls.R2(bit & 1), cls.R2((bit >> 1) & 1)]
+        ctrl = [Field2(bit & 1), Field2((bit >> 1) & 1)]
         return (new_seed, ctrl)
 
     @classmethod
@@ -228,12 +212,12 @@ class Vidpf:
         # re-implement the method here (if the ring modulus is a power of 2,
         # then this should be quite easy) or update the `Prg` upstream to take
         # a `Ring` and make `Field` a subclass of `Ring`.
-        return (next_seed, prg.next_vec(cls.RING, cls.VALUE_LEN))
+        return (next_seed, prg.next_vec(Field128, cls.VALUE_LEN))
 
 
 def correct(k_0, k_1, ctrl):
     ''' return k_0 if ctrl == 0 else xor(k_0, k_1) '''
-    if isinstance(k_0, Bytes):
+    if isinstance(k_0, bytes):
         return xor(k_0, ctrl.conditional_select(k_1))
     if isinstance(k_0, list): # list of ints or ring elements
         for i in range(len(k_0)):
@@ -251,7 +235,7 @@ def main():
     vidpf.BINDER = b'some nonce'
 
     measurements = [0b10, 0b00, 0b11, 0b01, 0b11] # alpha values from different users
-    beta = vidpf.RING.ones(vidpf.BITS)
+    beta = [Field128(1)] * vidpf.BITS
     prefixes = [0b0, 0b1]
     level = 0
 
@@ -260,7 +244,7 @@ def main():
     pi_proof = sha3.digest()
     proofs = [pi_proof, pi_proof]
 
-    out = [vidpf.RING.zeros(vidpf.VALUE_LEN)] * len(prefixes)
+    out = [[Field128(0)] * vidpf.VALUE_LEN] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, rand)
@@ -274,14 +258,14 @@ def main():
         assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
-    assert out == [[vidpf.RING(2)], [vidpf.RING(3)]]
+    assert out == [[Field128(2)], [Field128(3)]]
 
 
     vidpf.BITS = 16
     measurements = [
         0b1111000011110000, 0b1111000011110001, 0b1111000011110010, 0b0000010011110010
         ] # alpha values from different users
-    beta = vidpf.RING.ones(vidpf.BITS)
+    beta = [Field128(1)] * vidpf.BITS
     prefixes = [0b000001, 0b111100]
     level = 5
 
@@ -290,7 +274,7 @@ def main():
     pi_proof = sha3.digest()
     proofs = [pi_proof, pi_proof]
 
-    out = [vidpf.RING.zeros(vidpf.VALUE_LEN)] * len(prefixes)
+    out = [[Field128(0)] * vidpf.VALUE_LEN] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, rand)
@@ -304,7 +288,7 @@ def main():
         assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
-    assert out == [[vidpf.RING(1)], [vidpf.RING(3)]]
+    assert out == [[Field128(1)], [Field128(3)]]
 
 
 if __name__ == '__main__':
