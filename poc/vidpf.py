@@ -245,7 +245,7 @@ def main():
 
     binder = b'some nonce'
     measurements = [0b10, 0b00, 0b11, 0b01, 0b11] # alpha values from different users
-    beta = [vidpf.Field(1)] * vidpf.BITS
+    beta = [vidpf.Field(1)]
     prefixes = [0b0, 0b1]
     level = 0
 
@@ -275,7 +275,7 @@ def main():
     measurements = [
         0b1111000011110000, 0b1111000011110001, 0b1111000011110010, 0b0000010011110010
         ] # alpha values from different users
-    beta = [Field128(1)] * vidpf.BITS
+    beta = [Field128(1)]
     prefixes = [0b000001, 0b111100]
     level = 5
 
