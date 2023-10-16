@@ -194,12 +194,12 @@ class Vidpf:
         '''
         Extend seed to (seed_L, t_L, seed_R, t_R)
         '''
-        prg = XofFixedKeyAes128(seed, format_dst(1, 0, 0), binder)
+        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 0), binder)
         new_seed = [
-            prg.next(XofFixedKeyAes128.SEED_SIZE),
-            prg.next(XofFixedKeyAes128.SEED_SIZE),
+            xof.next(XofFixedKeyAes128.SEED_SIZE),
+            xof.next(XofFixedKeyAes128.SEED_SIZE),
         ]
-        bit = prg.next(1)[0]
+        bit = xof.next(1)[0]
         ctrl = [Field2(bit & 1), Field2((bit >> 1) & 1)]
         return (new_seed, ctrl)
 
@@ -209,14 +209,14 @@ class Vidpf:
         '''
         Converting seed to a pseudorandom element of G.
         '''
-        prg = XofFixedKeyAes128(seed, format_dst(1, 0, 1), binder)
-        next_seed = prg.next(XofFixedKeyAes128.SEED_SIZE)
+        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), binder)
+        next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
         # TODO(cjpatton) This is slightly abusing the `Prg` API, as
         # `next_vec()` expects a `Field` as its first parameter. Either
         # re-implement the method here (if the ring modulus is a power of 2,
         # then this should be quite easy) or update the `Prg` upstream to take
         # a `Ring` and make `Field` a subclass of `Ring`.
-        return (next_seed, prg.next_vec(cls.Field, cls.VALUE_LEN))
+        return (next_seed, xof.next_vec(cls.Field, cls.VALUE_LEN))
 
     @classmethod
     def with_params(cls, f, bits, value_len):
