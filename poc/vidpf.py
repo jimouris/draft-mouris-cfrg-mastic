@@ -104,7 +104,11 @@ class Vidpf:
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        out_share = []
+        # Compute the Aggregator's share of the prefix tree.
+        #
+        # Implementation note: We can save computation by storing
+        # `prefix_tree_share` across `eval()` calls for the same report.
+        prefix_tree_share = {}
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
                 raise ValueError("prefix too long")
@@ -118,31 +122,23 @@ class Vidpf:
             ctrl = Field2(agg_id)
             for current_level in range(level+1):
                 node = (prefix >> (level - current_level))
-                # Implementation note: Typically the current round of
-                # candidate prefixes would have been derived from
-                # aggregate results computed during previous rounds. For
-                # example, when using `IdpfPoplar` to compute heavy
-                # hitters, a string whose hit count exceeded the given
-                # threshold in the last round would be the prefix of each
-                # `prefix` in the current round. (See [BBCGGI21,
-                # Section 5.1].) In this case, part of the path would
-                # have already been traversed.
-                #
-                # Re-computing nodes along previously traversed paths is
-                # wasteful. Implementations can eliminate this added
-                # complexity by caching nodes (i.e., `(seed, ctrl)`
-                # pairs) output by previous calls to `eval_next()`.
-                (seed, ctrl, y, pi_proof) = cls.eval_next(
-                    seed,
-                    ctrl,
-                    correction_words[current_level],
-                    cs_proofs[current_level],
-                    current_level,
-                    node,
-                    pi_proof,
-                    binder,
-                )
+                if not prefix_tree_share.get((node, current_level)):
+                    prefix_tree_share[(node, current_level)] = cls.eval_next(
+                        seed,
+                        ctrl,
+                        correction_words[current_level],
+                        cs_proofs[current_level],
+                        current_level,
+                        node,
+                        pi_proof,
+                        binder,
+                    )
+                (seed, ctrl, y, pi_proof) = prefix_tree_share.get((node, current_level))
 
+        # Compute the Aggregator's output share.
+        out_share = []
+        for prefix in prefixes:
+            (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
         return out_share, pi_proof
 
@@ -278,11 +274,19 @@ def main():
 
 
     vidpf = Vidpf.with_params(Field128, 16, 1, True)
+    # `alpha` values from different Clients.
     measurements = [
-        0b1111000011110000, 0b1111000011110001, 0b1111000011110010, 0b0000010011110010
-        ] # alpha values from different users
+        0b1111000011110000,
+        0b1111000011110001,
+        0b1111000011110010,
+        0b0000010011110010,
+    ]
     beta = [Field128(1)]
-    prefixes = [0b000001, 0b111100]
+    prefixes = [
+        0b000001,
+        0b111100,
+        0b111101,
+    ]
     level = 5
 
     sha3 = hashlib.sha3_256()
@@ -304,7 +308,7 @@ def main():
         assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
-    assert out == [[Field128(1)], [Field128(3)]]
+    assert out == [[Field128(1)], [Field128(3)], [Field128(0)]]
 
 
 if __name__ == '__main__':
