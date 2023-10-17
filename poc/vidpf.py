@@ -116,11 +116,8 @@ class Vidpf:
             # (`seed`) and a set of control bits (`ctrl`).
             seed = init_seed
             ctrl = Field2(agg_id)
-            x_less_than_i = 0
             for current_level in range(level+1):
-                x_i = (prefix >> (level - current_level)) & 1
-                x_less_than_i = (x_less_than_i << 1) + x_i
-
+                node = (prefix >> (level - current_level))
                 # Implementation note: Typically the current round of
                 # candidate prefixes would have been derived from
                 # aggregate results computed during previous rounds. For
@@ -141,16 +138,17 @@ class Vidpf:
                     correction_words[current_level],
                     cs_proofs[current_level],
                     current_level,
-                    x_less_than_i,
+                    node,
                     pi_proof,
                     binder,
                 )
+
             out_share.append(y if agg_id == 0 else vec_neg(y))
         return out_share, pi_proof
 
     @classmethod
-    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof, level, x_less_than_i,
-                  pi_proof, binder):
+    def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
+                  current_level, node, pi_proof, binder):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
@@ -164,9 +162,9 @@ class Vidpf:
         t[0] += ctrl_cw[0] * prev_ctrl # t^L
         t[1] += ctrl_cw[1] * prev_ctrl # t^R
 
-        x_i = x_less_than_i & 1
-        next_ctrl = t[x_i] # t'^i
-        (next_seed, w) = cls.convert(s[x_i], level, binder) # s^i, W^i
+        bit = node & 1
+        next_ctrl = t[bit] # t'^i
+        (next_seed, w) = cls.convert(s[bit], current_level, binder) # s^i, W^i
         # Implementation note: Here we add the correction word to the
         # output if `next_ctrl` is set. We avoid branching on the value of
         # the control bit in order to reduce side channel leakage.
@@ -177,7 +175,7 @@ class Vidpf:
 
         sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(x_less_than_i).encode('ascii') + next_seed)
+        sha3.update(str(node).encode('ascii') + next_seed)
         pi_prime = sha3.digest()
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
