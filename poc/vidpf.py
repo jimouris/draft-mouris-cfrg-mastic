@@ -104,7 +104,8 @@ class Vidpf:
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        # Compute the Aggregator's share of the prefix tree.
+        # Compute the Aggregator's share of the prefix tree and the one-hot
+        # verifier (`pi_proof`).
         #
         # Implementation note: We can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
@@ -121,26 +122,41 @@ class Vidpf:
             seed = init_seed
             ctrl = Field2(agg_id)
             for current_level in range(level+1):
-                node = (prefix >> (level - current_level))
-                if not prefix_tree_share.get((node, current_level)):
-                    prefix_tree_share[(node, current_level)] = cls.eval_next(
-                        seed,
-                        ctrl,
-                        correction_words[current_level],
-                        cs_proofs[current_level],
-                        current_level,
-                        node,
-                        pi_proof,
-                        binder,
-                    )
+                node = prefix >> (level - current_level)
+                for s in [0, 1]:
+                    # Compute the value for the node `node` and its sibling
+                    # `node ^ c`. The latter is used for computing the path
+                    # verifier.
+                    if not prefix_tree_share.get((node ^ s, current_level)):
+                        prefix_tree_share[(node ^ s, current_level)] = cls.eval_next(
+                            seed,
+                            ctrl,
+                            correction_words[current_level],
+                            cs_proofs[current_level],
+                            current_level,
+                            node ^ s,
+                            pi_proof,
+                            binder,
+                        )
                 (seed, ctrl, y, pi_proof) = prefix_tree_share.get((node, current_level))
+
+        # Compute the path verifier.
+        sha3 = hashlib.sha3_256()
+        for prefix in prefixes:
+            for current_level in range(level):
+                node = prefix >> (level - current_level)
+                y =  prefix_tree_share[(node,        current_level)  ][2]
+                y0 = prefix_tree_share[(node<<1,     current_level+1)][2]
+                y1 = prefix_tree_share[((node<<1)|1, current_level+1)][2]
+                sha3.update(cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1))))
+        path_proof = sha3.digest()
 
         # Compute the Aggregator's output share.
         out_share = []
         for prefix in prefixes:
             (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
-        return out_share, pi_proof
+        return (out_share, pi_proof + path_proof)
 
     @classmethod
     def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
