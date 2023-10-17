@@ -263,7 +263,7 @@ def main():
     pi_proof = sha3.digest()
     proofs = [pi_proof, pi_proof]
 
-    out = [[Field128(0)] * vidpf.VALUE_LEN] * len(prefixes)
+    out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
@@ -293,7 +293,7 @@ def main():
     pi_proof = sha3.digest()
     proofs = [pi_proof, pi_proof]
 
-    out = [[Field128(0)] * vidpf.VALUE_LEN] * len(prefixes)
+    out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
