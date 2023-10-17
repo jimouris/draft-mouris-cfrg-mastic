@@ -98,16 +98,16 @@ class Vidpf:
     @classmethod
     def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs, pi_proof, binder):
         if agg_id >= cls.SHARES:
-            raise ERR_INPUT  # invalid aggregator ID
+            raise ValueError("invalid aggregator ID")
         if level >= cls.BITS:
-            raise ERR_INPUT  # level too deep
+            raise ValueError("level too deep")
         if len(set(prefixes)) != len(prefixes):
-            raise ERR_INPUT  # candidate prefixes are non-unique
+            raise ValueError("candidate prefixes are non-unique")
 
         out_share = []
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
-                raise ERR_INPUT  # prefix too long
+                raise ValueError("prefix too long")
 
             # The Aggregator's output share is the value of a node of
             # the IDPF tree at the given `level`. The node's value is
@@ -135,7 +135,6 @@ class Vidpf:
                 # wasteful. Implementations can eliminate this added
                 # complexity by caching nodes (i.e., `(seed, ctrl)`
                 # pairs) output by previous calls to `eval_next()`.
-
                 (seed, ctrl, y, pi_proof) = cls.eval_next(
                     seed,
                     ctrl,
