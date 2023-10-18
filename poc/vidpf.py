@@ -3,8 +3,8 @@
 import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')
 
-from common import (ERR_INPUT, format_dst, gen_rand, vec_add, vec_sub, vec_neg,
-                    xor)
+from common import (ERR_INPUT, format_dst, gen_rand, to_le_bytes, vec_add,
+                    vec_sub, vec_neg, xor)
 from field import Field128, Field2
 import hashlib
 from xof import XofFixedKeyAes128
@@ -58,18 +58,17 @@ class Vidpf:
         ctrl = [Field2(0), Field2(1)]
         correction_words = []
         cs_proofs = []
-        alpha_less_than_i = 0
         for i in range(cls.BITS):
-            alpha_i = (alpha >> (cls.BITS - i - 1)) & 1
-            alpha_less_than_i = (alpha_less_than_i << 1) + alpha_i
-            keep, lose = (1, 0) if alpha_i else (0, 1) # if x = 0 then keep <- L, lose <- R
+            node = (alpha >> (cls.BITS - i - 1))
+            bit = node & 1
+            keep, lose = (1, 0) if bit else (0, 1) # if x = 0 then keep <- L, lose <- R
 
             (s_0, t_0) = cls.extend(seed[0], binder) # s_0^L || s_0^R || t_0^L || t_0^R
             (s_1, t_1) = cls.extend(seed[1], binder) # s_1^L || s_1^R || t_1^L || t_1^R
             seed_cw = xor(s_0[lose], s_1[lose])
             ctrl_cw = (
-                t_0[0] + t_1[0] + Field2(1) + Field2(alpha_i), # t_c^L
-                t_0[1] + t_1[1] + Field2(alpha_i),             # t_c^R
+                t_0[0] + t_1[0] + Field2(1) + Field2(bit), # t_c^L
+                t_0[1] + t_1[1] + Field2(bit),             # t_c^R
             )
 
             (seed[0], w_0) = cls.convert(correct(s_0[keep], seed_cw, ctrl[0]), i, binder)
@@ -84,10 +83,10 @@ class Vidpf:
 
             # Compute hashes for level i
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha_less_than_i).encode('ascii') + seed[0])
+            sha3.update(str(node).encode('ascii') + to_le_bytes(i, 2) + seed[0])
             proof_0 = sha3.digest()
             sha3 = hashlib.sha3_256()
-            sha3.update(str(alpha_less_than_i).encode('ascii') + seed[1])
+            sha3.update(str(node).encode('ascii') + to_le_bytes(i, 2) + seed[1])
             proof_1 = sha3.digest()
 
             cs_proofs.append(xor(proof_0, proof_1))
@@ -187,7 +186,7 @@ class Vidpf:
 
         sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(node).encode('ascii') + next_seed)
+        sha3.update(str(node).encode('ascii') + to_le_bytes(current_level, 2) + next_seed)
         pi_prime = sha3.digest()
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
