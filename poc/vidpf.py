@@ -113,8 +113,8 @@ class Vidpf:
             if prefix >= 2 ** (level+1):
                 raise ValueError("prefix too long")
 
-            # The Aggregator's output share is the value of a node of
-            # the IDPF tree at the given `level`. The node's value is
+            # The Aggregator's output share is the value of one or more nodes of
+            # the IDPF tree at the given `level`. These nodes' values are
             # computed by traversing the path defined by the candidate
             # `prefix`. Each node in the tree is represented by a seed
             # (`seed`) and a set of control bits (`ctrl`).
@@ -142,7 +142,10 @@ class Vidpf:
         # Compute the path verifier.
         sha3 = hashlib.sha3_256()
         for prefix in prefixes:
-            for current_level in range(level):
+            start = 0
+            if cls.INCREMENTAL_MODE:
+                start = level-1
+            for current_level in range(start, level):
                 node = prefix >> (level - current_level)
                 y =  prefix_tree_share[(node,        current_level)  ][2]
                 y0 = prefix_tree_share[(node<<1,     current_level+1)][2]
