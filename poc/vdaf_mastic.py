@@ -96,6 +96,11 @@ class Mastic(Vdaf):
             # One solution is to make the first level a parameter of the VDAF.
             # This is probably a good idea anyway, since it's a trade-off the
             # Aggregators will probably want to agree on anyway.
+            #
+            # Another solution is to change the formatting of agg_param to
+            # support tuples of (level, prefixes) pairs. This would allow the
+            # VDAF to validate levels '0' and '7' in a single round trip,
+            # thus supporting faststart without changing the validity condition.
             return (
                 (len(previous_agg_params) == 0 and level == 0) or \
                 previous_agg_params[0][0] == 0
@@ -158,6 +163,8 @@ class Mastic(Vdaf):
                                                         cls.ROOT_PROOF,
                                                         nonce)
             meas_share = vec_add(out_share[0], out_share[1])
+            # As a consequence of VIDPF path verifiability,
+            # meas_share contains the value of the root node in the VIDPF tree
 
             query_rand = cls.Xof.expand_into_vec(
                 cls.Flp.Field,
@@ -188,7 +195,8 @@ class Mastic(Vdaf):
         (level_proof_0, verifier_share_0) = prep_shares[0]
         (level_proof_1, verifier_share_1) = prep_shares[1]
         if level_proof_0 != level_proof_1:
-            raise Exception('output vector is not one-hot')
+            raise Exception('output vector is not one-hot or VIDPF output is \
+                            inconsistent between levels')
 
         # Finish verifying the FLP, if applicable.
         if cls.do_range_check(agg_param):
