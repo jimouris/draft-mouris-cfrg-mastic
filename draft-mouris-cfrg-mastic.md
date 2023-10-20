@@ -190,47 +190,124 @@ honst majority setting.
 
 # Preliminaries
 
-This document makes use of Fully Linear Proofs (FLPs) and eXtendable Output
-Functions (XOFs) as described in {{!VDAF}}. It also makes use of an extension
-of Incremental Distributed Point Functions (IDPFs), known as "Verifiable IDPFs
-(VIDFS)" first described by {{MST23}}. VIDPFs are specified below.
+Mastic makes use of three primitives described in the base VDAF specification
+{{!VDAF}}: finie fields, eXtendable Output Functions (XOFs) and Fully Linear
+Proofs (FLPs). It also makes use of a fourth primitive, which extends the
+security properties of Incremental Distributed Point Functions (IDPFs), also
+described in the base specification. All three primitives are described below.
+
+## Finite fields {#field}
+
+An implementation of the `Field` interface in {{Section 6.1 of !VDAF}} is
+required. This object implements arithmetic in a prime field with a suitable
+modulus.
+
+> TODO: Describe the features of `Field` we need for Mastic.
+
+## XOF {#xof}
+
+An implementation of the `Xof` interface in {{Section 6.2 of !VDAF}} is
+required. This object implements an XOF that takes a short seed and some
+auxiliary data as input and outputs a string of any length required for the
+application.
+
+> TODO: Describe the features of `Xof` we need for Mastic.
+
+## FLP {#flp}
+
+An implementation of the `Flp` interface in {{Section 7.1 of !VDAF}} is
+required. This object implements a zero-knowledge proof system used to verify
+that the mesaurement encoded by the client's report conforms to the data type
+required by the application. The Client generates a proof that its measurement
+is valid and sends secret shares of this proof to each Aggregator. Verification
+is split into two phases. In the first phase, each Aggregator "queries" its
+share of the measurement and proof to obtain its "verifier share". In the
+second phase, the Aggregators sum of the verifier shares and use the sum to
+decide if the input is valid.
+
+> TODO: Describe in more detail the features of `Flp` we require for Mastic.
 
 ## Verifiable IDPF (VIDPF) {#vidpf}
 
-De Castro and Polychroniadou {{CP22}} introduced Verifiable DPF (VDPF), a DPF
-scheme that supports a well-formedness check. More specifically, VDPFs allows
-verifying that the client’s inputs are well-formed, meaning that the client
-will not learn any unauthorized information about the servers' database or
-modify the database in an unauthorized way.
+An Incremental Distribute Point Function (IDPF, {{Section 8.1 of !VDAF}}) is a
+secret sharing scheme for a special type of function known as an "incremental
+point function". Such a function involves two parameters: `alpha`, a bit-string
+of some fixed size, which we denote by `BITS`; and `beta`, which in this
+document shall be represented by a fixed-length vector over a finite field
+`Field`. The function is well-defined for any non-empty string of length less
+than or equal to `BITS`: on input of any prefix of `alpha`, the point function
+returns `beta`; otherwise, if the input is not a prefix of `alpha`, the output
+is `Field.zeros(OUTPUT_LEN)` (i.e., a length-`OUTPUT_LEN` vector of zeros).
 
-PLASMA {{MST23}} introduced the notion of Verifiable Incremental DPF (VIDPF)
-that builds upon IDPF {{BBCGGI21}} and VDPF {{CP22}}. VIDPF is an IDPF that
-allows verifying that clients’ inputs are valid by relying on hashing while
-preserving the client’s input privacy.
+An IDPF has two main operations. The first is the key-generation algorithm,
+which is run by the Client. It takes as input `alpha` and `beta` and returns
+three values: two "key shares", one for each of two Aggregators; and the
+"public share", to be distributed to both Aggregators. The second is the
+key-evaluation algorithm, run by each Aggregator. It takes as input a candidate
+prefix string `prefix`, the public share, and the Aggregotr's key share and
+returns the Aggregator's share of the point function parameterized by `alpha`
+and `beta` and evaluated at `prefix`.
 
-> TODO(Dimitris)
+Shares of the IDPF outputs can be aggregated together across multiple reports.
+This is used in Poplar1 ({{Section 8 of !VDAF}}) to count how many input
+strings begin with a candidate prefix. IDPFs are private in the sense that each
+Aggregators learning nothing about the underlying inputs beyond the value of
+this sum. However, IDPFs on their own do not provide robustness: it is possible
+for a malicious to Client to fool the Aggregators into accepting mal-formed
+counter (i.e., a value other than `0` or `1`).
+
+Mouris et al. {{MST23}} describe an extension called Verifiable IDPF (VIDPF)
+that endows this basic scheme with two properties, both of are used in Mastic
+to achieve robustness:
+
+1. One-hot Verifiability: TODO(cjpatton)
+
+1. Path Verifiability: TODO(cjpatton)
+
+> TODO(cjpatton) Define syntax and give overview of design. Point to reference
+> implementation for details.
 
 # Definition
 
+TODO(cjpatton) overview
+
 ## Sharding
+
+TODO(cjpatton) high-level, point to reference implementation
 
 ## Preparation
 
+TODO(cjpatton) high-level, point to reference implementation
+
 ## Validity of Aggregation Parameters
+
+TODO(cjpatton) high-level, point to reference implementation
 
 ## Aggregation
 
+TODO(cjpatton) high-level, point to reference implementation
+
 ## Unsharding
+
+TODO(cjpatton) high-level, point to reference implementation
 
 # Modes of Operation
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
+TODO(cjpatton) high-level, point to example
+
 ## Aggregation by Labels {#aggregation-by-labels}
+
+TODO(cjpatton) high-level, point to example
 
 ## Plain Heavy-Hitters with Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
 
+TODO(jimouris)
+
 ## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
+
+TODO(jimouris)
 
 # Security Considerations
 
