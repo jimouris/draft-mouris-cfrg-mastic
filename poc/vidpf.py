@@ -124,7 +124,7 @@ class Vidpf:
                 node = prefix >> (level - current_level)
                 for s in [0, 1]:
                     # Compute the value for the node `node` and its sibling
-                    # `node ^ c`. The latter is used for computing the path
+                    # `node ^ s`. The latter is used for computing the path
                     # verifier.
                     if not prefix_tree_share.get((node ^ s, current_level)):
                         prefix_tree_share[(node ^ s, current_level)] = cls.eval_next(
