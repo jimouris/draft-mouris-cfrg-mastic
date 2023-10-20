@@ -99,19 +99,20 @@ informative:
 --- abstract
 
 This document describes Mastic, a two-party VDAF for the following aggregation
-task: each Client holds a bit string, and the Collector wishes to count how
-many of these strings begin with a candidate prefix. Such a VDAF can be used to
-solve the heavy hitters problem, where the goal is compute the subset of the
-measurements that occur most frequently. This document also describes various
-modes of operation for Mastic. First, its output type can be enriched to
-support aggregation functions beyond prefix counts. Second, an extension to the
-aggregation phase is described that significantly reduces communication cost
-compared to existing techniques. Third, a three-party variant is described that
-is robust in the honest majority setting.
+task: each client holds a bit string, and the collector wishes to count how
+many of these strings begin with a given prefix. Such a VDAF can be used to
+solve the private heavy hitters problem, where the goal is compute the subset
+of the strings that occur most frequently without learning which client
+uploaded which string. This document describes different modes of operation for
+Mastic that support a wide variety of use cases admit various performance and
+security trade-offs.
 
 --- middle
 
 # Introduction
+
+
+
 
 > TODO Introduction. Outline:
 > - Recall the heavy hitters problem
