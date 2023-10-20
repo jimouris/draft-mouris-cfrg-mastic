@@ -123,42 +123,20 @@ class Mastic(Vdaf):
                 raise ValueError('out of order prefix')
 
         # Evaluate the VIDPF.
-        (out_share, level_proof) = cls.Vidpf.eval(agg_id,
-                                                  correction_words,
-                                                  init_seed,
-                                                  level,
-                                                  prefixes,
-                                                  cs_proofs,
-                                                  cls.ROOT_PROOF,
-                                                  nonce)
+        (beta_share, out_share, level_proof) = cls.Vidpf.eval(
+            agg_id,
+            correction_words,
+            init_seed,
+            level,
+            prefixes,
+            cs_proofs,
+            cls.ROOT_PROOF,
+            nonce,
+        )
 
         # Compute the FLP verifier share, if applicable.
         verifier_share = None
         if cls.do_range_check(agg_param):
-            # Evaluate the VIDPF at each child of the root node.
-            #
-            # One-hot verifiability: it is sufficient to check the proof over
-            # the sum of the outputs, since VIDPF VIDPF ensures that exactly
-            # one of the children is equal to the encoded `beta` (and the other
-            # is equal to `0`).
-            #
-            # Path verifiability: It is sufficient to check the proof just
-            # once, since the path verifiability property of VIDPF ensures that
-            # the same `beta` is propagated along the entire `alpha` path.
-            #
-            # Implementation note: This invocation of the VIDPF is redundant.
-            # We evaluate at least one (and likely both) of these prefixes
-            # during the main invocation below.
-            (out_share, _level0_proof) = cls.Vidpf.eval(agg_id,
-                                                        correction_words,
-                                                        init_seed,
-                                                        0,
-                                                        [0, 1],
-                                                        cs_proofs,
-                                                        cls.ROOT_PROOF,
-                                                        nonce)
-            meas_share = vec_add(out_share[0], out_share[1])
-
             query_rand = cls.Xof.expand_into_vec(
                 cls.Flp.Field,
                 verify_key,
@@ -167,7 +145,7 @@ class Mastic(Vdaf):
                 cls.Flp.QUERY_RAND_LEN,
             )
 
-            verifier_share = cls.Flp.query(meas_share,
+            verifier_share = cls.Flp.query(beta_share,
                                            proof_share,
                                            query_rand,
                                            [], # joint_rand

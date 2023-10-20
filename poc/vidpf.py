@@ -155,7 +155,14 @@ class Vidpf:
         for prefix in prefixes:
             (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
-        return (out_share, pi_proof + path_proof)
+
+        # Compute the Aggregator's share of `beta`.
+        y0 = prefix_tree_share[(0, 0)][2]
+        y1 = prefix_tree_share[(1, 0)][2]
+        beta_share = vec_add(y0, y1)
+        if agg_id == 1:
+            beta_share = vec_neg(beta_share)
+        return (beta_share, out_share, pi_proof + path_proof)
 
     @classmethod
     def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
@@ -277,11 +284,19 @@ def main():
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
         for agg_id in range(vidpf.SHARES):
-            y_id, proofs[agg_id] = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level,
-                                              prefixes, cs_proofs, proofs[agg_id], binder)
+            (_beta_share, out_shares, proofs[agg_id]) = vidpf.eval(
+                agg_id,
+                correction_words,
+                init_seed[agg_id],
+                level,
+                prefixes,
+                cs_proofs,
+                proofs[agg_id],
+                binder,
+            )
 
             for i in range(len(prefixes)):
-                out[i] = vec_add(out[i], y_id[i])
+                out[i] = vec_add(out[i], out_shares[i])
         assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
@@ -315,11 +330,19 @@ def main():
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
         for agg_id in range(vidpf.SHARES):
-            y_id, proofs[agg_id] = vidpf.eval(agg_id, correction_words, init_seed[agg_id], level,
-                                              prefixes, cs_proofs, proofs[agg_id], binder)
+            (_beta_share, out_shares, proofs[agg_id]) = vidpf.eval(
+                agg_id,
+                correction_words,
+                init_seed[agg_id],
+                level,
+                prefixes,
+                cs_proofs,
+                proofs[agg_id],
+                binder,
+            )
 
             for i in range(len(prefixes)):
-                out[i] = vec_add(out[i], y_id[i])
+                out[i] = vec_add(out[i], out_shares[i])
         assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
