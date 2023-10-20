@@ -38,7 +38,7 @@ class Mastic(Vdaf):
     ROUNDS = 1
 
     # Types required by `Vdaf`
-    AggParam = Poplar1.AggParam
+    AggParam = None # TODO(cjpatton)
     PublicShare = None # TODO(cjpatton)
     InputShare = None # TODO(cjpatton)
     PrepMessage = None
@@ -77,97 +77,55 @@ class Mastic(Vdaf):
 
     @classmethod
     def is_valid(cls, agg_param, previous_agg_params):
-        (level, _prefixes) = agg_param
-        if cls.Vidpf.INCREMENTAL_MODE:
-            # The first level evaluated must be `0` and all levels must be distinct.
-            #
-            # TODO(cjpatton) Consider relaxing this check to allow for
-            # "fast-start". Rather than start at the first level, we might want
-            # to start at a later level and more candidate prefixes. For
-            # example, instead of starting at level `0` with all `2`-bit
-            # prefixes, we might start at level `7` with all `8`-bit prefixes.
-            #
-            # The most natural requirement is that we check the FLP the first
-            # time we aggregate the batch. However this can't be enforced
-            # unless we change the structure of the aggregation parameter.
-            # Ideally it's precisely the same as Poplar1 so that we don't have
-            # to change things too much at the DAP level.
-            #
-            # One solution is to make the first level a parameter of the VDAF.
-            # This is probably a good idea anyway, since it's a trade-off the
-            # Aggregators will probably want to agree on anyway.
-            return (
-                (len(previous_agg_params) == 0 and level == 0) or \
-                previous_agg_params[0][0] == 0
-            ) and all(
-                level != other_level
-                for (other_level, _) in previous_agg_params
-            )
-        else:
-            # Only one level may be evaluated and it must be `BITS - 1`.
-            return len(previous_agg_params) == 0 and \
-                level == cls.Vidpf.BITS - 1
+        (level, prefixes, do_range_check) = agg_param
+
+        # Check that the range check is done exactly once.
+        first_level_range_check = \
+            (do_range_check and len(previous_agg_params) == 0) or \
+            (not do_range_check and \
+                any(agg_param[2] for agg_param in previous_agg_params))
+
+        # Check that the level is always larger or equal to the previous level.
+        levels = list(map(
+            lambda agg_param: agg_param[0],
+            previous_agg_params,
+        )) + [level]
+        levels_non_decreasing = all(x <= y for (x, y) in zip(levels, levels[1:]))
+
+        return first_level_range_check and levels_non_decreasing
 
 
     @classmethod
     def prep_init(cls, verify_key, agg_id, agg_param,
                   nonce, public_share, input_share):
-        (level, prefixes) = agg_param
+        (level, prefixes, do_range_check) = agg_param
         (init_seed, proof_share) = cls.expand_input_share(agg_id, input_share)
         (correction_words, cs_proofs) = public_share
 
-        # Ensure that candidate prefixes are all unique and appear in
-        # lexicographic order.
-        for i in range(1, len(prefixes)):
-            if prefixes[i-1] >= prefixes[i]:
-                raise ValueError('out of order prefix')
-
         # Evaluate the VIDPF.
-        (out_share, level_proof) = cls.Vidpf.eval(agg_id,
-                                                  correction_words,
-                                                  init_seed,
-                                                  level,
-                                                  prefixes,
-                                                  cs_proofs,
-                                                  cls.ROOT_PROOF,
-                                                  nonce)
+        (beta_share, out_share, level_proof) = cls.Vidpf.eval(
+            agg_id,
+            correction_words,
+            init_seed,
+            level,
+            prefixes,
+            cs_proofs,
+            cls.ROOT_PROOF,
+            nonce,
+        )
 
         # Compute the FLP verifier share, if applicable.
         verifier_share = None
-        if cls.do_range_check(agg_param):
-            # Evaluate the VIDPF at each child of the root node.
-            #
-            # One-hot verifiability: it is sufficient to check the proof over
-            # the sum of the outputs, since VIDPF VIDPF ensures that exactly
-            # one of the children is equal to the encoded `beta` (and the other
-            # is equal to `0`).
-            #
-            # Path verifiability: It is sufficient to check the proof just
-            # once, since the path verifiability property of VIDPF ensures that
-            # the same `beta` is propagated along the entire `alpha` path.
-            #
-            # Implementation note: This invocation of the VIDPF is redundant.
-            # We evaluate at least one (and likely both) of these prefixes
-            # during the main invocation below.
-            (out_share, _level0_proof) = cls.Vidpf.eval(agg_id,
-                                                        correction_words,
-                                                        init_seed,
-                                                        0,
-                                                        [0, 1],
-                                                        cs_proofs,
-                                                        cls.ROOT_PROOF,
-                                                        nonce)
-            meas_share = vec_add(out_share[0], out_share[1])
-
+        if do_range_check:
             query_rand = cls.Xof.expand_into_vec(
                 cls.Flp.Field,
                 verify_key,
                 cls.domain_separation_tag(USAGE_QUERY_RAND),
-                nonce, # TODO(cjpatton) Consider binding to the VIDPF mode
+                nonce, # TODO(cjpatton) Consider binding to agg param
                 cls.Flp.QUERY_RAND_LEN,
             )
 
-            verifier_share = cls.Flp.query(meas_share,
+            verifier_share = cls.Flp.query(beta_share,
                                            proof_share,
                                            query_rand,
                                            [], # joint_rand
@@ -181,6 +139,7 @@ class Mastic(Vdaf):
 
     @classmethod
     def prep_shares_to_prep(cls, agg_param, prep_shares):
+        (_level, _prefixes, do_range_check) = agg_param
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
@@ -191,7 +150,7 @@ class Mastic(Vdaf):
             raise Exception('output vector is not one-hot')
 
         # Finish verifying the FLP, if applicable.
-        if cls.do_range_check(agg_param):
+        if do_range_check:
             if verifier_share_0 == None or verifier_share_1 == None:
                 raise ValueError('prep share with missing verifier share')
 
@@ -209,7 +168,7 @@ class Mastic(Vdaf):
 
     @classmethod
     def aggregate(cls, agg_param, out_shares):
-        (level, prefixes) = agg_param
+        (level, prefixes, _do_range_check) = agg_param
         agg_share = cls.Field.zeros(len(prefixes))
         for out_share in out_shares:
             agg_share = vec_add(agg_share, out_share)
@@ -218,7 +177,7 @@ class Mastic(Vdaf):
     @classmethod
     def unshard(cls, agg_param,
                 agg_shares, _num_measurements):
-        (level, prefixes) = agg_param
+        (level, prefixes, _do_range_check) = agg_param
         agg = cls.Field.zeros(len(prefixes))
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
@@ -285,7 +244,7 @@ class Mastic(Vdaf):
         return b'dummy prep message'
 
     @classmethod
-    def with_params(cls, bits, validity_circuit, incremental_mode):
+    def with_params(cls, bits, validity_circuit):
         if validity_circuit.JOINT_RAND_LEN > 0:
             # TODO(cjpatton) Add support for FLPs with joint randomness.
             raise NotImplementedError()
@@ -294,11 +253,10 @@ class Mastic(Vdaf):
             # Operational types and parameters.
             Flp = FlpGeneric(validity_circuit)
             Field = Flp.Field
-            Vidpf = Vidpf.with_params(Flp.Field, bits, Flp.MEAS_LEN, incremental_mode)
+            Vidpf = Vidpf.with_params(Flp.Field, bits, Flp.MEAS_LEN)
             # TODO(cjpatton) Add test_vec_name to base spec for the validity
             # circuit so that we can call it here.
-            test_vec_name = 'Mastic({}, {}, incremental_mode={})'.format(
-                bits, validity_circuit, incremental_mode)
+            test_vec_name = 'Mastic({}, {})'.format(bits, validity_circuit)
 
             # Vdaf types and parameters.
             RAND_SIZE = Vidpf.RAND_SIZE + cls.Xof.SEED_SIZE * 2
@@ -324,13 +282,253 @@ class Mastic(Vdaf):
         return MasticWithParams
 
 
+def test_valid_agg_params():
+    mastic = Mastic.with_params(4, Count())
+
+    assert mastic.is_valid(
+        (0, (0,), True),
+        [],
+    )
+
+    assert mastic.is_valid(
+        (2, (0b100,), True),
+        [],
+    )
+
+    # Expect invalid because we never do the range check.
+    assert not mastic.is_valid(
+        (0, (0,), False),
+        [],
+    )
+
+    assert mastic.is_valid(
+        (1, (0b10,), False),
+        [
+            (0, (0,), True),
+        ],
+    )
+
+    # Expect invalid because we do the range check twice.
+    assert not mastic.is_valid(
+        (1, (0b10,), True),
+        [
+            (0, (0,), True),
+        ],
+    )
+
+    # Expect invalid because we don't do the range check at the first level.
+    assert not mastic.is_valid(
+        (1, (0b10,), True),
+        [
+            (0, (0,), False),
+        ],
+    )
+
+    # Expect invalid because we never do the range check.
+    assert not mastic.is_valid(
+        (1, (0b10,), False),
+        [
+            (0, (0,), False),
+        ],
+    )
+
+    # Expect invalid because the level decreases.
+    assert not mastic.is_valid(
+        (1, (0b10,), False),
+        [
+            (2, (0b100,), True),
+        ],
+    )
+
+    assert mastic.is_valid(
+        (2, (0b101,), False),
+        [
+            (2, (0b100,), True),
+        ],
+    )
+
+
+def example_heavy_hitters_mode():
+    from common import gen_rand
+    bits = 4
+    threshold = 2
+    mastic = Mastic.with_params(bits, Count())
+    verify_key = gen_rand(16)
+
+    # Clients shard their measurements.
+    measurements = [
+        (0b1001, 1),
+        (0b0000, 1),
+        (0b0000, 1),
+        (0b1001, 1),
+        (0b0000, 1),
+        (0b1100, 1),
+        (0b0011, 1),
+    ]
+    reports = []
+    for measurement in measurements:
+        nonce = gen_rand(16)
+        rand = gen_rand(mastic.RAND_SIZE)
+        (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
+        reports.append((nonce, public_share, input_shares))
+
+    # Aggregators compute the heavy hitters
+    prefixes = [0, 1]
+    prev_agg_params = []
+    for level in range(bits):
+        agg_param = (level, prefixes, level == 0)
+        assert mastic.is_valid(agg_param, prev_agg_params)
+
+        # Aggregators prepare reports for aggregation.
+        out_shares = [[], []]
+        for (nonce, public_share, input_shares) in reports:
+            # Each aggregator broadcast its prep share; ...
+            (prep_state, prep_shares) = zip(*[
+                mastic.prep_init(
+                    verify_key,
+                    agg_id,
+                    agg_param,
+                    nonce,
+                    public_share,
+                    input_shares[agg_id]) for agg_id in [0, 1]
+            ])
+
+            # computes the prep message; ...
+            prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
+
+            # and computes its output share.
+            for agg_id in [0, 1]:
+                out_shares[agg_id].append(
+                    mastic.prep_next(prep_state[agg_id], prep_msg))
+
+        # Aggregators aggregate their output shares.
+        agg_shares = [
+            mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
+        ]
+
+        # Collector computes the aggregate result.
+        agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
+        prev_agg_params.append(agg_param)
+
+        if level < bits - 1:
+            # Compute the next set of candidate prefixes.
+            next_prefixes = []
+            for (prefix, count) in zip(prefixes, agg_result):
+                if count >= threshold:
+                    next_prefixes.append(prefix<<1)
+                    next_prefixes.append((prefix<<1)|1)
+            prefixes = next_prefixes
+        else:
+            heavy_hitters = []
+            for (prefix, count) in zip(prefixes, agg_result):
+                if count >= threshold:
+                    heavy_hitters.append(prefix)
+            print("Heavy hitters:", list(map(lambda x: bin(x), heavy_hitters)))
+            assert heavy_hitters == [0, 9]
+
+
+def example_labels_mode():
+    from common import gen_rand
+    import hashlib
+    bits = 8
+    mastic = Mastic.with_params(bits, Count())
+    verify_key = gen_rand(16)
+
+    def h(label):
+        """
+        Hash the label to a fixed-size string whose size matches the bit-size
+        for our instance of Mastic. For testing purposes, we truncate to the
+        first `8` bits of the hash; in practice we would need collision
+        resistance. Mastic should be reasonably fast even for `bits == 256`
+        (the same as SHA-3).
+        """
+        assert bits == 8
+        sha3 = hashlib.sha3_256()
+        sha3.update(label.encode('ascii'))
+        return sha3.digest()[0]
+
+    # Clients shard their measurements.
+    #
+    # Example: Each Client casts a "vote" (either `1` or `0`) and labels their
+    # vote with their home country.
+    measurements = [
+        ('United States', 1),
+        ('Greece', 1),
+        ('United States', 1),
+        ('Greece', 0),
+        ('United States', 0),
+        ('Freedonia', 1),
+        ('Greece', 0),
+        ('United States', 1),
+        ('Greece', 1),
+        ('Greece', 1),
+        ('Mexico', 1),
+        ('Greece', 1),
+    ]
+    reports = []
+    for (label, vote) in measurements:
+        nonce = gen_rand(16)
+        rand = gen_rand(mastic.RAND_SIZE)
+        (public_share, input_shares) = mastic.shard(
+            (h(label), vote),
+            nonce,
+            rand,
+        )
+        reports.append((nonce, public_share, input_shares))
+
+    # Aggregators aggregate the reports, breaking them down by home country.
+    labels = [
+        'Greece',
+        'United States',
+        'Mexico',
+        'Hannah\'s house',
+    ]
+    agg_param = (bits-1, list(map(lambda label: h(label), labels)), True)
+    assert mastic.is_valid(agg_param, [])
+
+    # Aggregators prepare reports for aggregation.
+    out_shares = [[], []]
+    for (nonce, public_share, input_shares) in reports:
+        # Each aggregator broadcast its prep share; ...
+        (prep_state, prep_shares) = zip(*[
+            mastic.prep_init(
+                verify_key,
+                agg_id,
+                agg_param,
+                nonce,
+                public_share,
+                input_shares[agg_id]) for agg_id in [0, 1]
+        ])
+
+        # computes the prep message; ...
+        prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
+
+        # and computes its output share.
+        for agg_id in [0, 1]:
+            out_shares[agg_id].append(
+                mastic.prep_next(prep_state[agg_id], prep_msg))
+
+    # Aggregators aggregate their output shares.
+    agg_shares = [
+        mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
+    ]
+
+    # Collector computes the aggregate result.
+    agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
+    print('Election results:', list(zip(labels, agg_result)))
+    assert agg_result == [4, 3, 1, 0]
+
+
 if __name__ == '__main__':
     from flp_generic import Count
     from common import from_be_bytes
 
+    example_heavy_hitters_mode()
+    example_labels_mode()
+
     test_vdaf(
-        Mastic.with_params(2, Count(), True),
-        (0, (0b0, 0b1)),
+        Mastic.with_params(2, Count()),
+        (0, (0b0, 0b1), True),
         [
             (0b10, 1),
             (0b00, 1),
@@ -342,8 +540,8 @@ if __name__ == '__main__':
     )
 
     test_vdaf(
-        Mastic.with_params(2, Count(), True),
-        (1, (0b00, 0b01)),
+        Mastic.with_params(2, Count()),
+        (1, (0b00, 0b01), True),
         [
             (0b10, 1),
             (0b00, 1),
@@ -355,8 +553,8 @@ if __name__ == '__main__':
     )
 
     test_vdaf(
-        Mastic.with_params(16, Count(), True),
-        (14, (0b111100001111000,)),
+        Mastic.with_params(16, Count()),
+        (14, (0b111100001111000,), True),
         [
             (0b1111000011110000, 0),
             (0b1111000011110001, 1),
@@ -368,13 +566,14 @@ if __name__ == '__main__':
     )
 
     test_vdaf(
-        Mastic.with_params(256, Count(), True),
+        Mastic.with_params(256, Count()),
         (
             63,
             (
                 from_be_bytes(b'00000000'),
                 from_be_bytes(b'01234567'),
             ),
+            True,
         ),
         [
             (from_be_bytes(b'0123456789abcdef0123456789abcdef'), 1),
@@ -386,4 +585,4 @@ if __name__ == '__main__':
     # TODO(cjpatton) Add tests for a circuit with `MEAS_LEN > 1` so that we can
     # assess whether any `Vidpf` encode assumes `len(beta) == 1`.
 
-    # TODO(cjpatton) `is_valid()` tests.
+    test_valid_agg_params()
