@@ -123,7 +123,7 @@ class Mastic(Vdaf):
                 raise ValueError('out of order prefix')
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, level_proof) = cls.Vidpf.eval(
+        (out_share, level_proof) = cls.Vidpf.eval(
             agg_id,
             correction_words,
             init_seed,
@@ -137,6 +137,8 @@ class Mastic(Vdaf):
         # Compute the FLP verifier share, if applicable.
         verifier_share = None
         if cls.do_range_check(agg_param):
+            beta_share = vec_add(out_share[0], out_share[1])
+
             query_rand = cls.Xof.expand_into_vec(
                 cls.Flp.Field,
                 verify_key,

@@ -156,16 +156,7 @@ class Vidpf:
             (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
 
-        # Compute the Aggregator's share of `beta`.
-        if level == 0 and set(prefixes) == set([0, 1]):
-            beta_share = vec_add(out_share[0], out_share[1])
-        else:
-            y0 = prefix_tree_share[(0, 0)][2]
-            y1 = prefix_tree_share[(1, 0)][2]
-            beta_share = vec_add(y0, y1)
-            if agg_id == 1:
-                beta_share = vec_neg(beta_share)
-        return (beta_share, out_share, pi_proof + path_proof)
+        return (out_share, pi_proof + path_proof)
 
     @classmethod
     def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
@@ -287,7 +278,7 @@ def main():
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, proofs[agg_id]) = vidpf.eval(
+            (out_share, proofs[agg_id]) = vidpf.eval(
                 agg_id,
                 correction_words,
                 init_seed[agg_id],
@@ -333,7 +324,7 @@ def main():
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, proofs[agg_id]) = vidpf.eval(
+            (out_share, proofs[agg_id]) = vidpf.eval(
                 agg_id,
                 correction_words,
                 init_seed[agg_id],
