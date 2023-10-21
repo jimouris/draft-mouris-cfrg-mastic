@@ -124,7 +124,7 @@ described in {{Section 9 of !VDAF}} describes how to distribute this
 computation amongst a small set of servers such that, as long as one server is
 honest, no individual measurement is observed in the clear. At the same time,
 Poplar1 allows the servers to detect if a client has submitted an invalid
-measurment.
+measurement.
 
 This document describes the Mastic VDAF that can be used as a drop-in
 replacement for Poplar1, while offering improved performance and communication
@@ -137,7 +137,7 @@ to compute how many of the measurements -- here viewed as bit strings of some
 fixed length -- begin with a given prefix string. (Over several rounds of
 aggregation, the prefix counting can be used to compute the heavy hitters as
 described in {{Section 8 of !VDAF}}.) Mastic allows this basic counter data
-type to be generalized to support a wide variety of secure aggreagtion tasks.
+type to be generalized to support a wide variety of secure aggregation tasks.
 In particular, Mastic supports any data type for the output that can be
 expressed as a type for the Prio3 VDAF {{Section 7 of !VDAF}}. For example, the
 counter could be replaced with a bounded weight (say, representing a dollar
@@ -175,14 +175,14 @@ reports and remove them. We describe this idea in detail in
 
 Second, {{plain-heavy-hitters-with-three-aggregators}} describes an enhancement
 for plain heavy hitters that allows Mastic to achieve robustness in the
-presence of a malcioius server. Rather than two aggregation servers as in the
+presence of a malicious server. Rather than two aggregation servers as in the
 previous modes, this mode of operation involves three aggregation servers,
 where every pair of servers communicate over a different channel. [CP: Anything
 else to mention here? Is the transform generic, i.e., apply to any 2-party
-VDAF, or are there tricks in {{MST23}} that we want to take advanatage of
-for efficiency] While more complex to implement, this mode allows Mastic to
+VDAF, or are there tricks in {{MST23}} that we want to take advantage of for
+efficiency] While more complex to implement, this mode allows Mastic to
 achieve "full security", where both privacy and robustness hold in the
-honst majority setting.
+honest majority setting.
 
 # Conventions and Definitions
 
@@ -227,7 +227,17 @@ decide if the input is valid.
 
 > TODO: Describe in more detail the features of `Flp` we require for Mastic.
 
-## Verifiable IDPF (VIDPF) {#vidpf}
+## Distributed Point Functions (DPF) {#dpf}
+
+Function secret sharing (FSS) allows secret sharing of the output of a function
+`f()` into additive shares, where each function share is represented by a
+separate key {{GI14}}. These keys enable their respective owners to efficiently
+generate an additive share of the function’s output `f(x)` for a given input
+`x`. Distributed Point Functions (DPF) are a particular case of FSS where `f()`
+is a point function `f_{alpha, beta}(x) = beta if x = a, or 0 otherwise`.
+
+
+### Incremental DPF (IDPF) {#idpf}
 
 An Incremental Distribute Point Function (IDPF, {{Section 8.1 of !VDAF}}) is a
 secret sharing scheme for a special type of function known as an "incremental
@@ -244,7 +254,7 @@ which is run by the Client. It takes as input `alpha` and `beta` and returns
 three values: two "key shares", one for each of two Aggregators; and the
 "public share", to be distributed to both Aggregators. The second is the
 key-evaluation algorithm, run by each Aggregator. It takes as input a candidate
-prefix string `prefix`, the public share, and the Aggregotr's key share and
+prefix string `prefix`, the public share, and the Aggregator's key share and
 returns the Aggregator's share of the point function parameterized by `alpha`
 and `beta` and evaluated at `prefix`.
 
@@ -253,16 +263,37 @@ This is used in Poplar1 ({{Section 8 of !VDAF}}) to count how many input
 strings begin with a candidate prefix. IDPFs are private in the sense that each
 Aggregators learning nothing about the underlying inputs beyond the value of
 this sum. However, IDPFs on their own do not provide robustness: it is possible
-for a malicious to Client to fool the Aggregators into accepting mal-formed
+for a malicious to Client to fool the Aggregators into accepting malformed
 counter (i.e., a value other than `0` or `1`).
 
-Mouris et al. {{MST23}} describe an extension called Verifiable IDPF (VIDPF)
-that endows this basic scheme with two properties, both of are used in Mastic
-to achieve robustness:
+### Verifiable DPF (VDPF) {#vdpf}
 
-1. One-hot Verifiability: TODO(cjpatton)
+In the presence of a malicious client, standard DPFs and IDPFs suffer from
+malicious clients, who can completely corrupt the result by sending corrupt DPF
+keys. Even worse, malicious clients can craft the keys and manipulate the
+statistics without the servers’ knowledge. Verifiable DPF (VDPF) {{CP22}} build
+on standard DPFs and ensure that a DPF key is well-formed using hashing-based
+techniques.
 
-1. Path Verifiability: TODO(cjpatton)
+### Verifiable Incremental DPF (VIDPF) {#vidpf}
+
+Mouris et al. {{MST23}} describe an extension of IDPF and VDPF called Verifiable
+IDPF (VIDPF) that allows verifying that clients’ inputs are valid by relying on
+hashing while preserving the client’s input privacy. VIDPF endows this basic
+scheme with two properties, both of are used in Mastic to achieve robustness:
+
+1. **One-hot Verifiability:** The verifiability property of VIDPF ensures that if
+    two proofs (`proof_0` and `proof_1`) for a given level `k` are the same,
+    then there is at most one value at that level (i.e., of length `k`) in the
+    VIDPF tree whose evaluation outputs `beta`.
+
+1. **Path Verifiability:** The One-hot Verifiability property alone is not
+    sufficient to guarantee that the keys are well formed. The Aggregators still
+    need to verify that: a) the non-zero values `beta` of the Client are across
+    a single path in the tree, and b) the value of the root node is correctly
+    propagated down the VIDPF tree. For example, if the root value is `beta`,
+    then there is only a single path from root to the leaves with `beta` values.
+
 
 > TODO(cjpatton) Define syntax and give overview of design. Point to reference
 > implementation for details.
