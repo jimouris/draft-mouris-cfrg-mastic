@@ -45,33 +45,35 @@ class Mastic(Vdaf):
 
     @classmethod
     def shard(cls, measurement, nonce, rand):
-        (vidpf_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
-        (prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (helper_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_helper_proof_share_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
         beta = cls.Flp.encode(meas)
 
         # Generate VIDPF keys.
-        (init_seed, correction_words, cs_proofs) = \
-            cls.Vidpf.gen(alpha, beta, nonce, vidpf_rand)
-        public_share = (correction_words, cs_proofs)
+        (vidpf_init_seed, vidpf_correction_words, vidpf_cs_proofs) = \
+            cls.Vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
+        public_share = (vidpf_correction_words, vidpf_cs_proofs)
 
-        # Generate FLP shares.
-        prove_rand = cls.Xof.expand_into_vec(cls.Field,
-            prove_rand_seed,
+        # Generate FLP proof shares.
+        flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
+            flp_prove_rand_seed,
             cls.domain_separation_tag(USAGE_PROVE_RAND),
             b'',
             cls.Flp.PROVE_RAND_LEN,
         )
 
-        proof = cls.Flp.prove(beta, prove_rand, [])
-        leader_proof_share = vec_sub(proof,
-                                     cls.helper_proof_share(helper_seed))
+        flp_proof = cls.Flp.prove(beta, flp_prove_rand, [])
+        flp_leader_proof_share = vec_sub(
+            flp_proof,
+            cls.helper_proof_share(flp_helper_proof_share_seed),
+        )
 
         input_shares = [
-            (init_seed[0], leader_proof_share),
-            (init_seed[1], helper_seed),
+            (vidpf_init_seed[0], flp_leader_proof_share),
+            (vidpf_init_seed[1], flp_helper_proof_share_seed),
         ]
         return (public_share, input_shares)
 
@@ -99,25 +101,25 @@ class Mastic(Vdaf):
     def prep_init(cls, verify_key, agg_id, agg_param,
                   nonce, public_share, input_share):
         (level, prefixes, do_range_check) = agg_param
-        (init_seed, proof_share) = cls.expand_input_share(agg_id, input_share)
-        (correction_words, cs_proofs) = public_share
+        (vidpf_init_seed, flp_proof_share) = cls.expand_input_share(agg_id, input_share)
+        (vidpf_correction_words, vidpf_cs_proofs) = public_share
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, level_proof) = cls.Vidpf.eval(
+        (beta_share, out_share, vidpf_verifier) = cls.Vidpf.eval(
             agg_id,
-            correction_words,
-            init_seed,
+            vidpf_correction_words,
+            vidpf_init_seed,
             level,
             prefixes,
-            cs_proofs,
+            vidpf_cs_proofs,
             cls.ROOT_PROOF,
             nonce,
         )
 
         # Compute the FLP verifier share, if applicable.
-        verifier_share = None
+        flp_verifier_share = None
         if do_range_check:
-            query_rand = cls.Xof.expand_into_vec(
+            flp_query_rand = cls.Xof.expand_into_vec(
                 cls.Flp.Field,
                 verify_key,
                 cls.domain_separation_tag(USAGE_QUERY_RAND),
@@ -125,16 +127,16 @@ class Mastic(Vdaf):
                 cls.Flp.QUERY_RAND_LEN,
             )
 
-            verifier_share = cls.Flp.query(beta_share,
-                                           proof_share,
-                                           query_rand,
-                                           [], # joint_rand
-                                           cls.SHARES)
+            flp_verifier_share = cls.Flp.query(beta_share,
+                                               flp_proof_share,
+                                               flp_query_rand,
+                                               [], # joint randomness
+                                               cls.SHARES)
 
         prep_state = []
         for val_share in out_share:
             prep_state += cls.Flp.truncate(val_share)
-        prep_share = (level_proof, verifier_share)
+        prep_share = (vidpf_verifier, flp_verifier_share)
         return (prep_state, prep_share)
 
     @classmethod
@@ -143,20 +145,21 @@ class Mastic(Vdaf):
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
+        (vidpf_verifier_0, flp_verifier_share_0) = prep_shares[0]
+        (vidpf_verifier_1, flp_verifier_share_1) = prep_shares[1]
+
         # Verify the VIDPF output.
-        (level_proof_0, verifier_share_0) = prep_shares[0]
-        (level_proof_1, verifier_share_1) = prep_shares[1]
-        if level_proof_0 != level_proof_1:
-            raise Exception('output vector is not one-hot')
+        if vidpf_verifier_0 != vidpf_verifier_1:
+            raise Exception('VIDPF verification failed')
 
         # Finish verifying the FLP, if applicable.
         if do_range_check:
-            if verifier_share_0 == None or verifier_share_1 == None:
-                raise ValueError('prep share with missing verifier share')
+            if flp_verifier_share_0 == None or flp_verifier_share_1 == None:
+                raise ValueError('prep share with missing FLP verifier share')
 
-            verifier = vec_add(verifier_share_0, verifier_share_1)
-            if not cls.Flp.decide(verifier):
-                raise Exception('programmed measurement is not in range')
+            flp_verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
+            if not cls.Flp.decide(flp_verifier):
+                raise Exception('FLP verification failed')
 
         return None
 
@@ -197,16 +200,16 @@ class Mastic(Vdaf):
 
     @classmethod
     def expand_input_share(cls, agg_id, input_share):
-        (init_seed, proof_share) = input_share
+        (vidpf_init_seed, flp_proof_share) = input_share
         if agg_id > 0:
-            proof_share = cls.helper_proof_share(proof_share)
-        return (init_seed, proof_share)
+            flp_proof_share = cls.helper_proof_share(flp_proof_share)
+        return (vidpf_init_seed, flp_proof_share)
 
     @classmethod
-    def helper_proof_share(cls, helper_seed):
+    def helper_proof_share(cls, flp_helper_proof_share_seed):
         return cls.Xof.expand_into_vec(
             cls.Field,
-            helper_seed,
+            flp_helper_proof_share_seed,
             cls.domain_separation_tag(USAGE_PROOF_SHARE),
             b'',
             cls.Flp.PROOF_LEN,
