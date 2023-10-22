@@ -191,7 +191,10 @@ class Mastic(Vdaf):
             #
             # TODO(cjpatton) Decide if we should try to make Mastic compatible
             # with all FLPs. We can do so by piggy-packing a counter with each
-            # output at the cost of mild communication overhead.
+            # output at the cost of mild communication overhead. It seems like
+            # this counter could just do exactly what PLASMA does {{MST23}}. In
+            # fact, this would give us way to easily extend Mastic to Plain
+            # Heavy-hitters.
             agg_result.append(cls.Flp.decode(chunk, 0))
         return agg_result
 

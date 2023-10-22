@@ -348,45 +348,58 @@ check, but we would like more sophisticated range checks for Mastic.)
 
 # Definition of `Mastic` {#vdaf}
 
-TODO(cjpatton) overview
+TODO overview
+
+> NOTE To be specified. We are pretty confident about the overall structure of
+> the VDAF, but there are some details to work out and security analysis to do.
+> In the meantime, check out the current reference implementation at
+> https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
 
 ## Sharding
 
-TODO(cjpatton) high-level, point to reference implementation
+> NOTE to be specified in full detail.
 
 ## Preparation
 
-TODO(cjpatton) high-level, point to reference implementation
+> NOTE to be specified in full detail.
 
 ## Validity of Aggregation Parameters
 
-TODO(cjpatton) high-level, point to reference implementation
+> NOTE to be specified in full detail.
 
 ## Aggregation
 
-TODO(cjpatton) high-level, point to reference implementation
+> NOTE to be specified in full detail.
 
 ## Unsharding
 
-TODO(cjpatton) high-level, point to reference implementation
+> NOTE to be specified in full detail.
 
 # Modes of Operation for `Mastic`
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
-TODO(cjpatton) high-level, point to example
+TODO Add an overview of the goal and how Mastic is used to achieve it.
+
+> NOTE to be specified in full detail.
 
 ## Aggregation by Labels {#aggregation-by-labels}
 
-TODO(cjpatton) high-level, point to example
+TODO Add an overview of the goal and how Mastic is used to achieve it.
+
+> NOTE to be specified in full detail.
 
 ## Plain Heavy-Hitters with Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
 
-TODO(jimouris)
+TODO Add an overview of the goal and how Mastic is used to achieve it.
+
+> NOTE to be specified in full detail.
 
 ## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
 
-TODO(jimouris)
+TODO(jimouris) Add an overview of the goal and how Mastic is used to achieve it.
+
+> NOTE to be specified in full detail.
 
 # Definition of `Vidpf` {#vidpf-construction}
 
@@ -394,21 +407,23 @@ The construction of {{MST23}} builds on techniques from {{CP22}} to lift an
 IDPF to a VIDPF with the properties described in {{vidpf}}. Instead of a
 2-round "secure sketch" MPC like that of Poplar1, the scheme relys on hashing.
 
+TODO(jimouris) Add an overview.
+
 > NOTE To be specified. The design is based on VIDPF from {{MST23}}.
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc for the
 > reference implementation.
 
 # Security Considerations
 
-TODO
+> NOTE to be specified.
 
 # IANA Considerations
 
-TODO
+> NOTE to be specified.
 
 --- back
 
 # Acknowledgments
 {:numbered="false"}
 
-TODO
+> NOTE to be specified.
