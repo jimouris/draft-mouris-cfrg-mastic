@@ -230,16 +230,12 @@ required. This object implements arithmetic in a prime field with a modulus
 suitable for use with the Number Theoretic Transform (called "FFT-friendly" in
 {{!VDAF}}).
 
-> TODO: Describe the features of `Field` we need for Mastic.
-
 ## XOF {#xof}
 
 An implementation of the `Xof` interface in {{Section 6.2 of !VDAF}} is
 required. This object implements an XOF that takes a short seed and some
 auxiliary data as input and outputs a string of any length required for the
 application.
-
-> TODO: Describe the features of `Xof` we need for Mastic.
 
 ## FLP {#flp}
 
@@ -251,8 +247,6 @@ of this proof to each Aggregator. Verification is split into two phases. In the
 first phase, each Aggregator "queries" its share of the measurement and proof
 to obtain its "verifier share". In the second phase, the Aggregators sum up the
 verifier shares and use the sum to decide if the input is valid.
-
-> TODO: Describe in more detail the features of `Flp` we require for Mastic.
 
 ## Verifiable IDPF (VIDPF) {#vidpf}
 
