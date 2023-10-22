@@ -256,8 +256,6 @@ verifier shares and use the sum to decide if the input is valid.
 
 ## Verifiable IDPF (VIDPF) {#vidpf}
 
-### Background
-
 Function secret sharing (FSS) allows secret sharing of the output of a function
 `f()` into additive shares, where each function share is represented by a
 separate key {{GI14}}. These keys enable their respective owners to efficiently
@@ -331,7 +329,11 @@ A concrete `Vidpf` defines the types and constants enumerated in
   share and the VIDPF verifier.
 
 The veriability properties are guaranteed as long as each Aggregator computes
-the same verifier string.
+the same verifier string. Note that One-hot Verifiability and Path
+Verifiability are not sufficient to ensure robustnes of Mastic; we will also
+need to ensure that the `beta` chosen by the Client is "in range". We will rely
+on FLPs ({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)`
+check, but we would like more sophisticated range checks for Mastic.)
 
 | Parameter  | Description               |
 |:-----------|:--------------------------|
