@@ -193,19 +193,42 @@ hold in the honest majority setting.
 
 {::boilerplate bcp14-tagged}
 
+This document uses the following terms as defined in {{!VDAF}}:
+"Aggregator",
+"Client",
+"Collector",
+"aggregate result",
+"aggregate share",
+"aggregation parameter",
+"input share",
+"measurement",
+"output share",
+"prep message",
+"prep share", and
+"report".
+
+In Mastic, a Client's VDAF measurement is comprised of two components, which we
+denote `alpha` and `beta`. The function that each component serves depends on
+the use case: for plain and weighted heavy-hitters, we shall refer to `alpha`
+as the "payload" and `beta` as the payloads "weight"; for
+aggregation-by-labels, we shall refer to `alpha` as the "label" and to `beta`
+as the "payload". When doing so is unambiguous, we may also refer to the
+payload as the "measurement".
+
 # Preliminaries
 
 Mastic makes use of three primitives described in the base VDAF specification
-{{!VDAF}}: finie fields, eXtendable Output Functions (XOFs) and Fully Linear
+{{!VDAF}}: finie fields, eXtendable Output Functions (XOFs), and Fully Linear
 Proofs (FLPs). It also makes use of a fourth primitive, which extends the
 security properties of Incremental Distributed Point Functions (IDPFs), also
-described in the base specification. All three primitives are described below.
+described in the base specification. All four primitives are described below.
 
 ## Finite fields {#field}
 
 An implementation of the `Field` interface in {{Section 6.1 of !VDAF}} is
-required. This object implements arithmetic in a prime field with a suitable
-modulus.
+required. This object implements arithmetic in a prime field with a modulus
+suitable for use with the Number Theoretic Transform (called "FFT-friendly" in
+{{!VDAF}}).
 
 > TODO: Describe the features of `Field` we need for Mastic.
 
@@ -222,87 +245,106 @@ application.
 
 An implementation of the `Flp` interface in {{Section 7.1 of !VDAF}} is
 required. This object implements a zero-knowledge proof system used to verify
-that the mesaurement encoded by the client's report conforms to the data type
-required by the application. The Client generates a proof that its measurement
-is valid and sends secret shares of this proof to each Aggregator. Verification
-is split into two phases. In the first phase, each Aggregator "queries" its
-share of the measurement and proof to obtain its "verifier share". In the
-second phase, the Aggregators sum of the verifier shares and use the sum to
-decide if the input is valid.
+that the measurement conforms to the data type required by the application. The
+Client generates a proof that its measurement is valid and sends secret shares
+of this proof to each Aggregator. Verification is split into two phases. In the
+first phase, each Aggregator "queries" its share of the measurement and proof
+to obtain its "verifier share". In the second phase, the Aggregators sum up the
+verifier shares and use the sum to decide if the input is valid.
 
 > TODO: Describe in more detail the features of `Flp` we require for Mastic.
 
-## Distributed Point Functions (DPF) {#dpf}
+## Verifiable IDPF (VIDPF) {#vidpf}
+
+### Background
 
 Function secret sharing (FSS) allows secret sharing of the output of a function
 `f()` into additive shares, where each function share is represented by a
 separate key {{GI14}}. These keys enable their respective owners to efficiently
 generate an additive share of the function’s output `f(x)` for a given input
-`x`. Distributed Point Functions (DPF) are a particular case of FSS where `f()`
-is a point function `f_{alpha, beta}(x) = beta if x = a, or 0 otherwise`.
+`x`.Distributed Point Functions (DPF) are a particular case of FSS where `f()`
+is a "point function" for which `f(x) = beta` if `x == alpha` and `0`
+otherwise for some `alpha, beta`.
 
-### Incremental DPF (IDPF) {#idpf}
-
-An Incremental Distribute Point Function (IDPF, {{Section 8.1 of !VDAF}}) is a
-secret sharing scheme for a special type of function known as an "incremental
-point function". Such a function involves two parameters: `alpha`, a bit-string
-of some fixed size, which we denote by `BITS`; and `beta`, which in this
-document shall be represented by a fixed-length vector over a finite field
-`Field`. The function is well-defined for any non-empty string of length less
-than or equal to `BITS`: on input of any prefix of `alpha`, the point function
-returns `beta`; otherwise, if the input is not a prefix of `alpha`, the output
-is `Field.zeros(OUTPUT_LEN)` (i.e., a length-`OUTPUT_LEN` vector of zeros).
+An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing a
+"incremental point function". Here we take `alpha` to be a bit string of
+fixed-length and we have that `f(x) = beta` if `x` is a prefix of `alpha` and
+`0` otherwise.
 
 An IDPF has two main operations. The first is the key-generation algorithm,
 which is run by the Client. It takes as input `alpha` and `beta` and returns
 three values: two "key shares", one for each of two Aggregators; and the
 "public share", to be distributed to both Aggregators. The second is the
 key-evaluation algorithm, run by each Aggregator. It takes as input a candidate
-prefix string `prefix`, the public share, and the Aggregator's key share and
-returns the Aggregator's share of the point function parameterized by `alpha`
-and `beta` and evaluated at `prefix`.
+prefix string `x`, the public share, and the Aggregator's key share and returns
+the Aggregator's share of `f(x)`.
 
 Shares of the IDPF outputs can be aggregated together across multiple reports.
 This is used in Poplar1 ({{Section 8 of !VDAF}}) to count how many input
 strings begin with a candidate prefix. IDPFs are private in the sense that each
 Aggregators learning nothing about the underlying inputs beyond the value of
-this sum. However, IDPFs on their own do not provide robustness: it is possible
-for a malicious to Client to fool the Aggregators into accepting malformed
-counter (i.e., a value other than `0` or `1`).
+this sum. However, IDPFs on their own do not provide robustness. For example,
+it is possible for a malicious to Client to fool the Aggregators into accepting
+malformed counter (i.e., a value other than `0` or `1`). It is also possible
+for a Client to "vote twice" by construcing key shares for which `f(x) = f(x')
+= beta`, where `x` and `x'` are distinct, equal-length strings.
 
-### Verifiable DPF (VDPF) {#vdpf}
+To mitigate these issues, IDPF must be composed with some interactive mechanism
+For ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
+{{MST23}} for this purpose, which endows IDPF with the following properties:
 
-In the presence of a malicious client, standard DPFs and IDPFs suffer from
-malicious clients, who can completely corrupt the result by sending corrupt DPF
-keys. Even worse, malicious clients can craft the keys and manipulate the
-statistics without the servers’ knowledge. Verifiable DPF (VDPF) {{CP22}} build
-on standard DPFs and ensure that a DPF key is well-formed using hashing-based
-techniques.
-
-### Verifiable Incremental DPF (VIDPF) {#vidpf}
-
-Mouris et al. {{MST23}} describe an extension of IDPF and VDPF called Verifiable
-IDPF (VIDPF) that allows verifying that clients’ inputs are valid by relying on
-hashing while preserving the client’s input privacy. VIDPF endows this basic
-scheme with two properties, both of are used in Mastic to achieve robustness:
-
-1. **One-hot Verifiability:** The verifiability property of VIDPF ensures that if
-    two proofs (`proof_0` and `proof_1`) for a given level `k` are the same,
-    then there is at most one value at that level (i.e., of length `k`) in the
-    VIDPF tree whose evaluation outputs `beta`.
+1. **One-hot Verifiability:** There is at most one node in the VIDPF tree at
+   the level whose value is non-zero. In particular, the output shares are
+   additive shares of a one-hot vector.
 
 1. **Path Verifiability:** The One-hot Verifiability property alone is not
-    sufficient to guarantee that the keys are well formed. The Aggregators still
-    need to verify that: a) the non-zero values `beta` of the Client are across
-    a single path in the tree, and b) the value of the root node is correctly
-    propagated down the VIDPF tree. For example, if the root value is `beta`,
-    then there is only a single path from root to the leaves with `beta` values.
+    sufficient to guarantee that the keys are well formed. The Aggregators
+    still need to verify that: a) the non-zero values `beta` of the Client are
+    across a single path in the tree, and b) the value of the root node is
+    correctly propagated down the VIDPF tree. For example, if the root value is
+    `beta`, then there is only a single path from root to the leaves with
+    `beta` values.
 
+Below we describe the syntax of VIDPF; in {{vidpf-construction}} we specify the
+concrete construction of {{MST23}}.
 
-> TODO(cjpatton) Define syntax and give overview of design. Point to reference
-> implementation for details.
+A concrete `Vidpf` defines the types and constants enumerated in
+{{vidpf-param}}. In addition it implements the following methods:
 
-# Definition {#vdaf}
+* `Vidpf.gen(alpha: Unsigned, beta: list[Vidpf.Field], binder: bytes, rand:
+  bytes) -> tuple[PublicShare, list[bytes]]` is the randomized key generation
+  algorithm. (`rand` denotes the random bytes consumed by the algorithm.) Its
+  inputs are the VIDPF index `alpha` (defined the same way as "IDPF index" in
+  {{{Section 8 of !VDAF}}), the output value `beta`, and a binder string.  The
+  value of `alpha` MUST be in range `[0, 2^Vidpf.BITS)`; and `len(rand)` MUST
+  be `Vidpf.RAND_SIZE`. The outputs are the public share and the list of key
+  shares, one for each Aggregator. The length of each key share MUST be
+  `Vidpf.KEY_SIZE`.
+
+* `Vidpf.eval(agg_id: Unsigned, public_share: Vidpf.PublicShare, key_share:
+  bytes, level: Unsigned, prefixes: tuple[Unsigned, ...], binder: bytes) ->
+  tuple[list[Vidpf.Field], bytes]` is the deterministic key evaulation
+  algorithm. It takes as input the Aggoregator ID (it MUST be in range `[0,
+  Vidpf.SHARES)`, the public share, the Aggregator's key share, the VIDFP level
+  (defined the same way as "IDPF level" in {{Section 8 of !VDAF}}), the list of
+  prefixes to evaluate, and a binder string. Its outputs are the VIDPF output
+  share and the VIDPF verifier.
+
+The veriability properties are guaranteed as long as each Aggregator computes
+the same verifier string.
+
+| Parameter  | Description               |
+|:-----------|:--------------------------|
+| SHARES      | Number of VIDPF keys output by VIDPF-key generator |
+| BITS        | Length in bits of each input string |
+| VALUE_LEN   | Number of field elements of each output value |
+| RAND_SIZE   | Size of the random string consumed by the VIDPF-key generator. Equal to twice the XOF's seed size. |
+| KEY_SIZE    | Size in bytes of each VIDPF key |
+| Field       | Implementation of `Field` ({{field}}) used for each value |
+| PublicShare | Type of the VIDPF public share |
+{: #vidpf-param title="Constants and types defined by a concrete VIDPF."}
+
+# Definition of `Mastic` {#vdaf}
 
 TODO(cjpatton) overview
 
@@ -326,7 +368,7 @@ TODO(cjpatton) high-level, point to reference implementation
 
 TODO(cjpatton) high-level, point to reference implementation
 
-# Modes of Operation
+# Modes of Operation for `Mastic`
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
@@ -343,6 +385,16 @@ TODO(jimouris)
 ## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
 
 TODO(jimouris)
+
+# Definition of `Vidpf` {#vidpf-construction}
+
+The construction of {{MST23}} builds on techniques from {{CP22}} to lift an
+IDPF to a VIDPF with the properties described in {{vidpf}}. Instead of a
+2-round "secure sketch" MPC like that of Poplar1, the scheme relys on hashing.
+
+> NOTE To be specified. The design is based on VIDPF from {{MST23}}.
+> https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc for the
+> reference implementation.
 
 # Security Considerations
 
