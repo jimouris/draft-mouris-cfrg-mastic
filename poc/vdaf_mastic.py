@@ -27,7 +27,6 @@ class Mastic(Vdaf):
     Vidpf = None # Set by `with_params()`
     Flp = None # Set by `with_params()`
     Xof = XofShake128
-    ROOT_PROOF = hashlib.sha3_256().digest() # Hash of the empty string
 
     # Parameters required by `Vdaf`.
     ID: Unsigned = 0xFFFFFFFF
@@ -108,11 +107,10 @@ class Mastic(Vdaf):
         (beta_share, out_share, vidpf_verifier) = cls.Vidpf.eval(
             agg_id,
             vidpf_correction_words,
+            vidpf_cs_proofs,
             vidpf_init_seed,
             level,
             prefixes,
-            vidpf_cs_proofs,
-            cls.ROOT_PROOF,
             nonce,
         )
 

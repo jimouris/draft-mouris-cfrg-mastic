@@ -12,14 +12,15 @@ from xof import XofFixedKeyAes128
 class Vidpf:
     """A Verifiable Distributed Point Function (VIDPF)."""
 
-    # Operational parameters (set by `with_params()`).
-    Field = None
+    # Operational parameters.
+    Field = None # set by `with_params()`
+    ROOT_PROOF = hashlib.sha3_256().digest() # Hash of the empty string
 
     # Bit length of valid input values (i.e., the length of `alpha` in bits).
-    BITS = None
+    BITS = None # set by `with_params()`
 
     # The length of each output vector (i.e., the length of `beta_leaf`).
-    VALUE_LEN = None
+    VALUE_LEN = None # set by `with_params()`
 
     # Constants
 
@@ -89,7 +90,14 @@ class Vidpf:
         return (init_seed, correction_words, cs_proofs)
 
     @classmethod
-    def eval(cls, agg_id, correction_words, init_seed, level, prefixes, cs_proofs, pi_proof, binder):
+    def eval(cls,
+             agg_id,
+             correction_words, # public share
+             cs_proofs,        # public share
+             init_seed,        # key share
+             level,
+             prefixes,
+             binder):
         if agg_id >= cls.SHARES:
             raise ValueError("invalid aggregator ID")
         if level >= cls.BITS:
@@ -102,6 +110,7 @@ class Vidpf:
         #
         # Implementation note: We can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
+        pi_proof = cls.ROOT_PROOF
         prefix_tree_share = {}
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
@@ -268,29 +277,28 @@ def main():
 
     sha3 = hashlib.sha3_256()
     sha3.update(str(0).encode('ascii'))
-    pi_proof = sha3.digest()
-    proofs = [pi_proof, pi_proof]
 
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
+        verifiers = []
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, proofs[agg_id]) = vidpf.eval(
+            (_beta_share, out_share, verifier) = vidpf.eval(
                 agg_id,
                 correction_words,
+                cs_proofs,
                 init_seed[agg_id],
                 level,
                 prefixes,
-                cs_proofs,
-                proofs[agg_id],
                 binder,
             )
+            verifiers.append(verifier)
 
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], out_share[i])
-        assert vidpf.verify(proofs[0], proofs[1])
+        assert vidpf.verify(verifiers[0], verifiers[1])
 
     print('Aggregated:', out)
     assert out == [[Field128(2)], [Field128(3)]]
@@ -314,29 +322,28 @@ def main():
 
     sha3 = hashlib.sha3_256()
     sha3.update(str(0).encode('ascii'))
-    pi_proof = sha3.digest()
-    proofs = [pi_proof, pi_proof]
 
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
+        verifiers = []
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, proofs[agg_id]) = vidpf.eval(
+            (_beta_share, out_share, verifier) = vidpf.eval(
                 agg_id,
                 correction_words,
+                cs_proofs,
                 init_seed[agg_id],
                 level,
                 prefixes,
-                cs_proofs,
-                proofs[agg_id],
                 binder,
             )
+            verifiers.append(verifier)
 
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], out_share[i])
-        assert vidpf.verify(proofs[0], proofs[1])
+        assert vidpf.verify(verifiers[0], verifiers[1])
 
     print('Aggregated:', out)
     assert out == [[Field128(1)], [Field128(3)], [Field128(0)]]
