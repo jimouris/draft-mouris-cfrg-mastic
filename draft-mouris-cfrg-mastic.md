@@ -221,6 +221,9 @@ aggregation-by-labels ({{aggregation-by-labels}}), we shall refer to `alpha` as
 the "label" and to `beta` as the "payload". When doing so is unambiguous, we
 may also refer to the payload as the "measurement".
 
+The DPF tree always has as a root the "empty string", which in turn has strings
+"0" and "1" as the left and right children, respectively.
+
 # Preliminaries
 
 Mastic makes use of three primitives described in the base VDAF specification
@@ -249,7 +252,7 @@ An implementation of the `Flp` interface in {{Section 7.1 of !VDAF}} is
 required. This object implements a zero-knowledge proof system used to verify
 that the measurement conforms to the data type required by the application: for
 weighted heavy hitters ({{weighted-heavy-hitters}}), FLPs are used to check the
-weight; in aggregateion-by-labels ({{aggregation-by-labels}}), they are used
+weight; in aggregation-by-labels ({{aggregation-by-labels}}), they are used
 to check the measurement itself.
 
 The Client generates a proof and sends secret shares of this proof to each
@@ -261,17 +264,20 @@ the sum to decide if the input is valid.
 ## Verifiable IDPF (VIDPF) {#vidpf}
 
 Function secret sharing {{GI14}} allows secret sharing of the output of a
-function `f()` into additive shares, where each function share is represented
-by a separate key. These keys enable the Aggregators to efficiently generate an
+function `f()` into additive shares, where each function share is represented by
+a separate key. These keys enable the Aggregators to efficiently generate an
 additive share of the function’s output `f(x)` for a given input `x`.
 Distributed Point Functions (DPF) are a particular case of function secret
 sharing where `f()` is a "point function" for which `f(x) = beta` if `x` equals
-`alpha` and `0` otherwise for some `alpha`, `beta`.
+`alpha` and `0` otherwise for some `alpha`, `beta`. The computation is
+distributed in such a way that no one party knows either the point or what it
+evaluates to.
 
 An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing an
-"incremental point function". Here we take `alpha` to be a bit string of
-fixed length, and we have that `f(x) = beta` if `x` is a prefix of `alpha` and
-`0` otherwise.
+"incremental point function", i.e., the "point" in DPF is now a  path on a full
+binary tree from the root to one of the leaves. Here we take `alpha` to be a bit
+string of fixed length, and we have that `f(x) = beta` if `x` is a prefix of
+`alpha` and `0` otherwise.
 
 An IDPF has two main operations. The first is the key-generation algorithm,
 which is run by the Client. It takes as input `alpha` and `beta` and returns
@@ -299,7 +305,7 @@ for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
    value under f is non-zero. In particular, the output shares at each level
    are additive shares of a one-hot vector.
 
-1. Path Verifiability: The One-hot Verifiability property alone is not
+2. Path Verifiability: The One-hot Verifiability property alone is not
    sufficient to guarantee that the keys are well-formed. The Aggregators still
    need to verify that: a) the non-zero output values are across a single path
    in the tree, and b) the value of the root node is consistently propagated
@@ -362,36 +368,42 @@ necessary for Path Verifiability.
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
 
 This section describes Mastic, a VDAF suitable for a plethora of aggregation
-functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters
-(see {{weighted-heavy-hitters}}), aggregation by labels (see
+functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters (see
+{{weighted-heavy-hitters}}), aggregation by labels (see
 {{aggregation-by-labels}}), linear regression and more. Mastic allows computing
-functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. [CP: Try to group items in
-this list that logically related. Note at this point we're getting into the
-weeds of the construction, not necessarily trying to sell the reader on the
-motivation.] In more detail, Mastic is compatible with any aggregation function
-that has the following structure:
+functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
+compatible with any aggregation function that has the following structure:
 
-1. Each Client measurement is encoded as a vector over some finite field. Each
-   Client splits its string of length `BITS` into input shares and sends one
-   share to each Aggregator. [CP: This doesn't match the terminology in
-   {{conventions}}.]
+1. As described in {{conventions}}, each Client input consists of two
+   components, which we denote `alpha` and `beta`. At a high level, the Client
+   generates VIDPF keys (i.e., input shares) that encode its input `alpha` with
+   weight (or payload) `beta`. Then the Client sends one share to each
+   Aggregator and also publishes the `PublicShare`.
 2. The Aggregators agree on an initial set of `l`-bit strings, where
    `l <= BITS`. We refer to these strings as "candidate prefixes".
-3. Measurement validity is determined by a combination of techniques. First, we
-   use an arithmetic circuit evaluated over the encoded measurement to assert
-   that the measurement is valid for candidate prefix being the empty string ε.
-   [CP: Add the definition of the empty string to {{conventions}}.]
-   (An "arithmetic circuit" is a function comprised of arithmetic operations in
-   the field.) The circuit's output is a single field element: if zero, then the
-   measurement is said to be "valid"; otherwise, if the output is non-zero, then
-   the measurement is said to be "invalid". The arithmetic circuit asserts that
-   the measurement is valid for the empty string ε. Next, the servers need to
-   assert that the measurement is valid for all the candidate prefixes. We
-   achieve that by enforcing the "One-hot Verifiability" and "Path
-   Verifiability" properties described in {{vidpf}}. [CP: Validity circuit is
-   somewhat of an implementation detail. I'd keep things high level by
-   discussing FLPs. Below we can describe how our instantiaotion of FLP defines
-   validity via arithmetic circuits.]
+3. Measurement validity is determined by a combination of techniques.
+   1. First, we use an FLP (as defined in {{flp}}) evaluated over the encoded
+      measurement to assert that the measurement is valid for candidate prefix
+      being the empty string. Note that this can also be achieved by evaluating
+      strings "0" and "1" and adding the output shares together in each
+      Aggregator. Below we can describe how our instantiation of FLP defines
+      validity via arithmetic circuits:
+
+      An "arithmetic circuit" is a function comprised of arithmetic operations
+      in the field. The circuit's output is a single field element: if zero,
+      then the measurement is said to be "valid"; otherwise, if the output is
+      non-zero, then the measurement is said to be "invalid". The arithmetic
+      circuit asserts that the measurement is valid for the empty string.
+   2. Next, the servers need to assert that the measurement is valid for all the
+      candidate prefixes. We achieve that by enforcing the "One-hot
+      Verifiability" and "Path Verifiability" properties described in {{vidpf}}.
+      During evaluation, each Aggregator generates a proof that guarantees that
+      the current level of the tree (i.e., all the evaluations of prefixes of
+      equal length). If these proofs are equal, then the level is one-hot.
+      Additionally, to assert the path verifiability, each Aggregator computes a
+      hash of the difference between the output share of a prefix `p` and the
+      sum of the output shares of prefixes `p||0` and `p||1`. These hashes
+      should also be equal.
 4. The aggregate result is obtained by summing up the encoded measurement
    vectors for each prefix and computing some function of the sum. The
    aggregation parameter is the set of candidate prefixes.
@@ -399,26 +411,13 @@ that has the following structure:
    them to recover the counts of each candidate prefix.
 
 Mastic is constructed from a "Verifiable Incremental Distributed Point Function
-(VIDPF)", a primitive described by {{MST23}} that generalizes the notion of a
-Distributed Point Function (DPF) {{GI14}}. [CP: Don't refer to papers here;
-refer to the already defined VIDPF in {{preliminaries}}.] Briefly, a DPF is
-used to distribute the computation of a "point function", a function that
-evaluates to zero on every input except at a programmable "point". The
-computation is distributed in such a way that no one party knows either the
-point or what it evaluates to. A VIDPF generalizes this "point" to a path on a
-full binary tree from the root to one of the leaves. It is evaluated on an
-"index" representing a unique node of the tree. If the node is on the
-programmed path, then the function evaluates to a non-zero value; otherwise it
-evaluates to zero. This structure allows a VIDPF to provide the functionality
-required for the above protocol: To compute the hit count for an index, just
-evaluate each set of VIDPF shares at that index and add up the results. [CP:
-Don't reiterate the definition; just refer to the definition above. If there is
-any terminology you want to introduce, add it there.]
-
-Additionally, VIDPFs inherently have the "one-hot verifiability" property,
-meaning that in each level of the tree there exists at most one non-zero value.
-Mastic first verifies that the Client measurement is valid in the empty string ε
-using an arithmetic circuit, and then, it ensures that this valid measurement is
+(VIDPF)", a primitive described in {{preliminaries}}. This structure allows
+Mastic to compute the hit count for an index by just evaluating each set of
+VIDPF shares at that index and add up the results. VIDPFs inherently have the
+"one-hot verifiability" property, meaning that in each level of the tree there
+exists at most one non-zero value. To guarantee that the Client's input is
+well-formed, Mastic first verifies that the Client measurement is valid in the
+empty string using an FLP, and then, it ensures that this valid measurement is
 propagated correctly down the tree using the one-hot verifiability and the path
 verifiability properties. Note that Mastic allows the measurement to be of any
 type that can be verified by an arithmetic circuit, not just a counter. For
