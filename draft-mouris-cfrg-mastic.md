@@ -163,7 +163,7 @@ together. Prio3 can be adapted for this purpose, but the communication cost
 would be linear in the number of possible distinct labels, which quickly
 becomes prohibitive if the label space is large or subject to change over time.
 For example, the label might encode the client's user agent ({{Section 10.1.5
-of !RFC9110}}), a value can vary widely and that changes over time.
+of ?RFC9110}}), a value can vary widely and that changes over time.
 
 Mastic encodes the label and measurement with constant communication overhead
 such that, for an arbitrary sequence of labels, the reports can be "queried" to
