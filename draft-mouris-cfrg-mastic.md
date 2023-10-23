@@ -439,10 +439,10 @@ some application. For example, when measuring the performance of an ad campaign,
 it is useful to learn not only which ads led to purchases, but how much money
 was spent.
 
-To support this use case, we vie the Client's `alpha` value as its measurement
+To support this use case, we view the Client's `alpha` value as its measurement
 and the `beta` value as the measurement's "weight". The range of valid values
 for `beta` are therefore determined by the FLP with which Mastic is
-instantiated. Concretely, validity of `beta` is expressed a validity circuit
+instantiated. Concretely, validity of `beta` is expressed by a validity circuit
 ({{Section 7.3.2 of !VDAF}}).
 
 To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
@@ -484,7 +484,7 @@ The Aggregators MAY aggregate a report any number times, but:
    again.
 
 1. The aggregation parameter MUST specify the last level of the VIDPF tree
-   (`i.e., `level` MUST be `Vidpf.BITS-1`).
+   (i.e., `level` MUST be `Vidpf.BITS-1`).
 
 > OPEN ISSUE Figure out if these requirements are strict enough. We may need to
 > tighten aggregation parameter validity if we find out that aggregating at the
@@ -496,22 +496,22 @@ The Aggregators MAY aggregate a report any number times, but:
 > by the reference code.
 
 The total communication cost of using Mastic (or Poplar1 {{!VDAF}}) for heavy
-hitters is `O(num_measurements * Vidpf.BITS)` bits exchanged betwen the
-Aggregators, where `num_measurements` is the number of reports begin
+hitters is `O(num_measurements * Vidpf.BITS)` bits exchanged between the
+Aggregators, where `num_measurements` is the number of reports being
 aggregated. For plain heavy-hitters, this can be reduced to `O(Vidpf.BITS)` in
 the best case.
 
-The idea is take advantage of the feature of VIDPF evaluation whereby the
-Aggregotrs compute identical VIDPF proofs if and only if the report is valid.
-This allows the proofs themsleves to be aggregated: if each report in a batch
-of reports is valid, then the hash of their proofs will be equal as well; on
-the other hand, if one report is invalid, then the hash of the proofs will not
-be equal.
+The idea is to take advantage of the feature of VIDPF evaluation whereby the
+Aggregators compute identical VIDPF proofs if and only if the report is valid.
+This allows the proofs themselves to be aggregated: if each report in a batch of
+reports is valid, then the hash of their proofs will be equal as well; on the
+other hand, if one report is invalid, then the hash of the proofs will not be
+equal.
 
-To facilitiate isolation of the invalid report(s), the proof strings are
-arranged into a Merkle tree. During aggregation, the Aggregators interactively
-traverse the tree to detect the subtree(s) containing invalid reports and
-remove them from the batch.
+To facilitate isolation of the invalid report(s), the proof strings are arranged
+into a Merkle tree. During aggregation, the Aggregators interactively traverse
+the tree to detect the subtree(s) containing invalid reports and remove them
+from the batch.
 
 > OPEN ISSUE Decide if we should spell this out in greater detail. This feature
 > is not compatible with {{?DAP=I-D.draft-ietf-ppm-dap-07}}; if we wanted to
@@ -519,16 +519,17 @@ remove them from the batch.
 > messages exchanged between the Aggregators.
 
 In the worst case, isolating invalid reports requires `O(num_measurements *
-Vidp.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
-betwen the Aggregators. However this behavior would only be observed under
+Vidpf.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
+between the Aggregators. However, this behavior would only be observed under
 attack conditions in which the vast majority of Clients are malicious.
 
-FLPs are are not compatible with proof aggregation the way VIDPFs are. In order
-to perform the range check without FLPs, we an extension of VIDPF described by
+FLPs are not compatible with proof aggregation the way VIDPFs are. In order to
+perform the range check without FLPs, we use an extension of VIDPF described by
 {{MST23}}.
 
 > TODO(jimouris) Add a high-level description of PLASMA's `0`/`1` range check
 > and how it would be implemented in Mastic.
+
 
 Note that this trick is not suitable for weighted heavy-hitters, since it
 expects that each `beta` value is `1`.
@@ -552,9 +553,9 @@ TODO(jimouris) Add an overview of the goal and how Mastic is used to achieve it.
 
 # Definition of `Vidpf` {#vidpf-construction}
 
-The construction of {{MST23}} builds on techniques from {{CP22}} to lift an
-IDPF to a VIDPF with the properties described in {{vidpf}}. Instead of a
-2-round "secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
+The construction of {{MST23}} builds on techniques from {{CP22}} to lift an IDPF
+to a VIDPF with the properties described in {{vidpf}}. Instead of a 2-round
+"secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
 
 TODO(jimouris) Add an overview.
 
