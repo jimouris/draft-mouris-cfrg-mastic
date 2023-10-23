@@ -275,37 +275,37 @@ fixed length, and we have that `f(x) = beta` if `x` is a prefix of `alpha` and
 
 An IDPF has two main operations. The first is the key-generation algorithm,
 which is run by the Client. It takes as input `alpha` and `beta` and returns
-three values: two "key shares", one for each of two Aggregators; and the
-"public share", to be distributed to both Aggregators. The second is the
-key-evaluation algorithm, run by each Aggregator. It takes as input a candidate
-prefix string `x`, the public share, and the Aggregator's key share and returns
-the Aggregator's share of `f(x)`.
+two values: a list of "key shares", one for each Aggregator; and the "public
+share", to be distributed to both Aggregators. The second is the key-evaluation
+algorithm, run by each Aggregator. It takes as input a candidate prefix string
+`x`, the public share, and the Aggregator's key share and returns the
+Aggregator's share of `f(x)`.
 
 Shares of the IDPF outputs can be aggregated together across multiple reports.
-This is used in Poplar1 ({{Section 8 of !VDAF}}) to count how many input
-strings begin with a candidate prefix. IDPFs are private in the sense that each
-Aggregator learns nothing about the underlying inputs beyond the value of
-this sum. However, IDPFs on their own do not provide robustness. For example,
-it is possible for a malicious Client to fool the Aggregators into accepting
-malformed counter (i.e., a value other than `0` or `1`). It is also possible
-for a Client to "vote twice" by constructing key shares for which `f(x) = f(x')
-= beta`, where `x` and `x'` are distinct, equal-length strings.
+This is used in Poplar1 ({{Section 8 of !VDAF}}) to solve the private prefix
+histogram problem. IDPFs are private in the sense that each Aggregator learns
+nothing about the underlying inputs beyond the value of this sum. However,
+IDPFs on their own do not provide robustness. For example, it is possible for a
+malicious Client to fool the Aggregators into accepting malformed counter
+(i.e., a value other than `0` or `1`). It is also possible for a Client to
+"vote twice" by constructing key shares for which `f(x) = f(x') = beta`, where
+`x` and `x'` are distinct, equal-length candidate prefixes.
 
 To mitigate these issues, IDPF must be composed with some interactive mechanism
 for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
 {{MST23}} for this purpose, which endows IDPF with the following properties:
 
-1. **One-hot Verifiability:** There is at most one prefix of each length whose
+1. One-hot Verifiability: There is at most one prefix of each length whose
    value under f is non-zero. In particular, the output shares at each level
    are additive shares of a one-hot vector.
 
-1. **Path Verifiability:** The One-hot Verifiability property alone is not
-    sufficient to guarantee that the keys are well-formed. The Aggregators
-    still need to verify that: a) the non-zero output values are
-    across a single path in the tree, and b) the value of the root node is
-    consistently propagated down the VIDPF tree. For example, if the root
-    value is `beta`, then there is only a single path from root to the leaves
-    with nonzero values, and all such values equal `beta`.
+1. Path Verifiability: The One-hot Verifiability property alone is not
+   sufficient to guarantee that the keys are well-formed. The Aggregators still
+   need to verify that: a) the non-zero output values are across a single path
+   in the tree, and b) the value of the root node is consistently propagated
+   down the VIDPF tree. For example, if the root value is `beta`, then there is
+   only a single path from root to the leaves with non-zero values, and all
+   such values equal `beta`.
 
 Below we describe the syntax of VIDPF; in {{vidpf-construction}} we specify the
 concrete construction of {{MST23}}.
