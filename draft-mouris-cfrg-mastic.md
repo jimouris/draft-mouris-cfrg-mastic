@@ -359,8 +359,8 @@ check, but we would like more sophisticated range checks for Mastic.)
 
 This section describes Mastic, a VDAF suitable for a plethora of aggregation
 functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters
-(see {#weighted-heavy-hitters}), aggregation by labels (see
-{#aggregation-by-labels}), linear regression and more. Mastic allows computing
+(see {{weighted-heavy-hitters}}), aggregation by labels (see
+{{aggregation-by-labels}}), linear regression and more. Mastic allows computing
 functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
 compatible with any aggregation function that has the following structure:
 
@@ -379,7 +379,7 @@ compatible with any aggregation function that has the following structure:
    the measurement is valid for the empty string ε. Next, the servers need to
    assert that the measurement is valid for all the candidate prefixes. We
    achieve that by enforcing the "One-hot Verifiability" and "Path
-   Verifiability" properties described in {#vidpf}.
+   Verifiability" properties described in {{vidpf}}.
 4. The aggregate result is obtained by summing up the encoded measurement
    vectors for each prefix and computing some function of the sum. The
    aggregation parameter is the set of candidate prefixes.
