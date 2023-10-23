@@ -352,22 +352,28 @@ def test_valid_agg_params():
     )
 
 
-def example_heavy_hitters_mode():
+def example_weighted_heavy_hitters_mode():
     from common import gen_rand
+    from flp_generic import Count
     bits = 4
-    threshold = 2
     mastic = Mastic.with_params(bits, Count())
     verify_key = gen_rand(16)
 
-    # Clients shard their measurements.
+    # Clients shard their measurements. Each measurement is comprise of
+    # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
+    # weight. Here the weight is simply a counter (either `0` or `1`).
     measurements = [
         (0b1001, 1),
         (0b0000, 1),
+        (0b0000, 0),
         (0b0000, 1),
         (0b1001, 1),
         (0b0000, 1),
         (0b1100, 1),
         (0b0011, 1),
+        (0b1111, 0),
+        (0b1111, 0),
+        (0b1111, 1),
     ]
     reports = []
     for measurement in measurements:
@@ -376,7 +382,8 @@ def example_heavy_hitters_mode():
         (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
         reports.append((nonce, public_share, input_shares))
 
-    # Aggregators compute the heavy hitters
+    # Collector and Aggregators compute the weighted heavy hitters.
+    threshold = 2
     prefixes = [0, 1]
     prev_agg_params = []
     for level in range(bits):
@@ -427,7 +434,7 @@ def example_heavy_hitters_mode():
             for (prefix, count) in zip(prefixes, agg_result):
                 if count >= threshold:
                     heavy_hitters.append(prefix)
-            print("Heavy hitters:", list(map(lambda x: bin(x), heavy_hitters)))
+            print("Weighted heavy-hitters:", list(map(lambda x: bin(x), heavy_hitters)))
             assert heavy_hitters == [0, 9]
 
 
@@ -527,7 +534,7 @@ if __name__ == '__main__':
     from flp_generic import Count
     from common import from_be_bytes
 
-    example_heavy_hitters_mode()
+    example_weighted_heavy_hitters_mode()
     example_labels_mode()
 
     test_vdaf(
