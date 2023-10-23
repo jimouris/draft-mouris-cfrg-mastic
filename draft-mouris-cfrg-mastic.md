@@ -352,12 +352,64 @@ check, but we would like more sophisticated range checks for Mastic.)
 
 # Definition of `Mastic` {#vdaf}
 
-TODO overview
-
-> NOTE To be specified. We are pretty confident about the overall structure of
-> the VDAF, but there are some details to work out and security analysis to do.
+> We are pretty confident about the overall structure of the VDAF, but there
+> are some details to work out and security analysis to do.
 > In the meantime, check out the current reference implementation at
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
+
+This section describes Mastic, a VDAF suitable for a plethora of aggregation
+functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters
+(see {#weighted-heavy-hitters}), aggregation by labels (see
+{#aggregation-by-labels}), linear regression and more. Mastic allows computing
+functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
+compatible with any aggregation function that has the following structure:
+
+1. Each Client measurement is encoded as a vector over some finite field. Each
+   Client splits its string of length `BITS` into input shares and sends one
+   share to each Aggregator.
+2. The Aggregators agree on an initial set of `l`-bit strings, where
+   `l <= BITS`. We refer to these strings as "candidate prefixes".
+3. Measurement validity is determined by a combination of techniques. First, we
+   use an arithmetic circuit evaluated over the encoded measurement to assert
+   that the measurement is valid for candidate prefix being the empty string ε.
+   (An "arithmetic circuit" is a function comprised of arithmetic operations in
+   the field.) The circuit's output is a single field element: if zero, then the
+   measurement is said to be "valid"; otherwise, if the output is non-zero, then
+   the measurement is said to be "invalid". The arithmetic circuit asserts that
+   the measurement is valid for the empty string ε. Next, the servers need to
+   assert that the measurement is valid for all the candidate prefixes. We
+   achieve that by enforcing the "One-hot Verifiability" and "Path
+   Verifiability" properties described in {#vidpf}.
+4. The aggregate result is obtained by summing up the encoded measurement
+   vectors for each prefix and computing some function of the sum. The
+   aggregation parameter is the set of candidate prefixes.
+5. The Aggregators send their aggregate shares to the Collector, who combines
+   them to recover the counts of each candidate prefix.
+
+Mastic is constructed from a "Verifiable Incremental Distributed Point Function
+(VIDPF)", a primitive described by {{MST23}} that generalizes the notion of a
+Distributed Point Function (DPF) {{GI14}}. Briefly, a DPF is used to distribute
+the computation of a "point function", a function that evaluates to zero on
+every input except at a programmable "point". The computation is distributed in
+such a way that no one party knows either the point or what it evaluates to. A
+VIDPF generalizes this "point" to a path on a full binary tree from the root to
+one of the leaves. It is evaluated on an "index" representing a unique node of
+the tree. If the node is on the programmed path, then the function evaluates to
+a non-zero value; otherwise it evaluates to zero. This structure allows a VIDPF
+to provide the functionality required for the above protocol: To compute the hit
+count for an index, just evaluate each set of VIDPF shares at that index and add
+up the results.
+
+Additionally, VIDPFs inherently have the "one-hot verifiability" property,
+meaning that in each level of the tree there exists at most one non-zero value.
+Mastic first verifies that the Client measurement is valid in the empty string ε
+using an arithmetic circuit, and then, it ensures that this valid measurement is
+propagated correctly down the tree using the one-hot verifiability and the path
+verifiability properties. Note that Mastic allows the measurement to be of any
+type that can be verified by an arithmetic circuit, not just a counter. For
+instance, the measurement can be a tuple of values, a label, a secret number
+within a public range, etc.
+
 
 ## Sharding
 
