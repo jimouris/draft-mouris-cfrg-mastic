@@ -104,7 +104,7 @@ class Mastic(Vdaf):
         (vidpf_correction_words, vidpf_cs_proofs) = public_share
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, vidpf_verifier) = cls.Vidpf.eval(
+        (beta_share, out_share, vidpf_proof) = cls.Vidpf.eval(
             agg_id,
             vidpf_correction_words,
             vidpf_cs_proofs,
@@ -134,7 +134,7 @@ class Mastic(Vdaf):
         prep_state = []
         for val_share in out_share:
             prep_state += cls.Flp.truncate(val_share)
-        prep_share = (vidpf_verifier, flp_verifier_share)
+        prep_share = (vidpf_proof, flp_verifier_share)
         return (prep_state, prep_share)
 
     @classmethod
@@ -143,11 +143,11 @@ class Mastic(Vdaf):
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
-        (vidpf_verifier_0, flp_verifier_share_0) = prep_shares[0]
-        (vidpf_verifier_1, flp_verifier_share_1) = prep_shares[1]
+        (vidpf_proof_0, flp_verifier_share_0) = prep_shares[0]
+        (vidpf_proof_1, flp_verifier_share_1) = prep_shares[1]
 
         # Verify the VIDPF output.
-        if vidpf_verifier_0 != vidpf_verifier_1:
+        if vidpf_proof_0 != vidpf_proof_1:
             raise Exception('VIDPF verification failed')
 
         # Finish verifying the FLP, if applicable.
