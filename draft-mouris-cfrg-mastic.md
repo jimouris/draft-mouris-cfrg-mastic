@@ -330,14 +330,18 @@ A concrete `Vidpf` defines the types and constants enumerated in
   Vidpf.SHARES)`, the public share, the Aggregator's key share, the VIDPF level
   (defined the same way as "IDPF level" in {{Section 8 of !VDAF}}), the list of
   prefixes to evaluate, and a binder string. Its outputs are the VIDPF output
-  share and the VIDPF verifier.
+  share and the VIDPF proof.
 
 The verifiability properties are guaranteed as long as each Aggregator computes
-the same verifier string. Note that One-hot Verifiability and Path
-Verifiability are not sufficient to ensure robustness of Mastic; we will also
-need to ensure that the `beta` chosen by the Client is "in range". We will rely
-on FLPs ({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)`
-check, but we would like more sophisticated range checks for Mastic.)
+the same VIDFP proof. Note that One-hot Verifiability and Path Verifiability
+are not sufficient to ensure robustness of Mastic; we will also need to ensure
+that the `beta` chosen by the Client is "in range". We will rely on FLPs
+({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)` check, but
+we would like more sophisticated range checks for Mastic.)
+
+Note that `Vidpf` is less general than `Idpf` as defined {{Section 8 of !VDAF}}
+in that `beta` value is the same for each level of the tree. This constraint is
+necessary for Path Verifiability.
 
 | Parameter  | Description               |
 |:-----------|:--------------------------|
