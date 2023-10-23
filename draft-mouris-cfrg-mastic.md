@@ -429,7 +429,6 @@ type that can be verified by an arithmetic circuit, not just a counter. For
 instance, the measurement can be a tuple of values, a label, a secret number
 within a public range, etc.
 
-
 ## Sharding
 
 > NOTE to be specified in full detail.
@@ -454,6 +453,9 @@ within a public range, etc.
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_weighted_heavy_hitters_mode()` in the reference implementation.
+
 The primary use case for Mastic is a variant of the heavy-hitters problem, in
 which the prefix counts are replaced with a notion of weight that is specific to
 some application. For example, when measuring the performance of an ad campaign,
@@ -475,10 +477,11 @@ minimum weight rather than a minimum count. In addition:
 
 1. The level at which the reports are Aggregated MUST be strictly increasing.
 
-> NOTE to be specified in full detail. For an end-to-end example, see
-> `example_weighted_heavy_hitters_mode()` in the reference implementation.
 
 ## Aggregation by Labels {#aggregation-by-labels}
+
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_aggregation_by_labels_mode()` in the reference implementation.
 
 In this mode of operation, we take the `beta` value to be the Client's
 measurement and `alpha` to be an arbitrary "label". For a given sequence of
@@ -510,10 +513,10 @@ The Aggregators MAY aggregate a report any number times, but:
 > tighten aggregation parameter validity if we find out that aggregating at the
 > same level more than once is not safe.
 
-> NOTE to be specified in full detail. For an end-to-end example, see
-> `example_aggregation_by_labels_mode()` in the reference implementation.
-
 ## Plain Heavy-Hitters with VIDPF-Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
+
+> NOTE to be specified in full detail. Proof aggregation is not yet implemented
+> by the reference code.
 
 The total communication cost of using Mastic (or Poplar1 {{!VDAF}}) for heavy
 hitters is `O(num_measurements * Vidpf.BITS)` bits exchanged betwen the
@@ -563,9 +566,6 @@ expects that each `beta` value is `1`.
 > would be useful for another reason: Usually FLP decoding requires
 > `num_measurements` as a parameter. We currently don't support this because we
 > currently don't have a pure counter as part of the VIDPF output.
-
-> NOTE to be specified in full detail. Proof aggregation is not yet implemented
-> by the reference code.
 
 ## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
 
