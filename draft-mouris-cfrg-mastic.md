@@ -379,9 +379,11 @@ compatible with any aggregation function that has the following structure:
    generates VIDPF keys (i.e., input shares) that encode its input `alpha` with
    weight (or payload) `beta`. Then the Client sends one share to each
    Aggregator and also publishes the `PublicShare`.
-2. The Aggregators agree on an initial set of `l`-bit strings, where
+
+1. The Aggregators agree on an initial set of `l`-bit strings, where
    `l <= BITS`. We refer to these strings as "candidate prefixes".
-3. Measurement validity is determined by a combination of techniques.
+
+1. Measurement validity is determined by a combination of techniques.
    1. First, we use an FLP (as defined in {{flp}}) evaluated over the encoded
       measurement to assert that the measurement is valid for candidate prefix
       being the empty string. Note that this can also be achieved by evaluating
@@ -404,14 +406,16 @@ compatible with any aggregation function that has the following structure:
       hash of the difference between the output share of a prefix `p` and the
       sum of the output shares of prefixes `p||0` and `p||1`. These hashes
       should also be equal.
-4. The aggregate result is obtained by summing up the encoded measurement
+
+1. The aggregate result is obtained by summing up the encoded measurement
    vectors for each prefix and computing some function of the sum. The
    aggregation parameter is the set of candidate prefixes.
-5. The Aggregators send their aggregate shares to the Collector, who combines
+
+1. The Aggregators send their aggregate shares to the Collector, who combines
    them to recover the counts of each candidate prefix.
 
 Mastic is constructed from a "Verifiable Incremental Distributed Point Function
-(VIDPF)", a primitive described in {{preliminaries}}. This structure allows
+(VIDPF)", a primitive described in {{vidpf}}. This structure allows
 Mastic to compute the hit count for an index by just evaluating each set of
 VIDPF shares at that index and add up the results. VIDPFs inherently have the
 "one-hot verifiability" property, meaning that in each level of the tree there
@@ -450,16 +454,16 @@ within a public range, etc.
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
 The primary use case for Mastic is a variant of the heavy-hitters problem, in
-which the prefix counts are replaced with a notion of weight that is specific
-to some application. For example, when measuring the performance of an ad
-campaign, it is useful to learn not only which ads led to purchases, but how
-much money was spent.
+which the prefix counts are replaced with a notion of weight that is specific to
+some application. For example, when measuring the performance of an ad campaign,
+it is useful to learn not only which ads led to purchases, but how much money
+was spent.
 
 To support this use case, we vie the Client's `alpha` value as its measurement
 and the `beta` value as the measurement's "weight". The range of valid values
 for `beta` are therefore determined by the FLP with which Mastic is
-instantiated. Concretely, validity of `beta` is expressed a validity
-circuit ({{Section 7.3.2 of !VDAF}}).
+instantiated. Concretely, validity of `beta` is expressed a validity circuit
+({{Section 7.3.2 of !VDAF}}).
 
 To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
 described in {{Section 8 of !VDAF}}, except that the threshold represents a
@@ -482,15 +486,15 @@ the same label. This provides functionality similar to Prio3 {{!VDAF}}, except
 that the aggregate is partitioned by Clients who share some property. For
 example, the label might encode the Client's user agent {{?RFC9110}}.
 
-Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus it is
+Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus, it is
 necessary for each application to choose a scheme for encoding labels as
 fixed-length strings. The following scheme is RECOMMENDED. Choose a
 cryptographically secure hash function, such as SHA256
 {{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
-string, and interpret each bit of the hash as a bit of of the VIDPF index. [CP:
-Are we comfortable recommending truncating the hash? Collisions aren't so bad
-since the Client can just lie about `alpha` anyway. The main thing is to pick a
-value for `BITS` that is large enough to avoid accidental collisions.]
+string, and interpret each bit of the hash as a bit of the VIDPF index. [CP: Are
+we comfortable recommending truncating the hash? Collisions aren't so bad since
+the Client can just lie about `alpha` anyway. The main thing is to pick a value
+for `BITS` that is large enough to avoid accidental collisions.]
 
 The Aggregators MAY aggregate a report any number times, but:
 
