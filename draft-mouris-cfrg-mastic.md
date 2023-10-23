@@ -501,6 +501,10 @@ The Aggregators MAY aggregate a report any number times, but:
 1. The aggregation parameter MUST specify the last level of the VIDPF tree
    (`i.e., `level` MUST be `Vidpf.BITS-1`).
 
+> OPEN ISSUE Figure out if these requirements are strict enough. We may need to
+> tighten aggregation parameter validity if we find out that aggregating at the
+> same level more than once is not safe.
+
 > NOTE to be specified in full detail. For an end-to-end example, see
 > `example_aggregation_by_labels_mode()` in the reference implementation.
 
