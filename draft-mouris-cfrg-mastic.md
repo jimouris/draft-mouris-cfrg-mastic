@@ -24,7 +24,8 @@ venue:
 author:
  -
     fullname: Hannah Davis
-    email: hannahedavis@protonmail.com
+    organization: Seagate
+    email: hannah.e.davis@seagate.com
  -
     fullname: Dimitris Mouris
     organization: University of Delaware
