@@ -106,7 +106,7 @@ class Vidpf:
             raise ValueError("candidate prefixes are non-unique")
 
         # Compute the Aggregator's share of the prefix tree and the one-hot
-        # verifier (`pi_proof`).
+        # proof (`pi_proof`).
         #
         # Implementation note: We can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
@@ -128,7 +128,7 @@ class Vidpf:
                 for s in [0, 1]:
                     # Compute the value for the node `node` and its sibling
                     # `node ^ s`. The latter is used for computing the path
-                    # verifier.
+                    # proof.
                     if not prefix_tree_share.get((node ^ s, current_level)):
                         prefix_tree_share[(node ^ s, current_level)] = cls.eval_next(
                             seed,
@@ -142,7 +142,7 @@ class Vidpf:
                         )
                 (seed, ctrl, y, pi_proof) = prefix_tree_share.get((node, current_level))
 
-        # Compute the path verifier.
+        # Compute the path proof.
         sha3 = hashlib.sha3_256()
         for prefix in prefixes:
             for current_level in range(level):
@@ -283,9 +283,9 @@ def main():
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
-        verifiers = []
+        proofs = []
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, verifier) = vidpf.eval(
+            (_beta_share, out_share, proof) = vidpf.eval(
                 agg_id,
                 correction_words,
                 cs_proofs,
@@ -294,11 +294,11 @@ def main():
                 prefixes,
                 binder,
             )
-            verifiers.append(verifier)
+            proofs.append(proof)
 
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], out_share[i])
-        assert vidpf.verify(verifiers[0], verifiers[1])
+        assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
     assert out == [[Field128(2)], [Field128(3)]]
@@ -328,9 +328,9 @@ def main():
         rand = gen_rand(vidpf.RAND_SIZE)
         init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
 
-        verifiers = []
+        proofs = []
         for agg_id in range(vidpf.SHARES):
-            (_beta_share, out_share, verifier) = vidpf.eval(
+            (_beta_share, out_share, proof) = vidpf.eval(
                 agg_id,
                 correction_words,
                 cs_proofs,
@@ -339,11 +339,11 @@ def main():
                 prefixes,
                 binder,
             )
-            verifiers.append(verifier)
+            proofs.append(proof)
 
             for i in range(len(prefixes)):
                 out[i] = vec_add(out[i], out_share[i])
-        assert vidpf.verify(verifiers[0], verifiers[1])
+        assert vidpf.verify(proofs[0], proofs[1])
 
     print('Aggregated:', out)
     assert out == [[Field128(1)], [Field128(3)], [Field128(0)]]
