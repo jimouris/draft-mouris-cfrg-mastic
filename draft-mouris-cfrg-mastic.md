@@ -247,22 +247,26 @@ application.
 
 An implementation of the `Flp` interface in {{Section 7.1 of !VDAF}} is
 required. This object implements a zero-knowledge proof system used to verify
-that the measurement conforms to the data type required by the application. The
-Client generates a proof that its measurement is valid and sends secret shares
-of this proof to each Aggregator. Verification is split into two phases. In the
-first phase, each Aggregator "queries" its share of the measurement and proof
-to obtain its "verifier share". In the second phase, the Aggregators sum up the
-verifier shares and use the sum to decide if the input is valid.
+that the measurement conforms to the data type required by the application: for
+weighted heavy hitters ({{weighted-heavy-hitters}}), FLPs are used to check the
+weight; in aggregateion-by-labels ({{aggregation-by-labels}}), they are used
+to check the measurement itself.
+
+The Client generates a proof and sends secret shares of this proof to each
+Aggregator. Verification is split into two phases. In the first phase, each
+Aggregator "queries" its share of the value and proof to obtain its "verifier
+share". In the second phase, the Aggregators sum up the verifier shares and use
+the sum to decide if the input is valid.
 
 ## Verifiable IDPF (VIDPF) {#vidpf}
 
-Function secret sharing (FSS) allows secret sharing of the output of a function
-`f()` into additive shares, where each function share is represented by a
-separate key {{GI14}}. These keys enable their respective owners to efficiently
-generate an additive share of the function’s output `f(x)` for a given input
-`x`. Distributed Point Functions (DPF) are a particular case of FSS where `f()`
-is a "point function" for which `f(x) = beta` if `x` equals `alpha` and `0`
-otherwise for some `alpha, beta`.
+Function secret sharing {{GI14}} allows secret sharing of the output of a
+function `f()` into additive shares, where each function share is represented
+by a separate key. These keys enable the Aggregators to efficiently generate an
+additive share of the function’s output `f(x)` for a given input `x`.
+Distributed Point Functions (DPF) are a particular case of function secret
+sharing where `f()` is a "point function" for which `f(x) = beta` if `x` equals
+`alpha` and `0` otherwise for some `alpha`, `beta`.
 
 An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing an
 "incremental point function". Here we take `alpha` to be a bit string of
