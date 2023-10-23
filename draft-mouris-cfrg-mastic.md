@@ -548,7 +548,7 @@ weighted heavy-hitters, since it expects that each `beta` value is constant
 > currently don't have a pure counter as part of the VIDPF output.
 
 
-## Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
+# Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
 
 Next, we describe an enhancement that allows Mastic to achieve robustness in the
 presence of a malicious server. The two-party Mastic (as well as Poplar1) is
@@ -580,17 +580,17 @@ same Client measurement. The following changes are necessary:
    sessions. The check involves field addition and subtraction and then hash
    comparisons.
 
-2. The Client sends the following keys to the Aggregators:
+1. The Client sends the following keys to the Aggregators:
    1. Aggregator 0 receives: `key_01`, `key_02`, and `key_21`
    1. Aggregator 1 receives: `key_10`, `key_12`, and `key_20`
    1. Aggregator 2 receives: `key_21` and `key_20`
 
-3. The Aggregators need to verify that the Client's input is consistent across
+1. The Aggregators need to verify that the Client's input is consistent across
    the different sessions (i.e., that all the keys correspond to the same
    `alpha` and `beta` values). Aggregators 0 and 1 check that:
    1. Their output shares of Session 0 minus their output shares of Session 1
-      are shares of zero
-   2. Their output shares of Session 1 minus their output shares of Session 2
+    are shares of zero
+   1. Their output shares of Session 1 minus their output shares of Session 2
       are shares of zero.
 
    The subtraction is local operation and verifying that two servers possess a
