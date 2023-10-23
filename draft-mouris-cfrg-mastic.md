@@ -461,14 +461,48 @@ for `beta` are therefore determined by the FLP with which Mastic is
 instantiated. Concretely, validity of `beta` is expressed a validity
 circuit ({{Section 7.3.2 of !VDAF}}).
 
+To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
+described in {{Section 8 of !VDAF}}, except that the threshold represents a
+minimum weight rather than a minimum count. In addition:
+
+1. The Aggregators MUST perform the range check (i.e., verify the FLP) at the
+   first round of aggregation and remove any invalid reports before proceeding.
+
+1. The level at which the reports are Aggregated MUST be strictly increasing.
+
 > NOTE to be specified in full detail. For an end-to-end example, see
 > `example_weighted_heavy_hitters_mode()` in the reference implementation.
 
 ## Aggregation by Labels {#aggregation-by-labels}
 
-TODO Add an overview of the goal and how Mastic is used to achieve it.
+In this mode of operation, we take the `beta` value to be the Client's
+measurement and `alpha` to be an arbitrary "label". For a given sequence of
+labels, the goal of the Collector is to aggregate the measurements that share
+the same label. This provides functionality similar to Prio3 {{!VDAF}}, except
+that the aggregate is partitioned by Clients who share some property. For
+example, the label might encode the Client's user agent {{?RFC9110}}.
 
-> NOTE to be specified in full detail.
+Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus it is
+necessary for each application to choose a scheme for encoding labels as
+fixed-length strings. The following scheme is RECOMMENDED. Choose a
+cryptographically secure hash function, such as SHA256
+{{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
+string, and interpret each bit of the hash as a bit of of the VIDPF index. [CP:
+Are we comfortable recommending truncating the hash? Collisions aren't so bad
+since the Client can just lie about `alpha` anyway. The main thing is to pick a
+value for `BITS` that is large enough to avoid accidental collisions.]
+
+The Aggregators MAY aggregate a report any number times, but:
+
+1. They MUST perform the range check (i.e., verify the FLP) the first time the
+   reports are aggregated and remove any invalid reports before aggregating
+   again.
+
+1. The aggregation parameter MUST specify the last level of the VIDPF tree
+   (`i.e., `level` MUST be `Vidpf.BITS-1`).
+
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_aggregation_by_labels_mode()` in the reference implementation.
 
 ## Plain Heavy-Hitters with Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
 

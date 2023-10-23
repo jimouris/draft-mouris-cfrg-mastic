@@ -359,7 +359,7 @@ def example_weighted_heavy_hitters_mode():
     mastic = Mastic.with_params(bits, Count())
     verify_key = gen_rand(16)
 
-    # Clients shard their measurements. Each measurement is comprise of
+    # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
     # weight. Here the weight is simply a counter (either `0` or `1`).
     measurements = [
@@ -438,7 +438,7 @@ def example_weighted_heavy_hitters_mode():
             assert heavy_hitters == [0, 9]
 
 
-def example_labels_mode():
+def example_aggregation_by_labels_mode():
     from common import gen_rand
     import hashlib
     bits = 8
@@ -458,22 +458,23 @@ def example_labels_mode():
         sha3.update(label.encode('ascii'))
         return sha3.digest()[0]
 
-    # Clients shard their measurements.
+    # Clients shard their measurements. Each measurement is comprised of
+    # (`alpha`, `beta`) where `beta` is the Client's contribution to the
+    # aggregate with label `alpha`.
     #
-    # Example: Each Client casts a "vote" (either `1` or `0`) and labels their
-    # vote with their home country.
+    # In this example, each Client casts a "vote" (either `1` or `0`) and
+    # labels their vote with their home country.
     measurements = [
         ('United States', 1),
         ('Greece', 1),
         ('United States', 1),
         ('Greece', 0),
         ('United States', 0),
-        ('Freedonia', 1),
+        ('India', 1),
         ('Greece', 0),
         ('United States', 1),
         ('Greece', 1),
         ('Greece', 1),
-        ('Mexico', 1),
         ('Greece', 1),
     ]
     reports = []
@@ -490,9 +491,8 @@ def example_labels_mode():
     # Aggregators aggregate the reports, breaking them down by home country.
     labels = [
         'Greece',
-        'United States',
         'Mexico',
-        'Hannah\'s house',
+        'United States',
     ]
     agg_param = (bits-1, list(map(lambda label: h(label), labels)), True)
     assert mastic.is_valid(agg_param, [])
@@ -527,7 +527,7 @@ def example_labels_mode():
     # Collector computes the aggregate result.
     agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
     print('Election results:', list(zip(labels, agg_result)))
-    assert agg_result == [4, 3, 1, 0]
+    assert agg_result == [4, 0, 3]
 
 
 if __name__ == '__main__':
@@ -535,7 +535,7 @@ if __name__ == '__main__':
     from common import from_be_bytes
 
     example_weighted_heavy_hitters_mode()
-    example_labels_mode()
+    example_aggregation_by_labels_mode()
 
     test_vdaf(
         Mastic.with_params(2, Count()),
