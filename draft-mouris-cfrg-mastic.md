@@ -161,9 +161,9 @@ isolate the invalid reports and remove them. We describe this idea in detail in
 
 Second, in {{malicious-security-with-three-aggregators}} we describe an
 enhancement that allows Mastic to achieve robustness in the presence of a
-malicious server. Rather than two aggregation servers as in the previous modes,
-this mode of operation involves three aggregators, where every pair of
-aggregators communicate over a different channel. Using a third Aggregator, we
+malicious Aggregator. Rather than two aggregation servers as in the previous
+modes, this mode of operation involves three Aggregators, where every pair of
+Aggregators communicate over a different channel. Using a third Aggregator, we
 can lift the security of Mastic from the semi-honest setting to malicious
 security. While more complex to implement than 2-party Mastic, this mode allows
 achieves "full security", where both privacy and robustness hold in the honest
@@ -551,50 +551,50 @@ weighted heavy-hitters, since it expects that each `beta` value is constant
 # Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
 
 Next, we describe an enhancement that allows Mastic to achieve robustness in the
-presence of a malicious server. The two-party Mastic (as well as Poplar1) is
+presence of a malicious Aggregator. The two-party Mastic (as well as Poplar1) is
 susceptible to additive attacks by a malicious Aggregator. In more detail, if
-one of the Aggregators star acting maliciously, they can change the protocol
+one of the Aggregators start acting maliciously, they can change the protocol
 output (simply by changing its output shares) without the honest Aggregator
 noticing.
 
 We can solve this problem in Mastic by using a technique from {{MST23}} that
 lifts the two-party semi-honest secure PLASMA to three-party maliciously secure
-setting. Rather than having two aggregation servers as in the previous modes,
-this mode of operation involves three aggregators, where every pair of
-aggregators communicate over a different channel. In essence, each pair of
-Aggregators will run one session of the VDAF with unique randomness but on the
-same Client measurement. The following changes are necessary:
+setting. Rather than having two Aggregators as in the previous setting, this
+flavor involves three Aggregators, where every pair of Aggregators communicate
+over a different channel. In essence, each pair of Aggregators will run one
+session of the VDAF with unique randomness but on the same Client measurement.
+The following changes are necessary:
 
 1. The Client needs to generate three pairs of VIDPF keys all corresponding to
    the same `alpha` and `beta` values. We represent the keys based on the
    session as follows:
    1. Session 0 (between Aggregators 0 and 1): `key_01, key_10`
-   1. Session 1 (between Aggregators 1 and 2): `key_12, key_21`
-   1. Session 2 (between Aggregators 2 and 0): `key_20, key_02`
+   2. Session 1 (between Aggregators 1 and 2): `key_12, key_21`
+   3. Session 2 (between Aggregators 2 and 0): `key_20, key_02`
 
-   Each pair of servers cannot check that the client input is consistent across
-   two sessions without the involvement of the third server. To address this, we
-   let two servers (i.e., Aggregators 0 and 1) to run all three sessions so that
-   they can check that the client input is consistent across three sessions. The
-   third server (i.e., Aggregator 2) is involved as an attestator in two of the
-   sessions. The check involves field addition and subtraction and then hash
-   comparisons.
+   Each pair of Aggregators cannot check that the Client input is consistent
+   across two sessions without the involvement of the third Aggregator. To
+   address this, we let two Aggregators (i.e., Aggregators 0 and 1) to run all
+   three sessions so that they can check that the Client input is consistent
+   across three sessions. The third Aggregator (i.e., Aggregator 2) is involved
+   as an attestator in two of the sessions. The check involves field addition
+   and subtraction and then hash comparisons.
 
-1. The Client sends the following keys to the Aggregators:
+2. The Client sends the following keys to the Aggregators:
    1. Aggregator 0 receives: `key_01`, `key_02`, and `key_21`
-   1. Aggregator 1 receives: `key_10`, `key_12`, and `key_20`
-   1. Aggregator 2 receives: `key_21` and `key_20`
+   2. Aggregator 1 receives: `key_10`, `key_12`, and `key_20`
+   3. Aggregator 2 receives: `key_21` and `key_20`
 
-1. The Aggregators need to verify that the Client's input is consistent across
+3. The Aggregators need to verify that the Client's input is consistent across
    the different sessions (i.e., that all the keys correspond to the same
    `alpha` and `beta` values). Aggregators 0 and 1 check that:
    1. Their output shares of Session 0 minus their output shares of Session 1
     are shares of zero
-   1. Their output shares of Session 1 minus their output shares of Session 2
+   2. Their output shares of Session 1 minus their output shares of Session 2
       are shares of zero.
 
-   The subtraction is local operation and verifying that two servers possess a
-   sharing of zero involves sending one hash.
+   The subtraction is local operation and verifying that two Aggregators possess
+   a sharing of zero involves sending one hash.
 
 Using a third Aggregator, we can lift the security of Mastic from the
 semi-honest setting to malicious security. While more complex to implement than
