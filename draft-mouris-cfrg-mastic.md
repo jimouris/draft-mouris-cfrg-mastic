@@ -159,16 +159,16 @@ reports, then additional rounds of communication are required in order to
 isolate the invalid reports and remove them. We describe this idea in detail in
 {{plain-heavy-hitters-with-proof-aggregation}}.
 
-Second, in {{plain-heavy-hitters-with-three-aggregators}} we describe an
-enhancement for plain heavy hitters that allows Mastic to achieve robustness in
-the presence of a malicious server. Rather than two aggregation servers as in
-the previous modes, this mode of operation involves three aggregators,
-where every pair of aggregators communicate over a different channel. [CP: Anything
-else to mention here? Is the transform generic, i.e., apply to any 2-party
-VDAF, or are there tricks in {{MST23}} that we want to take advantage of
-for efficiency] While more complex to implement than 2-party Mastic, this mode
-allows achieves "full security", where both privacy and robustness
-hold in the honest majority setting.
+Second, in {{malicious-security-with-three-aggregators}} we describe an
+enhancement that allows Mastic to achieve robustness in the presence of a
+malicious server. Rather than two aggregation servers as in the previous modes,
+this mode of operation involves three aggregators, where every pair of
+aggregators communicate over a different channel. Using a third Aggregator, we
+can lift the security of Mastic from the semi-honest setting to malicious
+security. While more complex to implement than 2-party Mastic, this mode allows
+achieves "full security", where both privacy and robustness hold in the honest
+majority setting.
+
 
 # Conventions and Definitions {#conventions}
 
@@ -189,15 +189,14 @@ This document uses the following terms as defined in {{!VDAF}}:
 "prep share", and
 "report".
 
-In Mastic, a Client's VDAF measurement comprises two components, which we
-denote `alpha` and `beta`. The function that each component serves depends on
-the use case: for weighted ({{weighted-heavy-hitters}}) and plain
-({{plain-heavy-hitters-with-proof-aggregation}} and
-{{plain-heavy-hitters-with-three-aggregators}}) heavy-hitters, we shall refer
+In Mastic, a Client's VDAF measurement comprises two components, which we denote
+`alpha` and `beta`. The function that each component serves depends on the use
+case: for weighted ({{weighted-heavy-hitters}}) and plain
+({{plain-heavy-hitters-with-proof-aggregation}}) heavy-hitters, we shall refer
 to `alpha` as the "payload" and `beta` as the payload's "weight"; for
 aggregation-by-labels ({{aggregation-by-labels}}), we shall refer to `alpha` as
-the "label" and to `beta` as the "payload". When doing so is unambiguous, we
-may also refer to the payload as the "measurement".
+the "label" and to `beta` as the "payload". When doing so is unambiguous, we may
+also refer to the payload as the "measurement".
 
 The DPF tree always has as a root the "empty string", which in turn has strings
 "0" and "1" as the left and right children, respectively.
@@ -525,16 +524,17 @@ Vidpf.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
 between the Aggregators. However, this behavior would only be observed under
 attack conditions in which the vast majority of Clients are malicious.
 
-FLPs are not compatible with proof aggregation the way VIDPFs are. In order to
-perform the range check without FLPs, we use an extension of VIDPF described by
-{{MST23}}.
-
-> TODO(jimouris) Add a high-level description of PLASMA's `0`/`1` range check
-> and how it would be implemented in Mastic.
-
-
-Note that this trick is not suitable for weighted heavy-hitters, since it
-expects that each `beta` value is `1`.
+In the simple case where the `beta` value is a constant (e.g., 1) we can replace
+the FLP check with a simpler check. FLPs are not compatible with proof
+aggregation the way VIDPFs are. In order to perform the range check without
+FLPs, we use an extension of VIDPF described by {{MST23}}. The high-level idea
+here is that the Aggregators can evaluate the empty string and verify that they
+have shares of the constant `beta`. Next, as described in {{vdaf}}, we use the
+"one-hot verifiability" and "path verifiability" checks to verify that each
+level is non-zero at only a single point and that the same constant `beta` is
+propagated down the tree correctly. Note that this trick is not suitable for
+weighted heavy-hitters, since it expects that each `beta` value is constant
+(e.g., 1).
 
 > OPEN ISSUE Proof aggregation could work with plain Mastic, but we would need
 > to check the FLPs at the first round of aggregation, leading to best-case
@@ -547,9 +547,60 @@ expects that each `beta` value is `1`.
 > `num_measurements` as a parameter. We currently don't support this because we
 > currently don't have a pure counter as part of the VIDPF output.
 
-## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
 
-TODO(jimouris) Add an overview of the goal and how Mastic is used to achieve it.
+## Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
+
+Next, we describe an enhancement that allows Mastic to achieve robustness in the
+presence of a malicious server. The two-party Mastic (as well as Poplar1) is
+susceptible to additive attacks by a malicious Aggregator. In more detail, if
+one of the Aggregators star acting maliciously, they can change the protocol
+output (simply by changing its output shares) without the honest Aggregator
+noticing.
+
+We can solve this problem in Mastic by using a technique from {{MST23}} that
+lifts the two-party semi-honest secure PLASMA to three-party maliciously secure
+setting. Rather than having two aggregation servers as in the previous modes,
+this mode of operation involves three aggregators, where every pair of
+aggregators communicate over a different channel. In essence, each pair of
+Aggregators will run one session of the VDAF with unique randomness but on the
+same Client measurement. The following changes are necessary:
+
+1. The Client needs to generate three pairs of VIDPF keys all corresponding to
+   the same `alpha` and `beta` values. We represent the keys based on the
+   session as follows:
+   1. Session 0 (between Aggregators 0 and 1): `key_01, key_10`
+   1. Session 1 (between Aggregators 1 and 2): `key_12, key_21`
+   1. Session 2 (between Aggregators 2 and 0): `key_20, key_02`
+
+   Each pair of servers cannot check that the client input is consistent across
+   two sessions without the involvement of the third server. To address this, we
+   let two servers (i.e., Aggregators 0 and 1) to run all three sessions so that
+   they can check that the client input is consistent across three sessions. The
+   third server (i.e., Aggregator 2) is involved as an attestator in two of the
+   sessions. The check involves field addition and subtraction and then hash
+   comparisons.
+
+2. The Client sends the following keys to the Aggregators:
+   1. Aggregator 0 receives: `key_01`, `key_02`, and `key_21`
+   1. Aggregator 1 receives: `key_10`, `key_12`, and `key_20`
+   1. Aggregator 2 receives: `key_21` and `key_20`
+
+3. The Aggregators need to verify that the Client's input is consistent across
+   the different sessions (i.e., that all the keys correspond to the same
+   `alpha` and `beta` values). Aggregators 0 and 1 check that:
+   1. Their output shares of Session 0 minus their output shares of Session 1
+      are shares of zero
+   2. Their output shares of Session 1 minus their output shares of Session 2
+      are shares of zero.
+
+   The subtraction is local operation and verifying that two servers possess a
+   sharing of zero involves sending one hash.
+
+Using a third Aggregator, we can lift the security of Mastic from the
+semi-honest setting to malicious security. While more complex to implement than
+2-party Mastic, this mode allows achieves both privacy and robustness against a
+malicious Aggregator.
+
 
 > NOTE to be specified in full detail.
 
