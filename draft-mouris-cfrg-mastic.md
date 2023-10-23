@@ -204,6 +204,7 @@ This document uses the following terms as defined in {{!VDAF}}:
 "aggregate result",
 "aggregate share",
 "aggregation parameter",
+"batch",
 "input share",
 "measurement",
 "output share",
@@ -512,11 +513,59 @@ The Aggregators MAY aggregate a report any number times, but:
 > NOTE to be specified in full detail. For an end-to-end example, see
 > `example_aggregation_by_labels_mode()` in the reference implementation.
 
-## Plain Heavy-Hitters with Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
+## Plain Heavy-Hitters with VIDPF-Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
 
-TODO Add an overview of the goal and how Mastic is used to achieve it.
+The total communication cost of using Mastic (or Poplar1 {{!VDAF}}) for heavy
+hitters is `O(num_measurements * Vidpf.BITS)` bits exchanged betwen the
+Aggregators, where `num_measurements` is the number of reports begin
+aggregated. For plain heavy-hitters, this can be reduced to `O(Vidpf.BITS)` in
+the best case.
 
-> NOTE to be specified in full detail.
+The idea is take advantage of the feature of VIDPF evaluation whereby the
+Aggregotrs compute identical VIDPF proofs if and only if the report is valid.
+This allows the proofs themsleves to be aggregated: if each report in a batch
+of reports is valid, then the hash of their proofs will be equal as well; on
+the other hand, if one report is invalid, then the hash of the proofs will not
+be equal.
+
+To facilitiate isolation of the invalid report(s), the proof strings are
+arranged into a Merkle tree. During aggregation, the Aggregators interactively
+traverse the tree to detect the subtree(s) containing invalid reports and
+remove them from the batch.
+
+> OPEN ISSUE Decide if we should spell this out in greater detail. This feature
+> is not compatible with {{?DAP=I-D.draft-ietf-ppm-dap-07}}; if we wanted to
+> extend DAP to support this, then we'd need to specify the wire format of the
+> messages exchanged between the Aggregators.
+
+In the worst case, isolating invalid reports requires `O(num_measurements *
+Vidp.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
+betwen the Aggregators. However this behavior would only be observed under
+attack conditions in which the vast majority of Clients are malicious.
+
+FLPs are are not compatible with proof aggregation the way VIDPFs are. In order
+to perform the range check without FLPs, we an extension of VIDPF described by
+{{MST23}}.
+
+> TODO(jimouris) Add a high-level description of PLASMA's `0`/`1` range check
+> and how it would be implemented in Mastic.
+
+Note that this trick is not suitable for weighted heavy-hitters, since it
+expects that each `beta` value is `1`.
+
+> OPEN ISSUE Proof aggregation could work with plain Mastic, but we would need
+> to check the FLPs at the first round of aggregation, leading to best-case
+> communication cost would be `O(num_measurements + Vidpf.BITS)`. This would be
+> OK, but we would still want to support a mode for plain heavy-hitters that is
+> as good as we can get.
+>
+> One idea is to always do the PLASMA `0`/`1` check alongside the FLP. This
+> would be useful for another reason: Usually FLP decoding requires
+> `num_measurements` as a parameter. We currently don't support this because we
+> currently don't have a pure counter as part of the VIDPF output.
+
+> NOTE to be specified in full detail. Proof aggregation is not yet implemented
+> by the reference code.
 
 ## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
 
