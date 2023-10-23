@@ -122,7 +122,7 @@ measurements, this problem can be solved by combining a binary search with a
 subroutine solving the "private prefix histogram" subproblem. The goal of this
 subproblem is to compute a histogram over the fixed-length prefixes of client
 measurement strings without revealing the prefixes. The subproblem can be
-solved using a Verifiabile Distributed Aggregation Function, or VDAF
+solved using a Verifiable Distributed Aggregation Function, or VDAF
 {{!VDAF=I-D.draft-irtf-cfrg-vdaf-07}}. In particular, the Poplar1 VDAF
 described in {{Section 8 of !VDAF}} describes how to distribute this
 computation amongst a small set of aggregation servers such that, as long as
@@ -211,7 +211,7 @@ This document uses the following terms as defined in {{!VDAF}}:
 "prep share", and
 "report".
 
-In Mastic, a Client's VDAF measurement is comprised of two components, which we
+In Mastic, a Client's VDAF measurement comprises two components, which we
 denote `alpha` and `beta`. The function that each component serves depends on
 the use case: for plain and weighted heavy-hitters, we shall refer to `alpha`
 as the "payload" and `beta` as the payload's "weight"; for
@@ -262,9 +262,9 @@ generate an additive share of the function’s output `f(x)` for a given input
 is a "point function" for which `f(x) = beta` if `x` equals `alpha` and `0`
 otherwise for some `alpha, beta`.
 
-An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing a
+An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing an
 "incremental point function". Here we take `alpha` to be a bit string of
-fixed length and we have that `f(x) = beta` if `x` is a prefix of `alpha` and
+fixed length, and we have that `f(x) = beta` if `x` is a prefix of `alpha` and
 `0` otherwise.
 
 An IDPF has two main operations. The first is the key-generation algorithm,
@@ -278,11 +278,11 @@ the Aggregator's share of `f(x)`.
 Shares of the IDPF outputs can be aggregated together across multiple reports.
 This is used in Poplar1 ({{Section 8 of !VDAF}}) to count how many input
 strings begin with a candidate prefix. IDPFs are private in the sense that each
-Aggregators learning nothing about the underlying inputs beyond the value of
+Aggregator learns nothing about the underlying inputs beyond the value of
 this sum. However, IDPFs on their own do not provide robustness. For example,
 it is possible for a malicious Client to fool the Aggregators into accepting
 malformed counter (i.e., a value other than `0` or `1`). It is also possible
-for a Client to "vote twice" by construcing key shares for which `f(x) = f(x')
+for a Client to "vote twice" by constructing key shares for which `f(x) = f(x')
 = beta`, where `x` and `x'` are distinct, equal-length strings.
 
 To mitigate these issues, IDPF must be composed with some interactive mechanism
@@ -294,7 +294,7 @@ for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
    are additive shares of a one-hot vector.
 
 1. **Path Verifiability:** The One-hot Verifiability property alone is not
-    sufficient to guarantee that the keys are well formed. The Aggregators
+    sufficient to guarantee that the keys are well-formed. The Aggregators
     still need to verify that: a) the non-zero output values are
     across a single path in the tree, and b) the value of the root node is
     consistently propagated down the VIDPF tree. For example, if the root
@@ -305,7 +305,7 @@ Below we describe the syntax of VIDPF; in {{vidpf-construction}} we specify the
 concrete construction of {{MST23}}.
 
 A concrete `Vidpf` defines the types and constants enumerated in
-{{vidpf-param}}. In addition it implements the following methods:
+{{vidpf-param}}. In addition, it implements the following methods:
 
 * `Vidpf.gen(alpha: Unsigned, beta: list[Vidpf.Field], binder: bytes, rand:
   bytes) -> tuple[PublicShare, list[bytes]]` is the randomized key generation
@@ -319,14 +319,14 @@ A concrete `Vidpf` defines the types and constants enumerated in
 
 * `Vidpf.eval(agg_id: Unsigned, public_share: Vidpf.PublicShare, key_share:
   bytes, level: Unsigned, prefixes: tuple[Unsigned, ...], binder: bytes) ->
-  tuple[list[Vidpf.Field], bytes]` is the deterministic key evaulation
+  tuple[list[Vidpf.Field], bytes]` is the deterministic key evaluation
   algorithm. It takes as input the Aggregator ID (which MUST be in range `[0,
-  Vidpf.SHARES)`, the public share, the Aggregator's key share, the VIDFP level
+  Vidpf.SHARES)`, the public share, the Aggregator's key share, the VIDPF level
   (defined the same way as "IDPF level" in {{Section 8 of !VDAF}}), the list of
   prefixes to evaluate, and a binder string. Its outputs are the VIDPF output
   share and the VIDPF verifier.
 
-The veriability properties are guaranteed as long as each Aggregator computes
+The verifiability properties are guaranteed as long as each Aggregator computes
 the same verifier string. Note that One-hot Verifiability and Path
 Verifiability are not sufficient to ensure robustness of Mastic; we will also
 need to ensure that the `beta` chosen by the Client is "in range". We will rely
@@ -403,7 +403,7 @@ TODO(jimouris) Add an overview of the goal and how Mastic is used to achieve it.
 
 The construction of {{MST23}} builds on techniques from {{CP22}} to lift an
 IDPF to a VIDPF with the properties described in {{vidpf}}. Instead of a
-2-round "secure sketch" MPC like that of Poplar1, the scheme relys on hashing.
+2-round "secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
 
 TODO(jimouris) Add an overview.
 
