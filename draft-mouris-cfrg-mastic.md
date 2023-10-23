@@ -349,62 +349,64 @@ This section describes Mastic, a VDAF suitable for a plethora of aggregation
 functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters (see
 {{weighted-heavy-hitters}}), aggregation by labels (see
 {{aggregation-by-labels}}), linear regression and more. Mastic allows computing
-functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
-compatible with any aggregation function that has the following structure:
+functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
 
-1. As described in {{conventions}}, each Client input consists of two
-   components, which we denote `alpha` and `beta`. At a high level, the Client
-   generates VIDPF keys (i.e., input shares) that encode its input `alpha` with
-   weight (or payload) `beta`. Then the Client sends one share to each
-   Aggregator and also publishes the `PublicShare`.
+The core component of Mastic is a VIDPF as defined in {{vidpf}}. VIDPFs
+inherently have the "one-hot verifiability" property, meaning that in each
+level of the tree there exists at most one non-zero value. To guarantee that
+the Client's input is well-formed, Mastic first verifies that the Client
+measurement is valid in the empty string using an FLP, and then, it ensures
+that this valid measurement is propagated correctly down the tree using the
+one-hot verifiability and the path verifiability properties. Note that Mastic
+allows the measurement to be of any type that can be verified by an arithmetic
+circuit, not just a counter. For instance, the measurement can be a tuple of
+values, a label, a secret number within a public range, etc.
 
-1. The Aggregators agree on an initial set of `l`-bit strings, where
-   `l <= BITS`. We refer to these strings as "candidate prefixes".
+As described in {{conventions}}, each Client input consists of two components,
+which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF
+keys that encodes `alpha` and `beta`. Then the Client sends one share to each
+Aggregator and also publishes the public share.
 
-1. Measurement validity is determined by a combination of techniques.
-   1. First, we use an FLP (as defined in {{flp}}) evaluated over the encoded
-      measurement to assert that the measurement is valid for candidate prefix
-      being the empty string. Note that this can also be achieved by evaluating
-      strings "0" and "1" and adding the output shares together in each
-      Aggregator. Below we can describe how our instantiation of FLP defines
-      validity via arithmetic circuits:
+ The Aggregators agree on an initial set of `level`-bit strings, where `level <
+ BITS`. We refer to these strings as "candidate prefixes". They evaluate their
+ VIDPF key shares at this sequence of prefixes, to obtain an additive share of
+ the VIDPF output.
 
-      An "arithmetic circuit" is a function comprised of arithmetic operations
-      in the field. The circuit's output is a single field element: if zero,
-      then the measurement is said to be "valid"; otherwise, if the output is
-      non-zero, then the measurement is said to be "invalid". The arithmetic
-      circuit asserts that the measurement is valid for the empty string.
-   2. Next, the servers need to assert that the measurement is valid for all the
-      candidate prefixes. We achieve that by enforcing the "One-hot
-      Verifiability" and "Path Verifiability" properties described in {{vidpf}}.
-      During evaluation, each Aggregator generates a proof that guarantees that
-      the current level of the tree (i.e., all the evaluations of prefixes of
-      equal length). If these proofs are equal, then the level is one-hot.
-      Additionally, to assert the path verifiability, each Aggregator computes a
-      hash of the difference between the output share of a prefix `p` and the
-      sum of the output shares of prefixes `p||0` and `p||1`. These hashes
-      should also be equal.
+VIDPF output valialidity is determined by a combination of techniques.
 
-1. The aggregate result is obtained by summing up the encoded measurement
-   vectors for each prefix and computing some function of the sum. The
-   aggregation parameter is the set of candidate prefixes.
+1. First, the Aggregators exchange VIDPF proofs. If they are equal, then
+   this implies One-hot Verifiability and Path Verifiability as described in
+   {{vidpf}}. One-hotness ensures that the VIDPF output contains `beta` at
+   most once (and every other output is `0`). Path Verifiability implies
+   that, if the previous level contained a non-zero value, then it is the
+   same value as the current level.
 
-1. The Aggregators send their aggregate shares to the Collector, who combines
-   them to recover the counts of each candidate prefix.
+1. Second, the Aggregators interactly verify the FLP ({{flp}}) to assert
+   that `beta` is valid. We instantiate the FLP with `FlpGeneric` from
+   {{Section 7.3 of !VDAF}}, which defines validity via an arithmetic
+   circuit ({{Section 7.3.2 of !VDAF}}) evaluated over (shares of) `beta`:
+   if the output of the circuit is `0`, then value is said to be "valid";
+   otherwise it is "invalid".
 
-Mastic is constructed from a "Verifiable Incremental Distributed Point Function
-(VIDPF)", a primitive described in {{vidpf}}. This structure allows
-Mastic to compute the hit count for an index by just evaluating each set of
-VIDPF shares at that index and add up the results. VIDPFs inherently have the
-"one-hot verifiability" property, meaning that in each level of the tree there
-exists at most one non-zero value. To guarantee that the Client's input is
-well-formed, Mastic first verifies that the Client measurement is valid in the
-empty string using an FLP, and then, it ensures that this valid measurement is
-propagated correctly down the tree using the one-hot verifiability and the path
-verifiability properties. Note that Mastic allows the measurement to be of any
-type that can be verified by an arithmetic circuit, not just a counter. For
-instance, the measurement can be a tuple of values, a label, a secret number
-within a public range, etc.
+   `beta` is not always contained by the VIDPF output (in particular, if
+   none of the candidate prefixes are a prefix of `alpha`). Moreover, VIDPF
+   as specified in {{vidpf-construction}} does not as specified permit
+   evaluation at the root of the VIDPF tree. Instead, each Aggregator
+   computes a share of `beta` by evaluating the VIDPF tree at prefixes `0`
+   and `1` and `level == 0` and adding them up. One-hot Verifiability and
+   Path Verifiability imply that the sum is equal to the Aggregator's share
+   of `beta`.
+
+   > CP: An alternative way to spell this is to say that VIDPF evaluation
+   > outputs a share of `beta`, which is what our current API does in the
+   > reference code.
+
+The aggregate result is obtained by summing up the encoded measurement vectors
+for each prefix and computing some function of the sum. The aggregation
+parameter is the set of candidate prefixes.
+
+The Aggregators send their aggregate shares to the Collector, who combines them
+to recover the counts of each candidate prefix.
 
 ## Sharding
 
