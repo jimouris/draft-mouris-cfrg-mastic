@@ -193,7 +193,7 @@ for efficiency] While more complex to implement than 2-party Mastic, this mode
 allows achieves "full security", where both privacy and robustness
 hold in the honest majority setting.
 
-# Conventions and Definitions
+# Conventions and Definitions {#conventions}
 
 {::boilerplate bcp14-tagged}
 
@@ -352,26 +352,31 @@ check, but we would like more sophisticated range checks for Mastic.)
 
 # Definition of `Mastic` {#vdaf}
 
-> We are pretty confident about the overall structure of the VDAF, but there
-> are some details to work out and security analysis to do.
-> In the meantime, check out the current reference implementation at
+> NOTE We are pretty confident about the overall structure of the VDAF, but
+> there are some details to work out and security analysis to do. In the
+> meantime, check out the current reference implementation at
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
 
 This section describes Mastic, a VDAF suitable for a plethora of aggregation
 functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters
 (see {{weighted-heavy-hitters}}), aggregation by labels (see
 {{aggregation-by-labels}}), linear regression and more. Mastic allows computing
-functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
-compatible with any aggregation function that has the following structure:
+functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. [CP: Try to group items in
+this list that logically related. Note at this point we're getting into the
+weeds of the construction, not necessarily trying to sell the reader on the
+motivation.] In more detail, Mastic is compatible with any aggregation function
+that has the following structure:
 
 1. Each Client measurement is encoded as a vector over some finite field. Each
    Client splits its string of length `BITS` into input shares and sends one
-   share to each Aggregator.
+   share to each Aggregator. [CP: This doesn't match the terminology in
+   {{conventions}}.]
 2. The Aggregators agree on an initial set of `l`-bit strings, where
    `l <= BITS`. We refer to these strings as "candidate prefixes".
 3. Measurement validity is determined by a combination of techniques. First, we
    use an arithmetic circuit evaluated over the encoded measurement to assert
    that the measurement is valid for candidate prefix being the empty string ε.
+   [CP: Add the definition of the empty string to {{conventions}}.]
    (An "arithmetic circuit" is a function comprised of arithmetic operations in
    the field.) The circuit's output is a single field element: if zero, then the
    measurement is said to be "valid"; otherwise, if the output is non-zero, then
@@ -379,7 +384,10 @@ compatible with any aggregation function that has the following structure:
    the measurement is valid for the empty string ε. Next, the servers need to
    assert that the measurement is valid for all the candidate prefixes. We
    achieve that by enforcing the "One-hot Verifiability" and "Path
-   Verifiability" properties described in {{vidpf}}.
+   Verifiability" properties described in {{vidpf}}. [CP: Validity circuit is
+   somewhat of an implementation detail. I'd keep things high level by
+   discussing FLPs. Below we can describe how our instantiaotion of FLP defines
+   validity via arithmetic circuits.]
 4. The aggregate result is obtained by summing up the encoded measurement
    vectors for each prefix and computing some function of the sum. The
    aggregation parameter is the set of candidate prefixes.
@@ -388,17 +396,20 @@ compatible with any aggregation function that has the following structure:
 
 Mastic is constructed from a "Verifiable Incremental Distributed Point Function
 (VIDPF)", a primitive described by {{MST23}} that generalizes the notion of a
-Distributed Point Function (DPF) {{GI14}}. Briefly, a DPF is used to distribute
-the computation of a "point function", a function that evaluates to zero on
-every input except at a programmable "point". The computation is distributed in
-such a way that no one party knows either the point or what it evaluates to. A
-VIDPF generalizes this "point" to a path on a full binary tree from the root to
-one of the leaves. It is evaluated on an "index" representing a unique node of
-the tree. If the node is on the programmed path, then the function evaluates to
-a non-zero value; otherwise it evaluates to zero. This structure allows a VIDPF
-to provide the functionality required for the above protocol: To compute the hit
-count for an index, just evaluate each set of VIDPF shares at that index and add
-up the results.
+Distributed Point Function (DPF) {{GI14}}. [CP: Don't refer to papers here;
+refer to the already defined VIDPF in {{preliminaries}}.] Briefly, a DPF is
+used to distribute the computation of a "point function", a function that
+evaluates to zero on every input except at a programmable "point". The
+computation is distributed in such a way that no one party knows either the
+point or what it evaluates to. A VIDPF generalizes this "point" to a path on a
+full binary tree from the root to one of the leaves. It is evaluated on an
+"index" representing a unique node of the tree. If the node is on the
+programmed path, then the function evaluates to a non-zero value; otherwise it
+evaluates to zero. This structure allows a VIDPF to provide the functionality
+required for the above protocol: To compute the hit count for an index, just
+evaluate each set of VIDPF shares at that index and add up the results. [CP:
+Don't reiterate the definition; just refer to the definition above. If there is
+any terminology you want to introduce, add it there.]
 
 Additionally, VIDPFs inherently have the "one-hot verifiability" property,
 meaning that in each level of the tree there exists at most one non-zero value.
