@@ -246,7 +246,7 @@ a separate key. These keys enable the Aggregators to efficiently generate an
 additive share of the function’s output `f(x)` for a given input `x`.
 Distributed Point Functions (DPF) are a particular case of function secret
 sharing where `f()` is a "point function" for which `f(x) = beta` if `x` equals
-`alpha` and `0` otherwise for some `alpha`, `beta`. The computation is
+`alpha` and `0` otherwise for some `alpha` and `beta`. The computation is
 distributed in such a way that no one party knows either the point or what it
 evaluates to.
 
@@ -354,12 +354,12 @@ The core component of Mastic is a VIDPF as defined in {{vidpf}}. VIDPFs
 inherently have the "one-hot verifiability" property, meaning that in each
 level of the tree there exists at most one non-zero value. To guarantee that
 the Client's input is well-formed, Mastic first verifies that the Client
-measurement is valid in the empty string using an FLP, and then, it ensures
+measurement is valid at the root level using an FLP, and then, it ensures
 that this valid measurement is propagated correctly down the tree using the
 one-hot verifiability and the path verifiability properties. Note that Mastic
 allows the measurement to be of any type that can be verified by an arithmetic
 circuit, not just a counter. For instance, the measurement can be a tuple of
-values, a label, a secret number within a public range, etc.
+values, a string, a secret number within a public range, etc.
 
 As described in {{conventions}}, each Client input consists of two components,
 which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF
@@ -368,28 +368,28 @@ Aggregator and also publishes the public share.
 
  The Aggregators agree on an initial set of `level`-bit strings, where `level <
  BITS`. We refer to these strings as "candidate prefixes". They evaluate their
- VIDPF key shares at this sequence of prefixes, to obtain an additive share of
+ VIDPF key shares at each prefix in this set, to obtain an additive share of
  the VIDPF output.
 
-VIDPF output valialidity is determined by a combination of techniques.
+Mastic uses a combination of techniques to certify the validity of this output.
 
 1. First, the Aggregators exchange VIDPF proofs. If they are equal, then
    this implies One-hot Verifiability and Path Verifiability as described in
-   {{vidpf}}. One-hotness ensures that the VIDPF output contains `beta` at
-   most once (and every other output is `0`). Path Verifiability implies
-   that, if the previous level contained a non-zero value, then it is the
-   same value as the current level.
+   {{vidpf}}. One-hotness ensures that the VIDPF output contains `beta` for at
+   most one choice of `alpha` (and every other output is `0`). Path
+   Verifiability implies that, if the previous level contained a non-zero
+   value, then it is the same value as the current level.
 
-1. Second, the Aggregators interactly verify the FLP ({{flp}}) to assert
+3. Second, the Aggregators interactively verify the FLP ({{flp}}) to assert
    that `beta` is valid. We instantiate the FLP with `FlpGeneric` from
    {{Section 7.3 of !VDAF}}, which defines validity via an arithmetic
    circuit ({{Section 7.3.2 of !VDAF}}) evaluated over (shares of) `beta`:
-   if the output of the circuit is `0`, then value is said to be "valid";
+   if the output of the circuit is `0`, then the value is said to be "valid";
    otherwise it is "invalid".
 
-   `beta` is not always contained by the VIDPF output (in particular, if
-   none of the candidate prefixes are a prefix of `alpha`). Moreover, VIDPF
-   as specified in {{vidpf-construction}} does not as specified permit
+   If none of the candidate prefixes are a prefix of `alpha`, then the VIDPF
+   output shares will not contain any shares of `beta`. Moreover, VIDPF
+   as specified in {{vidpf-construction}} does not permit
    evaluation at the root of the VIDPF tree. Instead, each Aggregator
    computes a share of `beta` by evaluating the VIDPF tree at prefixes `0`
    and `1` and `level == 0` and adding them up. One-hot Verifiability and
@@ -400,9 +400,9 @@ VIDPF output valialidity is determined by a combination of techniques.
    > outputs a share of `beta`, which is what our current API does in the
    > reference code.
 
-The aggregate result is obtained by summing up the encoded measurement vectors
+The aggregate result is obtained by summing up the encoded measurement shares
 for each prefix and computing some function of the sum. The aggregation
-parameter is the set of candidate prefixes.
+parameter contains the level and the set of candidate prefixes.
 
 The Aggregators send their aggregate shares to the Collector, who combines them
 to recover the counts of each candidate prefix.
@@ -553,16 +553,16 @@ weighted heavy-hitters, since it expects that each `beta` value is constant
 Next, we describe an enhancement that allows Mastic to achieve robustness in the
 presence of a malicious server. The two-party Mastic (as well as Poplar1) is
 susceptible to additive attacks by a malicious Aggregator. In more detail, if
-one of the Aggregators star acting maliciously, they can change the protocol
-output (simply by changing its output shares) without the honest Aggregator
-noticing.
+one of the Aggregators starts acting maliciously, they can arbitrarily add to
+the aggregation result (simply by adding to their own aggregation shares)
+without the honest Aggregator noticing.
 
 We can solve this problem in Mastic by using a technique from {{MST23}} that
-lifts the two-party semi-honest secure PLASMA to three-party maliciously secure
-setting. Rather than having two aggregation servers as in the previous modes,
-this mode of operation involves three aggregators, where every pair of
-aggregators communicate over a different channel. In essence, each pair of
-Aggregators will run one session of the VDAF with unique randomness but on the
+lifts the two-party semi-honest secure PLASMA to the three-party maliciously
+secure setting. Rather than having two aggregation servers as in the previous
+mode, this mode of operation involves three Aggregators, where every pair of
+Aggregators communicate over a direct channel. In essence, each pair of
+Aggregators will run one session of the VDAF with unique randomness on the
 same Client measurement. The following changes are necessary:
 
 1. The Client needs to generate three pairs of VIDPF keys all corresponding to
@@ -593,8 +593,8 @@ same Client measurement. The following changes are necessary:
    2. Their output shares of Session 1 minus their output shares of Session 2
       are shares of zero.
 
-   The subtraction is local operation and verifying that two servers possess a
-   sharing of zero involves sending one hash.
+   The subtraction is a local operation and verifying that two Aggregators possess
+   shares of zero requires exchanging one hash.
 
 Using a third Aggregator, we can lift the security of Mastic from the
 semi-honest setting to malicious security. While more complex to implement than
