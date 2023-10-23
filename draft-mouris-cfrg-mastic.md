@@ -47,18 +47,6 @@ normative:
 
 informative:
 
-  BBCGGI21:
-    title: "Lightweight Techniques for Private Heavy Hitters"
-    author:
-      - ins: D. Boneh
-      - ins: E. Boyle
-      - ins: H. Corrigan-Gibbs
-      - ins: N. Gilboa
-      - ins: Y. Ishai
-    date: 2021
-    seriesinfo: IEEE S&P 2021
-    target: https://ia.cr/2021/017
-
   CP22:
     title: "Lightweight, Maliciously Secure Verifiable Function Secret Sharing"
     author:
@@ -67,17 +55,6 @@ informative:
     date : 2022
     seriesinfo: EUROCRYPT 2022
     target: https://iacr.org/cryptodb/data/paper.php?pubkey=31935
-
-  DPRS23:
-    title: "Verifiable Distributed Aggregation Functions"
-    author:
-      - ins: H. Davis
-      - ins: C. Patton
-      - ins: M. Rosulek
-      - ins: P. Schoppmann
-    date: 2023
-    seriesinfo: Proceedings on Privacy Enhancing Technologies (PoPETs)
-    target: https://doi.org/10.56553/popets-2023-0126
 
   GI14:
     title: "Distributed Point Functions and Their Applications"
