@@ -455,6 +455,44 @@ minimum weight rather than a minimum count. In addition:
 
 1. The level at which the reports are Aggregated MUST be strictly increasing.
 
+### Different Thresholds {#different-thresholds}
+
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_weighted_heavy_hitters_mode_with_different_thresholds()` in the
+> reference implementation.
+
+So far, we have assumed that there is a single threshold for determining which
+prefixes are "heavy". However, we can easily extend this to have different
+thresholds for different prefixes. There exist use-cases where prefixes starting
+with "000" may be significantly more popular than prefixes starting with "111".
+Setting a low threshold may result in an overwhelmingly big set of heavy hitters
+starting with "000", while setting a high threshold might prune anything
+starting with "111". Consider the following examples:
+
+1. Popular URLs: `a.example.com` receives a massive amount of traffic whereas
+   `b.example.com` may have lower traffic. To identify heavy-hitting search
+   queries on `a.example.com`, the Aggregators should set a high threshold, while
+   in queries in different search engines may require lower thresholds to be
+   considered popular.
+
+2. E-commerce: Grocery items are essential and have a high volume of sales. In
+   contrast, electronics, though popular, usually come with a higher price
+   compared to groceries. Meanwhile, luxury items command significantly higher
+   prices but generally experience lower sales volumes. To identify
+   heavy-hitting grocery items on an e-commerce website, Aggregators could use
+   different threshold for each of these categories. These thresholds are set to
+   ensure that only the top-selling grocery items qualify as heavy hitters while
+   electronics and luxury items are also considered heavy hitters on their own
+   categories.
+
+To tackle this, Mastic can allow different prefixes having different thresholds.
+When a specific prefix does not have an associated threshold, we first search if
+any of its prefixes has a specified threshold, otherwise we use a default
+threshold. For example, if the Aggregators have set the thresholds to be
+`{"000": 10, "111": 2, "default": 5}` and the search for prefix "01", then
+threshold 5 should be used. However, if the Aggregators search for prefix
+"11101", then threshold 2 should be used.
+
 
 ## Aggregation by Labels {#aggregation-by-labels}
 
