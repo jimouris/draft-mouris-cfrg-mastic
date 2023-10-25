@@ -1,12 +1,12 @@
+'''The Mastic VDAF'''
+
 import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')
 
 from common import Unsigned, front, vec_add, vec_sub
 from flp_generic import FlpGeneric
-import hashlib
-from typing import Optional, Union
+from typing import Optional
 from vdaf import Vdaf, test_vdaf
-from vdaf_poplar1 import Poplar1
 from vidpf import Vidpf
 from xof import XofShake128
 
@@ -352,12 +352,98 @@ def test_valid_agg_params():
     )
 
 
-def example_weighted_heavy_hitters_mode():
+def get_reports_from_measurements(mastic, measurements):
     from common import gen_rand
+
+    reports = []
+    for measurement in measurements:
+        nonce = gen_rand(16)
+        rand = gen_rand(mastic.RAND_SIZE)
+        (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
+        reports.append((nonce, public_share, input_shares))
+    return reports
+
+
+def get_threshold(thresholds, prefix):
+    '''
+    Return the threshold of the given prefix if exists. If not, check if any of
+    its prefixes exists. If not, return the default threshold.
+    '''
+    while prefix:
+        if prefix in thresholds:
+            return thresholds[prefix]
+        prefix = prefix[:-1]
+    return thresholds['default'] # Return the default threshold
+
+
+def compute_heavy_hitters(mastic, bits, thresholds, reports):
+    from common import gen_rand
+
+    verify_key = gen_rand(16)
+
+    prefixes = [0, 1]
+    prev_agg_params = []
+    heavy_hitters = []
+    for level in range(bits):
+        agg_param = (level, prefixes, level == 0)
+        assert mastic.is_valid(agg_param, prev_agg_params)
+
+        # Aggregators prepare reports for aggregation.
+        out_shares = [[], []]
+        for (nonce, public_share, input_shares) in reports:
+            # Each aggregator broadcast its prep share; ...
+            (prep_state, prep_shares) = zip(*[
+                mastic.prep_init(
+                    verify_key,
+                    agg_id,
+                    agg_param,
+                    nonce,
+                    public_share,
+                    input_shares[agg_id]) for agg_id in [0, 1]
+            ])
+
+            # computes the prep message; ...
+            prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
+
+            # and computes its output share.
+            for agg_id in [0, 1]:
+                out_shares[agg_id].append(
+                    mastic.prep_next(prep_state[agg_id], prep_msg))
+
+        # Aggregators aggregate their output shares.
+        agg_shares = [
+            mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
+        ]
+
+        # Collector computes the aggregate result.
+        agg_result = mastic.unshard(agg_param, agg_shares, len(reports))
+        prev_agg_params.append(agg_param)
+
+        if level < bits - 1:
+            # Compute the next set of candidate prefixes.
+            next_prefixes = []
+            for (prefix, count) in zip(prefixes, agg_result):
+                bin_prefix = '0b' + format(prefix, f'0{level}b')
+                threshold = get_threshold(thresholds, bin_prefix)
+                if count >= threshold:
+                    next_prefixes.append(prefix<<1)
+                    next_prefixes.append((prefix<<1)|1)
+            prefixes = next_prefixes
+        else:
+            for (prefix, count) in zip(prefixes, agg_result):
+                bin_prefix = '0b' + format(prefix, f'0{level}b')
+                threshold = get_threshold(thresholds, bin_prefix)
+                if count >= threshold:
+                    heavy_hitters.append(prefix)
+            print("Weighted heavy-hitters with different thresholds:",
+                  list(map(lambda x: bin(x), heavy_hitters)))
+    return heavy_hitters
+
+
+def example_weighted_heavy_hitters_mode():
     from flp_generic import Count
     bits = 4
     mastic = Mastic.with_params(bits, Count())
-    verify_key = gen_rand(16)
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -375,86 +461,20 @@ def example_weighted_heavy_hitters_mode():
         (0b1111, 0),
         (0b1111, 1),
     ]
-    reports = []
-    for measurement in measurements:
-        nonce = gen_rand(16)
-        rand = gen_rand(mastic.RAND_SIZE)
-        (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
-        reports.append((nonce, public_share, input_shares))
+
+    reports = get_reports_from_measurements(mastic, measurements)
+
+    thresholds = {'default': 2}
 
     # Collector and Aggregators compute the weighted heavy hitters.
-    threshold = 2
-    prefixes = [0, 1]
-    prev_agg_params = []
-    for level in range(bits):
-        agg_param = (level, prefixes, level == 0)
-        assert mastic.is_valid(agg_param, prev_agg_params)
+    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    assert heavy_hitters == [0, 9]
 
-        # Aggregators prepare reports for aggregation.
-        out_shares = [[], []]
-        for (nonce, public_share, input_shares) in reports:
-            # Each aggregator broadcast its prep share; ...
-            (prep_state, prep_shares) = zip(*[
-                mastic.prep_init(
-                    verify_key,
-                    agg_id,
-                    agg_param,
-                    nonce,
-                    public_share,
-                    input_shares[agg_id]) for agg_id in [0, 1]
-            ])
-
-            # computes the prep message; ...
-            prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
-
-            # and computes its output share.
-            for agg_id in [0, 1]:
-                out_shares[agg_id].append(
-                    mastic.prep_next(prep_state[agg_id], prep_msg))
-
-        # Aggregators aggregate their output shares.
-        agg_shares = [
-            mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
-        ]
-
-        # Collector computes the aggregate result.
-        agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
-        prev_agg_params.append(agg_param)
-
-        if level < bits - 1:
-            # Compute the next set of candidate prefixes.
-            next_prefixes = []
-            for (prefix, count) in zip(prefixes, agg_result):
-                if count >= threshold:
-                    next_prefixes.append(prefix<<1)
-                    next_prefixes.append((prefix<<1)|1)
-            prefixes = next_prefixes
-        else:
-            heavy_hitters = []
-            for (prefix, count) in zip(prefixes, agg_result):
-                if count >= threshold:
-                    heavy_hitters.append(prefix)
-            print("Weighted heavy-hitters:", list(map(lambda x: bin(x), heavy_hitters)))
-            assert heavy_hitters == [0, 9]
-
-
-def get_threshold(thresholds, prefix):
-    '''
-    Return the threshold of the given prefix if exists. If not, check if any of
-    its prefixes exists. If not, return the default threshold.
-    '''
-    while prefix:
-        if prefix in thresholds:
-            return thresholds[prefix]
-        prefix = prefix[:-1]
-    return thresholds['default'] # Return the default threshold
 
 def example_weighted_heavy_hitters_mode_with_different_thresholds():
-    from common import gen_rand
     from flp_generic import Count
     bits = 4
     mastic = Mastic.with_params(bits, Count())
-    verify_key = gen_rand(16)
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -472,78 +492,19 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
         (0b1111, 1),
         (0b1111, 1),
     ]
-    reports = []
-    for measurement in measurements:
-        nonce = gen_rand(16)
-        rand = gen_rand(mastic.RAND_SIZE)
-        (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
-        reports.append((nonce, public_share, input_shares))
 
-    # Collector and Aggregators compute the weighted heavy hitters.
+    reports = get_reports_from_measurements(mastic, measurements)
+
     thresholds = {
         'default': 2,
         '0b00': 1,
         '0b10': 3,
         '0b11': 5,
     }
-    prefixes = [0, 1]
-    prev_agg_params = []
-    for level in range(bits):
-        agg_param = (level, prefixes, level == 0)
-        assert mastic.is_valid(agg_param, prev_agg_params)
 
-        # Aggregators prepare reports for aggregation.
-        out_shares = [[], []]
-        for (nonce, public_share, input_shares) in reports:
-            # Each aggregator broadcast its prep share; ...
-            (prep_state, prep_shares) = zip(*[
-                mastic.prep_init(
-                    verify_key,
-                    agg_id,
-                    agg_param,
-                    nonce,
-                    public_share,
-                    input_shares[agg_id]) for agg_id in [0, 1]
-            ])
-
-            # computes the prep message; ...
-            prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
-
-            # and computes its output share.
-            for agg_id in [0, 1]:
-                out_shares[agg_id].append(
-                    mastic.prep_next(prep_state[agg_id], prep_msg))
-
-        # Aggregators aggregate their output shares.
-        agg_shares = [
-            mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
-        ]
-
-        # Collector computes the aggregate result.
-        agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
-        prev_agg_params.append(agg_param)
-
-        if level < bits - 1:
-            # Compute the next set of candidate prefixes.
-            next_prefixes = []
-            for (prefix, count) in zip(prefixes, agg_result):
-                bin_prefix = '0b' + format(prefix, f'0{level}b')
-                threshold = get_threshold(thresholds, bin_prefix)
-                # print("prefix:", bin_prefix, "count:", count, "threshold", threshold)
-                if count >= threshold:
-                    next_prefixes.append(prefix<<1)
-                    next_prefixes.append((prefix<<1)|1)
-            prefixes = next_prefixes
-        else:
-            heavy_hitters = []
-            for (prefix, count) in zip(prefixes, agg_result):
-                bin_prefix = '0b' + format(prefix, f'0{level}b')
-                threshold = get_threshold(thresholds, bin_prefix)
-                # print("prefix:", bin_prefix, "count:", count, "threshold", threshold)
-                if count >= threshold:
-                    heavy_hitters.append(prefix)
-            print("Weighted heavy-hitters with different thresholds:", list(map(lambda x: bin(x), heavy_hitters)))
-            assert heavy_hitters == [0, 1, 15]
+    # Collector and Aggregators compute the weighted heavy hitters.
+    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    assert heavy_hitters == [0, 1, 15]
 
 
 def example_aggregation_by_labels_mode():
