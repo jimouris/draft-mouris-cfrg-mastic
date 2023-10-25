@@ -316,7 +316,7 @@ A concrete `Vidpf` defines the types and constants enumerated in
   share and the VIDPF proof.
 
 The verifiability properties are guaranteed as long as each Aggregator computes
-the same VIDFP proof. Note that One-hot Verifiability and Path Verifiability
+the same VIDPF proof. Note that One-hot Verifiability and Path Verifiability
 are not sufficient to ensure robustness of Mastic; we will also need to ensure
 that the `beta` chosen by the Client is "in range". We will rely on FLPs
 ({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)` check, but
