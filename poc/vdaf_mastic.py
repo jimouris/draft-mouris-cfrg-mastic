@@ -364,15 +364,17 @@ def get_reports_from_measurements(mastic, measurements):
     return reports
 
 
-def get_threshold(thresholds, prefix):
+def get_threshold(thresholds, prefix, level):
     '''
-    Return the threshold of the given prefix if exists. If not, check if any of
-    its prefixes exists. If not, return the default threshold.
+    Return the threshold of the given (prefix, level) if the tuple exists. If
+    not, check if any of its prefixes exist. If not, return the default
+    threshold.
     '''
-    while prefix:
-        if prefix in thresholds:
-            return thresholds[prefix]
-        prefix = prefix[:-1]
+    while level > 0:
+        if (prefix, level) in thresholds:
+            return thresholds[(prefix, level)]
+        prefix >>= 1
+        level -= 1
     return thresholds['default'] # Return the default threshold
 
 
@@ -423,16 +425,14 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
             # Compute the next set of candidate prefixes.
             next_prefixes = []
             for (prefix, count) in zip(prefixes, agg_result):
-                bin_prefix = '0b' + format(prefix, f'0{level}b')
-                threshold = get_threshold(thresholds, bin_prefix)
+                threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
                     next_prefixes.append(prefix<<1)
                     next_prefixes.append((prefix<<1)|1)
             prefixes = next_prefixes
         else:
             for (prefix, count) in zip(prefixes, agg_result):
-                bin_prefix = '0b' + format(prefix, f'0{level}b')
-                threshold = get_threshold(thresholds, bin_prefix)
+                threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
                     heavy_hitters.append(prefix)
             print("Weighted heavy-hitters with different thresholds:",
@@ -464,7 +464,9 @@ def example_weighted_heavy_hitters_mode():
 
     reports = get_reports_from_measurements(mastic, measurements)
 
-    thresholds = {'default': 2}
+    thresholds = {
+        'default': 2,
+    }
 
     # Collector and Aggregators compute the weighted heavy hitters.
     heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
@@ -495,11 +497,13 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
 
     reports = get_reports_from_measurements(mastic, measurements)
 
+    # (prefix, level): threshold
+    # Note that levels start from zero
     thresholds = {
         'default': 2,
-        '0b00': 1,
-        '0b10': 3,
-        '0b11': 5,
+        (0b00, 1): 1,
+        (0b10, 1): 3,
+        (0b11, 1): 5,
     }
 
     # Collector and Aggregators compute the weighted heavy hitters.

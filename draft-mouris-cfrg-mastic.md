@@ -469,17 +469,17 @@ Setting a low threshold may result in an overwhelmingly big set of heavy hitters
 starting with "000", while setting a high threshold might prune anything
 starting with "111". Consider the following examples:
 
-1. **Popular URLs:** [google.com](https://google.com/) receives a massive amount
-   of traffic whereas [duckduckgo.com](https://duckduckgo.com/) may have lower
-   traffic. To identify heavy-hitting search queries on Google, the Aggregators
-   should set a high threshold, while in queries in different search engines may
-   require lower thresholds to be considered popular.
+1. Popular URLs: `a.example.com` receives a massive amount of traffic whereas
+   `b.example.com` may have lower traffic. To identify heavy-hitting search
+   queries on `a.example.com`, the Aggregators should set a high threshold, while
+   in queries in different search engines may require lower thresholds to be
+   considered popular.
 
-1. **E-commerce:** Grocery items are essential and have a high volume of sales.
-   In contrast, electronics, though popular, usually come with a higher price
+2. E-commerce: Grocery items are essential and have a high volume of sales. In
+   contrast, electronics, though popular, usually come with a higher price
    compared to groceries. Meanwhile, luxury items command significantly higher
    prices but generally experience lower sales volumes. To identify
-   heavy-hitting grocery items on an e-commerce website, Aggregators should use
+   heavy-hitting grocery items on an e-commerce website, Aggregators could use
    different threshold for each of these categories. These thresholds are set to
    ensure that only the top-selling grocery items qualify as heavy hitters while
    electronics and luxury items are also considered heavy hitters on their own
