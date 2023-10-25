@@ -455,6 +455,28 @@ minimum weight rather than a minimum count. In addition:
 
 1. The level at which the reports are Aggregated MUST be strictly increasing.
 
+### Different Thresholds {#different-thresholds}
+
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_weighted_heavy_hitters_mode_with_different_thresholds()` in the
+> reference implementation.
+
+So far, we have assumed that there is a single threshold for determining which
+prefixes are "heavy". However, we can easily extend this to have different
+thresholds for different prefixes. Consider a use-case where prefixes starting
+with "000" are significantly more popular than prefixes starting with "111".
+Setting a low threshold may result in an overwhelmingly big set of heavy hitters
+starting with "000", while setting a high threshold might prune anything
+starting with "111". To tackle this, Mastic can allow different prefixes having
+different thresholds. When a specific prefix does not have an associated
+threshold, we first search if any of its prefixes has a specified threshold,
+otherwise we use a default threshold.
+
+For instance, if the Aggregators have set the thresholds to be `{"000": 10,
+"111": 2, "default": 5}` and the search for prefix "01", then threshold 5 should
+be used. However, if the Aggregators search for prefix "11101", then threshold 2
+should be used.
+
 
 ## Aggregation by Labels {#aggregation-by-labels}
 
