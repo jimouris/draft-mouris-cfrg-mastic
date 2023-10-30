@@ -20,6 +20,15 @@ USAGE_PROOF_SHARE = 1
 # Domain separation: FLP query randomness
 USAGE_QUERY_RAND = 2
 
+# Domain separation: FLP joint randomness
+USAGE_JOINT_RAND_SEED = 3
+
+# Domain separation: FLP joint randomness
+USAGE_JOINT_RAND_PART = 4
+
+# Domain separation: FLP joint randomness
+USAGE_JOINT_RANDOMNESS = 5
+
 
 class Mastic(Vdaf):
     # Operational types and parameters.
@@ -44,6 +53,13 @@ class Mastic(Vdaf):
 
     @classmethod
     def shard(cls, measurement, nonce, rand):
+        if cls.Flp.JOINT_RAND_LEN > 0:
+            return cls.shard_with_joint_rand(measurement, nonce, rand)
+        else:
+            return cls.shard_without_joint_rand(measurement, nonce, rand)
+
+    @classmethod
+    def shard_without_joint_rand(cls, measurement, nonce, rand):
         (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
         (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
         (flp_helper_proof_share_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
@@ -54,7 +70,7 @@ class Mastic(Vdaf):
         # Generate VIDPF keys.
         (vidpf_init_seed, vidpf_correction_words, vidpf_cs_proofs) = \
             cls.Vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
-        public_share = (vidpf_correction_words, vidpf_cs_proofs)
+        public_share = (vidpf_correction_words, vidpf_cs_proofs, None)
 
         # Generate FLP proof shares.
         flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
@@ -74,6 +90,63 @@ class Mastic(Vdaf):
             (vidpf_init_seed[0], flp_leader_proof_share),
             (vidpf_init_seed[1], flp_helper_proof_share_seed),
         ]
+        return (public_share, input_shares)
+    
+    @classmethod
+    def shard_with_joint_rand(cls, measurement, nonce, rand):
+        (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_helper_proof_share_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_leader_blind, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_helper_blind, rand) = front(cls.Xof.SEED_SIZE, rand)
+
+        (alpha, meas) = measurement
+        beta = cls.Flp.encode(meas)
+
+        # Generate VIDPF keys.
+        (vidpf_init_seed, vidpf_correction_words, vidpf_cs_proofs) = \
+            cls.Vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
+        vidpf_public_share = (vidpf_correction_words, vidpf_cs_proofs)
+
+        # Generate FLP joint randomness.
+        joint_rand_parts = []
+        joint_rand_parts.append(cls.joint_rand_part(
+                0, flp_leader_blind, vidpf_init_seed[0], nonce))
+        joint_rand_parts.append(cls.joint_rand_part(
+                1, flp_helper_blind, vidpf_init_seed[1], nonce))
+        joint_rand = cls.joint_rand(
+            cls.joint_rand_seed(joint_rand_parts))
+        flp_public_share = joint_rand_parts
+        
+
+        # Generate FLP proof shares.
+        flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
+            flp_prove_rand_seed,
+            cls.domain_separation_tag(USAGE_PROVE_RAND),
+            joint_rand,
+            cls.Flp.PROVE_RAND_LEN,
+        )
+
+        flp_proof = cls.Flp.prove(beta, flp_prove_rand, [])
+        flp_leader_proof_share = vec_sub(
+            flp_proof,
+            cls.helper_proof_share(flp_helper_proof_share_seed),
+        )
+
+        input_shares = [
+            (vidpf_init_seed[0], 
+             flp_leader_proof_share,
+             flp_leader_blind
+            ),
+            (vidpf_init_seed[1],
+             flp_helper_proof_share_seed,
+             flp_helper_blind
+            ),
+        ]
+        public_share = (
+            vidpf_public_share,
+            flp_public_share
+        )
         return (public_share, input_shares)
 
     @classmethod
@@ -100,8 +173,10 @@ class Mastic(Vdaf):
     def prep_init(cls, verify_key, agg_id, agg_param,
                   nonce, public_share, input_share):
         (level, prefixes, do_range_check) = agg_param
-        (vidpf_init_seed, flp_proof_share) = cls.expand_input_share(agg_id, input_share)
-        (vidpf_correction_words, vidpf_cs_proofs) = public_share
+        (vidpf_init_seed, flp_proof_share, flp_blind) = \
+            cls.expand_input_share(agg_id, input_share)
+        (vidpf_correction_words, vidpf_cs_proofs, joint_rand_parts) = \
+            public_share
 
         # Evaluate the VIDPF.
         (beta_share, out_share, vidpf_verifier) = cls.Vidpf.eval(
@@ -125,16 +200,30 @@ class Mastic(Vdaf):
                 cls.Flp.QUERY_RAND_LEN,
             )
 
+            joint_rand = []
+            corrected_joint_rand_seed, joint_rand_part = None, None
+            if cls.Flp.JOINT_RAND_LEN > 0:
+                joint_rand_part = cls.joint_rand_part(
+                agg_id, flp_blind, vidpf_init_seed, nonce)
+            joint_rand_parts[agg_id] = joint_rand_part
+            corrected_joint_rand_seed = cls.joint_rand_seed(
+                joint_rand_parts)
+            joint_rand = cls.joint_rand(corrected_joint_rand_seed)
             flp_verifier_share = cls.Flp.query(beta_share,
                                                flp_proof_share,
                                                flp_query_rand,
-                                               [], # joint randomness
+                                               joint_rand,
                                                cls.SHARES)
-
-        prep_state = []
+        prep_state = [do_range_check]
+        truncated_out_share = []
         for val_share in out_share:
-            prep_state += cls.Flp.truncate(val_share)
-        prep_share = (vidpf_verifier, flp_verifier_share)
+            truncated_out_share += cls.Flp.truncate(val_share)
+        
+        if do_range_check:
+            prep_state += [(truncated_out_share,corrected_joint_rand_seed)]
+        else:
+            prep_state.append(truncated_out_share)
+        prep_share = (vidpf_verifier, flp_verifier_share, joint_rand_part)
         return (prep_state, prep_share)
 
     @classmethod
@@ -143,8 +232,11 @@ class Mastic(Vdaf):
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
-        (vidpf_verifier_0, flp_verifier_share_0) = prep_shares[0]
-        (vidpf_verifier_1, flp_verifier_share_1) = prep_shares[1]
+        (vidpf_verifier_0, flp_verifier_share_0, flp_jr_0) = prep_shares[0]
+        (vidpf_verifier_1, flp_verifier_share_1, flp_jr_1) = prep_shares[1]
+        if cls.Flp.JOINT_RAND_LEN > 0:
+            joint_rand_parts = [flp_jr_0, flp_jr_1]
+        
 
         # Verify the VIDPF output.
         if vidpf_verifier_0 != vidpf_verifier_1:
@@ -158,14 +250,31 @@ class Mastic(Vdaf):
             flp_verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
             if not cls.Flp.decide(flp_verifier):
                 raise Exception('FLP verification failed')
+            
+            joint_rand_seed = None
+            if cls.Flp.JOINT_RAND_LEN > 0:
+                joint_rand_seed = cls.joint_rand_seed(joint_rand_parts)
+            return joint_rand_seed
 
         return None
 
     @classmethod
     def prep_next(_cls, prep_state, prep_msg):
+
+        (do_range_check, prep) = prep_state
+        if do_range_check:
+            joint_rand_seed = prep_msg
+            (out_share, corrected_joint_rand_seed) = prep
+            # If joint randomness was used, check that the value computed by the
+            # Aggregators matches the value indicated by the Client.
+            if joint_rand_seed != corrected_joint_rand_seed:
+                raise ERR_VERIFY  # joint randomness check failed
+            
+            return out_share
+        
         if prep_msg != None:
             raise ValueError('unexpected prep message')
-        return prep_state
+        return prep
 
     @classmethod
     def aggregate(cls, agg_param, out_shares):
@@ -214,6 +323,34 @@ class Mastic(Vdaf):
             cls.domain_separation_tag(USAGE_PROOF_SHARE),
             b'',
             cls.Flp.PROOF_LEN,
+        )
+    
+    @classmethod
+    def joint_rand_part(cls, agg_id, k_blind, inp_share, nonce):
+        return cls.Xof.derive_seed(
+            k_blind,
+            cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
+            byte(agg_id) + nonce + inp_share,
+        )
+
+    @classmethod
+    def joint_rand_seed(cls, joint_rand_parts):
+        """Derive the joint randomness seed from its parts."""
+        return cls.Xof.derive_seed(
+            zeros(cls.Xof.SEED_SIZE),
+            cls.domain_separation_tag(USAGE_JOINT_RAND_SEED),
+            concat(joint_rand_parts),
+        )
+
+    @classmethod
+    def joint_rand(cls, joint_rand_seed):
+        """Derive the joint randomness from its seed."""
+        return cls.Xof.expand_into_vec(
+            cls.Flp.Field,
+            joint_rand_seed,
+            cls.domain_separation_tag(USAGE_JOINT_RANDOMNESS),
+            b'',
+            cls.Flp.JOINT_RAND_LEN,
         )
 
     @classmethod
@@ -442,7 +579,7 @@ def example_labels_mode():
     from common import gen_rand
     import hashlib
     bits = 8
-    mastic = Mastic.with_params(bits, Count())
+    mastic = Mastic.with_params(bits, Sum(2))
     verify_key = gen_rand(16)
 
     def h(label):
@@ -460,20 +597,20 @@ def example_labels_mode():
 
     # Clients shard their measurements.
     #
-    # Example: Each Client casts a "vote" (either `1` or `0`) and labels their
+    # Example: Each Client casts a "vote" (between '0' and '5') and labels their
     # vote with their home country.
     measurements = [
         ('United States', 1),
         ('Greece', 1),
-        ('United States', 1),
+        ('United States', 2),
         ('Greece', 0),
         ('United States', 0),
         ('Freedonia', 1),
-        ('Greece', 0),
+        ('Greece', 1),
         ('United States', 1),
         ('Greece', 1),
         ('Greece', 1),
-        ('Mexico', 1),
+        ('Mexico', 3),
         ('Greece', 1),
     ]
     reports = []
@@ -527,11 +664,11 @@ def example_labels_mode():
     # Collector computes the aggregate result.
     agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
     print('Election results:', list(zip(labels, agg_result)))
-    assert agg_result == [4, 3, 1, 0]
+    assert agg_result == [5, 4, 3, 0]
 
 
 if __name__ == '__main__':
-    from flp_generic import Count
+    from flp_generic import Count, Sum
     from common import from_be_bytes
 
     example_weighted_heavy_hitters_mode()
