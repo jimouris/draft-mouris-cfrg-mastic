@@ -47,18 +47,6 @@ normative:
 
 informative:
 
-  BBCGGI21:
-    title: "Lightweight Techniques for Private Heavy Hitters"
-    author:
-      - ins: D. Boneh
-      - ins: E. Boyle
-      - ins: H. Corrigan-Gibbs
-      - ins: N. Gilboa
-      - ins: Y. Ishai
-    date: 2021
-    seriesinfo: IEEE S&P 2021
-    target: https://ia.cr/2021/017
-
   CP22:
     title: "Lightweight, Maliciously Secure Verifiable Function Secret Sharing"
     author:
@@ -67,17 +55,6 @@ informative:
     date : 2022
     seriesinfo: EUROCRYPT 2022
     target: https://iacr.org/cryptodb/data/paper.php?pubkey=31935
-
-  DPRS23:
-    title: "Verifiable Distributed Aggregation Functions"
-    author:
-      - ins: H. Davis
-      - ins: C. Patton
-      - ins: M. Rosulek
-      - ins: P. Schoppmann
-    date: 2023
-    seriesinfo: Proceedings on Privacy Enhancing Technologies (PoPETs)
-    target: https://doi.org/10.56553/popets-2023-0126
 
   GI14:
     title: "Distributed Point Functions and Their Applications"
@@ -182,16 +159,16 @@ reports, then additional rounds of communication are required in order to
 isolate the invalid reports and remove them. We describe this idea in detail in
 {{plain-heavy-hitters-with-proof-aggregation}}.
 
-Second, in {{plain-heavy-hitters-with-three-aggregators}} we describe an
-enhancement for plain heavy hitters that allows Mastic to achieve robustness in
-the presence of a malicious server. Rather than two aggregation servers as in
-the previous modes, this mode of operation involves three aggregators,
-where every pair of aggregators communicate over a different channel. [CP: Anything
-else to mention here? Is the transform generic, i.e., apply to any 2-party
-VDAF, or are there tricks in {{MST23}} that we want to take advantage of
-for efficiency] While more complex to implement than 2-party Mastic, this mode
-allows achieves "full security", where both privacy and robustness
-hold in the honest majority setting.
+Second, in {{malicious-security-with-three-aggregators}} we describe an
+enhancement that allows Mastic to achieve robustness in the presence of a
+malicious Aggregator. Rather than two aggregation servers as in the previous
+modes, this mode of operation involves three Aggregators, where every pair of
+Aggregators communicate over a different channel. Using a third Aggregator, we
+can lift the security of Mastic from the semi-honest setting to malicious
+security. While more complex to implement than 2-party Mastic, this mode allows
+achieves "full security", where both privacy and robustness hold in the honest
+majority setting.
+
 
 # Conventions and Definitions {#conventions}
 
@@ -204,6 +181,7 @@ This document uses the following terms as defined in {{!VDAF}}:
 "aggregate result",
 "aggregate share",
 "aggregation parameter",
+"batch",
 "input share",
 "measurement",
 "output share",
@@ -211,15 +189,14 @@ This document uses the following terms as defined in {{!VDAF}}:
 "prep share", and
 "report".
 
-In Mastic, a Client's VDAF measurement comprises two components, which we
-denote `alpha` and `beta`. The function that each component serves depends on
-the use case: for weighted ({{weighted-heavy-hitters}}) and plain
-({{plain-heavy-hitters-with-proof-aggregation}} and
-{{plain-heavy-hitters-with-three-aggregators}}) heavy-hitters, we shall refer
+In Mastic, a Client's VDAF measurement comprises two components, which we denote
+`alpha` and `beta`. The function that each component serves depends on the use
+case: for weighted ({{weighted-heavy-hitters}}) and plain
+({{plain-heavy-hitters-with-proof-aggregation}}) heavy-hitters, we shall refer
 to `alpha` as the "payload" and `beta` as the payload's "weight"; for
 aggregation-by-labels ({{aggregation-by-labels}}), we shall refer to `alpha` as
-the "label" and to `beta` as the "payload". When doing so is unambiguous, we
-may also refer to the payload as the "measurement".
+the "label" and to `beta` as the "payload". When doing so is unambiguous, we may
+also refer to the payload as the "measurement".
 
 The DPF tree always has as a root the "empty string", which in turn has strings
 "0" and "1" as the left and right children, respectively.
@@ -274,7 +251,7 @@ distributed in such a way that no one party knows either the point or what it
 evaluates to.
 
 An IDPF ({{Section 8.1 of !VDAF}}) generalizes DPF by secret-sharing an
-"incremental point function", i.e., the "point" in DPF is now a  path on a full
+"incremental point function", i.e., the "point" in DPF is now a path on a full
 binary tree from the root to one of the leaves. Here we take `alpha` to be a bit
 string of fixed length, and we have that `f(x) = beta` if `x` is a prefix of
 `alpha` and `0` otherwise.
@@ -339,7 +316,7 @@ A concrete `Vidpf` defines the types and constants enumerated in
   share and the VIDPF proof.
 
 The verifiability properties are guaranteed as long as each Aggregator computes
-the same VIDFP proof. Note that One-hot Verifiability and Path Verifiability
+the same VIDPF proof. Note that One-hot Verifiability and Path Verifiability
 are not sufficient to ensure robustness of Mastic; we will also need to ensure
 that the `beta` chosen by the Client is "in range". We will rely on FLPs
 ({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)` check, but
@@ -371,59 +348,64 @@ This section describes Mastic, a VDAF suitable for a plethora of aggregation
 functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters (see
 {{weighted-heavy-hitters}}), aggregation by labels (see
 {{aggregation-by-labels}}), linear regression and more. Mastic allows computing
-functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}. In more detail, Mastic is
-compatible with any aggregation function that has the following structure:
+functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
 
-1. As described in {{conventions}}, each Client input consists of two
-   components, which we denote `alpha` and `beta`. At a high level, the Client
-   generates VIDPF keys (i.e., input shares) that encode its input `alpha` with
-   weight (or payload) `beta`. Then the Client sends one share to each
-   Aggregator and also publishes the `PublicShare`.
-2. The Aggregators agree on an initial set of `l`-bit strings, where
-   `l <= BITS`. We refer to these strings as "candidate prefixes".
-3. Measurement validity is determined by a combination of techniques.
-   1. First, we use an FLP (as defined in {{flp}}) evaluated over the encoded
-      measurement to assert that the measurement is valid for candidate prefix
-      being the empty string. Note that this can also be achieved by evaluating
-      strings "0" and "1" and adding the output shares together in each
-      Aggregator. Below we can describe how our instantiation of FLP defines
-      validity via arithmetic circuits:
+The core component of Mastic is a VIDPF as defined in {{vidpf}}. VIDPFs
+inherently have the "one-hot verifiability" property, meaning that in each
+level of the tree there exists at most one non-zero value. To guarantee that
+the Client's input is well-formed, Mastic first verifies that the Client
+measurement is valid at the root level using an FLP, and then, it ensures
+that this valid measurement is propagated correctly down the tree using the
+one-hot verifiability and the path verifiability properties. Note that Mastic
+allows the measurement to be of any type that can be verified by an arithmetic
+circuit, not just a counter. For instance, the measurement can be a tuple of
+values, a string, a secret number within a public range, etc.
 
-      An "arithmetic circuit" is a function comprised of arithmetic operations
-      in the field. The circuit's output is a single field element: if zero,
-      then the measurement is said to be "valid"; otherwise, if the output is
-      non-zero, then the measurement is said to be "invalid". The arithmetic
-      circuit asserts that the measurement is valid for the empty string.
-   2. Next, the servers need to assert that the measurement is valid for all the
-      candidate prefixes. We achieve that by enforcing the "One-hot
-      Verifiability" and "Path Verifiability" properties described in {{vidpf}}.
-      During evaluation, each Aggregator generates a proof that guarantees that
-      the current level of the tree (i.e., all the evaluations of prefixes of
-      equal length). If these proofs are equal, then the level is one-hot.
-      Additionally, to assert the path verifiability, each Aggregator computes a
-      hash of the difference between the output share of a prefix `p` and the
-      sum of the output shares of prefixes `p||0` and `p||1`. These hashes
-      should also be equal.
-4. The aggregate result is obtained by summing up the encoded measurement
-   vectors for each prefix and computing some function of the sum. The
-   aggregation parameter is the set of candidate prefixes.
-5. The Aggregators send their aggregate shares to the Collector, who combines
-   them to recover the counts of each candidate prefix.
+As described in {{conventions}}, each Client input consists of two components,
+which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF
+keys that encodes `alpha` and `beta`. Then the Client sends one share to each
+Aggregator and also publishes the public share.
 
-Mastic is constructed from a "Verifiable Incremental Distributed Point Function
-(VIDPF)", a primitive described in {{preliminaries}}. This structure allows
-Mastic to compute the hit count for an index by just evaluating each set of
-VIDPF shares at that index and add up the results. VIDPFs inherently have the
-"one-hot verifiability" property, meaning that in each level of the tree there
-exists at most one non-zero value. To guarantee that the Client's input is
-well-formed, Mastic first verifies that the Client measurement is valid in the
-empty string using an FLP, and then, it ensures that this valid measurement is
-propagated correctly down the tree using the one-hot verifiability and the path
-verifiability properties. Note that Mastic allows the measurement to be of any
-type that can be verified by an arithmetic circuit, not just a counter. For
-instance, the measurement can be a tuple of values, a label, a secret number
-within a public range, etc.
+ The Aggregators agree on an initial set of `level`-bit strings, where `level <
+ BITS`. We refer to these strings as "candidate prefixes". They evaluate their
+ VIDPF key shares at each prefix in this set, to obtain an additive share of
+ the VIDPF output.
 
+Mastic uses a combination of techniques to certify the validity of this output.
+
+1. First, the Aggregators exchange VIDPF proofs. If they are equal, then
+   this implies One-hot Verifiability and Path Verifiability as described in
+   {{vidpf}}. One-hotness ensures that the VIDPF output contains `beta` at
+   most once (and every other output is `0`). Path Verifiability implies
+   that, if the previous level contained a non-zero value, then it is the
+   same value as the current level.
+
+2. Second, the Aggregators interactively verify the FLP ({{flp}}) to assert
+   that `beta` is valid. We instantiate the FLP with `FlpGeneric` from
+   {{Section 7.3 of !VDAF}}, which defines validity via an arithmetic
+   circuit ({{Section 7.3.2 of !VDAF}}) evaluated over (shares of) `beta`:
+   if the output of the circuit is `0`, then the value is said to be "valid";
+   otherwise it is "invalid".
+
+   If none of the candidate prefixes are a prefix of `alpha`, then the VIDPF
+   output shares will not contain any shares of `beta`. Moreover, VIDPF
+   as specified in {{vidpf-construction}} does not as specified permit
+   evaluation at the root of the VIDPF tree. Instead, each Aggregator
+   computes a share of `beta` by evaluating the VIDPF tree at prefixes `0`
+   and `1` and `level == 0` and adding them up. One-hot Verifiability and
+   Path Verifiability imply that the sum is equal to the Aggregator's share
+   of `beta`.
+
+   > CP: An alternative way to spell this is to say that VIDPF evaluation
+   > outputs a share of `beta`, which is what our current API does in the
+   > reference code.
+
+The aggregate result is obtained by summing up the encoded measurement shares
+for each prefix and computing some function of the sum. The aggregation
+parameter contains the level and the set of candidate prefixes.
+
+The Aggregators send their aggregate shares to the Collector, who combines them
+to recover the counts of each candidate prefix.
 
 ## Sharding
 
@@ -449,44 +431,222 @@ within a public range, etc.
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
-The primary use case for Mastic is a variant of the heavy-hitters problem, in
-which the prefix counts are replaced with a notion of weight that is specific
-to some application. For example, when measuring the performance of an ad
-campaign, it is useful to learn not only which ads led to purchases, but how
-much money was spent.
-
-To support this use case, we vie the Client's `alpha` value as its measurement
-and the `beta` value as the measurement's "weight". The range of valid values
-for `beta` are therefore determined by the FLP with which Mastic is
-instantiated. Concretely, validity of `beta` is expressed a validity
-circuit ({{Section 7.3.2 of !VDAF}}).
-
 > NOTE to be specified in full detail. For an end-to-end example, see
 > `example_weighted_heavy_hitters_mode()` in the reference implementation.
 
+The primary use case for Mastic is a variant of the heavy-hitters problem, in
+which the prefix counts are replaced with a notion of weight that is specific to
+some application. For example, when measuring the performance of an ad campaign,
+it is useful to learn not only which ads led to purchases, but how much money
+was spent.
+
+To support this use case, we view the Client's `alpha` value as its measurement
+and the `beta` value as the measurement's "weight". The range of valid values
+for `beta` are therefore determined by the FLP with which Mastic is
+instantiated. Concretely, validity of `beta` is expressed by a validity circuit
+({{Section 7.3.2 of !VDAF}}).
+
+To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
+described in {{Section 8 of !VDAF}}, except that the threshold represents a
+minimum weight rather than a minimum count. In addition:
+
+1. The Aggregators MUST perform the range check (i.e., verify the FLP) at the
+   first round of aggregation and remove any invalid reports before proceeding.
+
+1. The level at which the reports are Aggregated MUST be strictly increasing.
+
+### Different Thresholds {#different-thresholds}
+
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_weighted_heavy_hitters_mode_with_different_thresholds()` in the
+> reference implementation.
+
+So far, we have assumed that there is a single threshold for determining which
+prefixes are "heavy". However, we can easily extend this to have different
+thresholds for different prefixes. There exist use-cases where prefixes starting
+with "000" may be significantly more popular than prefixes starting with "111".
+Setting a low threshold may result in an overwhelmingly big set of heavy hitters
+starting with "000", while setting a high threshold might prune anything
+starting with "111". Consider the following examples:
+
+1. Popular URLs: `a.example.com` receives a massive amount of traffic whereas
+   `b.example.com` may have lower traffic. To identify heavy-hitting search
+   queries on `a.example.com`, the Aggregators should set a high threshold, while
+   in queries in different search engines may require lower thresholds to be
+   considered popular.
+
+2. E-commerce: Grocery items are essential and have a high volume of sales. In
+   contrast, electronics, though popular, usually come with a higher price
+   compared to groceries. Meanwhile, luxury items command significantly higher
+   prices but generally experience lower sales volumes. To identify
+   heavy-hitting grocery items on an e-commerce website, Aggregators could use
+   different threshold for each of these categories. These thresholds are set to
+   ensure that only the top-selling grocery items qualify as heavy hitters while
+   electronics and luxury items are also considered heavy hitters on their own
+   categories.
+
+To tackle this, Mastic can allow different prefixes having different thresholds.
+When a specific prefix does not have an associated threshold, we first search if
+any of its prefixes has a specified threshold, otherwise we use a default
+threshold. For example, if the Aggregators have set the thresholds to be
+`{"000": 10, "111": 2, "default": 5}` and the search for prefix "01", then
+threshold 5 should be used. However, if the Aggregators search for prefix
+"11101", then threshold 2 should be used.
+
+
 ## Aggregation by Labels {#aggregation-by-labels}
 
-TODO Add an overview of the goal and how Mastic is used to achieve it.
+> NOTE to be specified in full detail. For an end-to-end example, see
+> `example_aggregation_by_labels_mode()` in the reference implementation.
 
-> NOTE to be specified in full detail.
+In this mode of operation, we take the `beta` value to be the Client's
+measurement and `alpha` to be an arbitrary "label". For a given sequence of
+labels, the goal of the Collector is to aggregate the measurements that share
+the same label. This provides functionality similar to Prio3 {{!VDAF}}, except
+that the aggregate is partitioned by Clients who share some property. For
+example, the label might encode the Client's user agent {{?RFC9110}}.
 
-## Plain Heavy-Hitters with Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
+Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus, it is
+necessary for each application to choose a scheme for encoding labels as
+fixed-length strings. The following scheme is RECOMMENDED. Choose a
+cryptographically secure hash function, such as SHA256
+{{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
+string, and interpret each bit of the hash as a bit of the VIDPF index. [CP: Are
+we comfortable recommending truncating the hash? Collisions aren't so bad since
+the Client can just lie about `alpha` anyway. The main thing is to pick a value
+for `BITS` that is large enough to avoid accidental collisions.]
 
-TODO Add an overview of the goal and how Mastic is used to achieve it.
+The Aggregators MAY aggregate a report any number times, but:
 
-> NOTE to be specified in full detail.
+1. They MUST perform the range check (i.e., verify the FLP) the first time the
+   reports are aggregated and remove any invalid reports before aggregating
+   again.
 
-## Malicious Robustness for Plain Heavy-Hitters {#plain-heavy-hitters-with-three-aggregators}
+1. The aggregation parameter MUST specify the last level of the VIDPF tree
+   (i.e., `level` MUST be `Vidpf.BITS-1`).
 
-TODO(jimouris) Add an overview of the goal and how Mastic is used to achieve it.
+> OPEN ISSUE Figure out if these requirements are strict enough. We may need to
+> tighten aggregation parameter validity if we find out that aggregating at the
+> same level more than once is not safe.
+
+## Plain Heavy-Hitters with VIDPF-Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
+
+> NOTE to be specified in full detail. Proof aggregation is not yet implemented
+> by the reference code.
+
+The total communication cost of using Mastic (or Poplar1 {{!VDAF}}) for heavy
+hitters is `O(num_measurements * Vidpf.BITS)` bits exchanged between the
+Aggregators, where `num_measurements` is the number of reports being
+aggregated. For plain heavy-hitters, this can be reduced to `O(Vidpf.BITS)` in
+the best case.
+
+The idea is to take advantage of the feature of VIDPF evaluation whereby the
+Aggregators compute identical VIDPF proofs if and only if the report is valid.
+This allows the proofs themselves to be aggregated: if each report in a batch of
+reports is valid, then the hash of their proofs will be equal as well; on the
+other hand, if one report is invalid, then the hash of the proofs will not be
+equal.
+
+To facilitate isolation of the invalid report(s), the proof strings are arranged
+into a Merkle tree. During aggregation, the Aggregators interactively traverse
+the tree to detect the subtree(s) containing invalid reports and remove them
+from the batch.
+
+> OPEN ISSUE Decide if we should spell this out in greater detail. This feature
+> is not compatible with {{?DAP=I-D.draft-ietf-ppm-dap-07}}; if we wanted to
+> extend DAP to support this, then we'd need to specify the wire format of the
+> messages exchanged between the Aggregators.
+
+In the worst case, isolating invalid reports requires `O(num_measurements *
+Vidpf.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
+between the Aggregators. However, this behavior would only be observed under
+attack conditions in which the vast majority of Clients are malicious.
+
+In the simple case where the `beta` value is a constant (e.g., 1) we can replace
+the FLP check with a simpler check. FLPs are not compatible with proof
+aggregation the way VIDPFs are. In order to perform the range check without
+FLPs, we use an extension of VIDPF described by {{MST23}}. The high-level idea
+here is that the Aggregators can evaluate the empty string and verify that they
+have shares of the constant `beta`. Next, as described in {{vdaf}}, we use the
+"one-hot verifiability" and "path verifiability" checks to verify that each
+level is non-zero at only a single point and that the same constant `beta` is
+propagated down the tree correctly. Note that this trick is not suitable for
+weighted heavy-hitters, since it expects that each `beta` value is constant
+(e.g., 1).
+
+> OPEN ISSUE Proof aggregation could work with plain Mastic, but we would need
+> to check the FLPs at the first round of aggregation, leading to best-case
+> communication cost would be `O(num_measurements + Vidpf.BITS)`. This would be
+> OK, but we would still want to support a mode for plain heavy-hitters that is
+> as good as we can get.
+>
+> One idea is to always do the PLASMA `0`/`1` check alongside the FLP. This
+> would be useful for another reason: Usually FLP decoding requires
+> `num_measurements` as a parameter. We currently don't support this because we
+> currently don't have a pure counter as part of the VIDPF output.
+
+
+# Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
+
+Next, we describe an enhancement that allows Mastic to achieve robustness in the
+presence of a malicious Aggregator. The two-party Mastic (as well as Poplar1) is
+susceptible to additive attacks by a malicious Aggregator. In more detail, if
+one of the Aggregators starts acting maliciously, they can arbitrarily add to
+the aggregation result (simply by adding to their own aggregation shares)
+without the honest Aggregator noticing.
+
+We can solve this problem in Mastic by using a technique from {{MST23}} that
+lifts the two-party semi-honest secure PLASMA to the three-party maliciously secure
+setting. Rather than having two Aggregators as in the previous setting, this
+flavor involves three Aggregators, where every pair of Aggregators communicate
+over a different channel. In essence, each pair of Aggregators will run one
+session of the VDAF with unique randomness but on the same Client measurement.
+The following changes are necessary:
+
+1. The Client needs to generate three pairs of VIDPF keys all corresponding to
+   the same `alpha` and `beta` values. We represent the keys based on the
+   session as follows:
+   1. Session 0 (between Aggregators 0 and 1): `key_01, key_10`
+   2. Session 1 (between Aggregators 1 and 2): `key_12, key_21`
+   3. Session 2 (between Aggregators 2 and 0): `key_20, key_02`
+
+   Each pair of Aggregators cannot check that the Client input is consistent
+   across two sessions without the involvement of the third Aggregator. To
+   address this, we let two Aggregators (i.e., Aggregators 0 and 1) to run all
+   three sessions so that they can check that the Client input is consistent
+   across three sessions. The third Aggregator (i.e., Aggregator 2) is involved
+   as an attestator in two of the sessions. The check involves field addition
+   and subtraction and then hash comparisons.
+
+2. The Client sends the following keys to the Aggregators:
+   1. Aggregator 0 receives: `key_01`, `key_02`, and `key_21`
+   2. Aggregator 1 receives: `key_10`, `key_12`, and `key_20`
+   3. Aggregator 2 receives: `key_21` and `key_20`
+
+3. The Aggregators need to verify that the Client's input is consistent across
+   the different sessions (i.e., that all the keys correspond to the same
+   `alpha` and `beta` values). Aggregators 0 and 1 check that:
+   1. Their output shares of Session 0 minus their output shares of Session 1
+    are shares of zero
+   2. Their output shares of Session 1 minus their output shares of Session 2
+      are shares of zero.
+
+   The subtraction is a local operation and verifying that two Aggregators possess
+   a sharing of zero requires exchanging one hash.
+
+Using a third Aggregator, we can lift the security of Mastic from the
+semi-honest setting to malicious security. While more complex to implement than
+2-party Mastic, this mode allows achieves both privacy and robustness against a
+malicious Aggregator.
+
 
 > NOTE to be specified in full detail.
 
 # Definition of `Vidpf` {#vidpf-construction}
 
-The construction of {{MST23}} builds on techniques from {{CP22}} to lift an
-IDPF to a VIDPF with the properties described in {{vidpf}}. Instead of a
-2-round "secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
+The construction of {{MST23}} builds on techniques from {{CP22}} to lift an IDPF
+to a VIDPF with the properties described in {{vidpf}}. Instead of a 2-round
+"secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
 
 TODO(jimouris) Add an overview.
 

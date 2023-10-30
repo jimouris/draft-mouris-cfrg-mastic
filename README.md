@@ -1,4 +1,4 @@
-# Mastic VDAF
+# The Mastic Verifiable Distributed Aggregation Function (VDAF)
 
 This is the working area for the individual Internet-Draft, "The Mastic VDAF".
 
@@ -8,10 +8,25 @@ This is the working area for the individual Internet-Draft, "The Mastic VDAF".
 * [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-mouris-cfrg-mastic/#go.draft-mouris-cfrg-mastic.diff)
 
 
+## Build
+First clone the repository and its submodules.
+```shell
+$ git clone --recurse-submodules git@github.com:jimouris/draft-mouris-cfrg-mastic.git
+```
+
+Next, install `sagemath` and `pycryptodomex`:
+```shell
+apt install sagemath
+sage --pip install pycryptodomex
+```
+
+Finally, navigate to the [`poc`](poc) directory and run `make`.
+
+
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/jimouris/draft-mouris-cfrg-mastic/blob//CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/main/CONTRIBUTING.md).
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
@@ -21,7 +36,7 @@ The GitHub interface supports creating pull requests using the Edit (✏) button
 
 Formatted text and HTML versions of the draft can be built using `make`.
 
-```sh
+```shell
 $ make
 ```
 
