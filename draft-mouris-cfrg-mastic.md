@@ -345,8 +345,8 @@ necessary for Path Verifiability.
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
 
 This section describes Mastic, a VDAF suitable for a plethora of aggregation
-functions such sum, mean, histograms, heavy hitters, weighted heavy-hitters (see
-{{weighted-heavy-hitters}}), aggregation by labels (see
+functions including sum, mean, histograms, heavy hitters, weighted heavy-hitters
+(see {{weighted-heavy-hitters}}), aggregation by labels (see
 {{aggregation-by-labels}}), linear regression and more. Mastic allows computing
 functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
 
@@ -363,8 +363,15 @@ values, a string, a secret number within a public range, etc.
 
 As described in {{conventions}}, each Client input consists of two components,
 which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF
-keys that encodes `alpha` and `beta`. Then the Client sends one share to each
-Aggregator and also publishes the public share.
+keys that encodes `alpha` and `beta` and an FLP for the validity of `beta`.
+Then the Client sends one key and proof share to each Aggregator and also
+publishes the public share.
+FLPs for certain validity functions, including most range proofs, rely on the
+establishment of shared random coins (`joint randomness`) between the Client and
+all Aggregators.
+When it is necessary for the Client to generate joint randomness, it includes
+generator seeds in its shares for each Aggregator, and the Aggregators confirm
+that they have derived the same joint randomness during the FLP verification process.
 
  The Aggregators agree on an initial set of `level`-bit strings, where `level <
  BITS`. We refer to these strings as "candidate prefixes". They evaluate their
