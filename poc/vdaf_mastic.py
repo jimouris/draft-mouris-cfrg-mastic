@@ -1,12 +1,12 @@
+'''The Mastic VDAF'''
+
 import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')
 
 from common import Unsigned, front, vec_add, vec_sub
 from flp_generic import FlpGeneric
-import hashlib
-from typing import Optional, Union
+from typing import Optional
 from vdaf import Vdaf, test_vdaf
-from vdaf_poplar1 import Poplar1
 from vidpf import Vidpf
 from xof import XofShake128
 
@@ -179,7 +179,7 @@ class Mastic(Vdaf):
             public_share
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, vidpf_verifier) = cls.Vidpf.eval(
+        (beta_share, out_share, vidpf_proof) = cls.Vidpf.eval(
             agg_id,
             vidpf_correction_words,
             vidpf_cs_proofs,
@@ -223,7 +223,7 @@ class Mastic(Vdaf):
             prep_state += [(truncated_out_share,corrected_joint_rand_seed)]
         else:
             prep_state.append(truncated_out_share)
-        prep_share = (vidpf_verifier, flp_verifier_share, joint_rand_part)
+        prep_share = (vidpf_proof, flp_verifier_share, joint_rand_part)
         return (prep_state, prep_share)
 
     @classmethod
@@ -232,14 +232,14 @@ class Mastic(Vdaf):
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
-        (vidpf_verifier_0, flp_verifier_share_0, flp_jr_0) = prep_shares[0]
-        (vidpf_verifier_1, flp_verifier_share_1, flp_jr_1) = prep_shares[1]
+        (vidpf_proof_0, flp_verifier_share_0, flp_jr_0) = prep_shares[0]
+        (vidpf_proof_1, flp_verifier_share_1, flp_jr_1) = prep_shares[1]
         if cls.Flp.JOINT_RAND_LEN > 0:
             joint_rand_parts = [flp_jr_0, flp_jr_1]
         
 
         # Verify the VIDPF output.
-        if vidpf_verifier_0 != vidpf_verifier_1:
+        if vidpf_proof_0 != vidpf_proof_1:
             raise Exception('VIDPF verification failed')
 
         # Finish verifying the FLP, if applicable.
@@ -489,40 +489,40 @@ def test_valid_agg_params():
     )
 
 
-def example_weighted_heavy_hitters_mode():
+def get_reports_from_measurements(mastic, measurements):
     from common import gen_rand
-    from flp_generic import Count
-    bits = 4
-    mastic = Mastic.with_params(bits, Count())
-    verify_key = gen_rand(16)
 
-    # Clients shard their measurements. Each measurement is comprise of
-    # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
-    # weight. Here the weight is simply a counter (either `0` or `1`).
-    measurements = [
-        (0b1001, 1),
-        (0b0000, 1),
-        (0b0000, 0),
-        (0b0000, 1),
-        (0b1001, 1),
-        (0b0000, 1),
-        (0b1100, 1),
-        (0b0011, 1),
-        (0b1111, 0),
-        (0b1111, 0),
-        (0b1111, 1),
-    ]
     reports = []
     for measurement in measurements:
         nonce = gen_rand(16)
         rand = gen_rand(mastic.RAND_SIZE)
         (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
         reports.append((nonce, public_share, input_shares))
+    return reports
 
-    # Collector and Aggregators compute the weighted heavy hitters.
-    threshold = 2
+
+def get_threshold(thresholds, prefix, level):
+    '''
+    Return the threshold of the given (prefix, level) if the tuple exists. If
+    not, check if any of its prefixes exist. If not, return the default
+    threshold.
+    '''
+    while level > 0:
+        if (prefix, level) in thresholds:
+            return thresholds[(prefix, level)]
+        prefix >>= 1
+        level -= 1
+    return thresholds['default'] # Return the default threshold
+
+
+def compute_heavy_hitters(mastic, bits, thresholds, reports):
+    from common import gen_rand
+
+    verify_key = gen_rand(16)
+
     prefixes = [0, 1]
     prev_agg_params = []
+    heavy_hitters = []
     for level in range(bits):
         agg_param = (level, prefixes, level == 0)
         assert mastic.is_valid(agg_param, prev_agg_params)
@@ -555,27 +555,100 @@ def example_weighted_heavy_hitters_mode():
         ]
 
         # Collector computes the aggregate result.
-        agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
+        agg_result = mastic.unshard(agg_param, agg_shares, len(reports))
         prev_agg_params.append(agg_param)
 
         if level < bits - 1:
             # Compute the next set of candidate prefixes.
             next_prefixes = []
             for (prefix, count) in zip(prefixes, agg_result):
+                threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
                     next_prefixes.append(prefix<<1)
                     next_prefixes.append((prefix<<1)|1)
             prefixes = next_prefixes
         else:
-            heavy_hitters = []
             for (prefix, count) in zip(prefixes, agg_result):
+                threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
                     heavy_hitters.append(prefix)
-            print("Weighted heavy-hitters:", list(map(lambda x: bin(x), heavy_hitters)))
-            assert heavy_hitters == [0, 9]
+            print("Weighted heavy-hitters with different thresholds:",
+                  list(map(lambda x: bin(x), heavy_hitters)))
+    return heavy_hitters
 
 
-def example_labels_mode():
+def example_weighted_heavy_hitters_mode():
+    from flp_generic import Count
+    bits = 4
+    mastic = Mastic.with_params(bits, Count())
+
+    # Clients shard their measurements. Each measurement is comprised of
+    # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
+    # weight. Here the weight is simply a counter (either `0` or `1`).
+    measurements = [
+        (0b1001, 1),
+        (0b0000, 1),
+        (0b0000, 0),
+        (0b0000, 1),
+        (0b1001, 1),
+        (0b0000, 1),
+        (0b1100, 1),
+        (0b0011, 1),
+        (0b1111, 0),
+        (0b1111, 0),
+        (0b1111, 1),
+    ]
+
+    reports = get_reports_from_measurements(mastic, measurements)
+
+    thresholds = {
+        'default': 2,
+    }
+
+    # Collector and Aggregators compute the weighted heavy hitters.
+    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    assert heavy_hitters == [0, 9]
+
+
+def example_weighted_heavy_hitters_mode_with_different_thresholds():
+    from flp_generic import Count
+    bits = 4
+    mastic = Mastic.with_params(bits, Count())
+
+    # Clients shard their measurements. Each measurement is comprised of
+    # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
+    # weight. Here the weight is simply a counter (either `0` or `1`).
+    measurements = [
+        (0b0000, 1),
+        (0b0001, 1),
+        (0b1001, 1),
+        (0b1001, 1),
+        (0b1010, 1),
+        (0b1010, 1),
+        (0b1111, 1),
+        (0b1111, 1),
+        (0b1111, 1),
+        (0b1111, 1),
+        (0b1111, 1),
+    ]
+
+    reports = get_reports_from_measurements(mastic, measurements)
+
+    # (prefix, level): threshold
+    # Note that levels start from zero
+    thresholds = {
+        'default': 2,
+        (0b00, 1): 1,
+        (0b10, 1): 3,
+        (0b11, 1): 5,
+    }
+
+    # Collector and Aggregators compute the weighted heavy hitters.
+    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    assert heavy_hitters == [0, 1, 15]
+
+
+def example_aggregation_by_labels_mode():
     from common import gen_rand
     import hashlib
     bits = 8
@@ -595,22 +668,23 @@ def example_labels_mode():
         sha3.update(label.encode('ascii'))
         return sha3.digest()[0]
 
-    # Clients shard their measurements.
+    # Clients shard their measurements. Each measurement is comprised of
+    # (`alpha`, `beta`) where `beta` is the Client's contribution to the
+    # aggregate with label `alpha`.
     #
-    # Example: Each Client casts a "vote" (between '0' and '5') and labels their
-    # vote with their home country.
+    # In this example, each Client casts a "vote" (between '0' and '3') and 
+    # labels their vote with their home country.
     measurements = [
         ('United States', 1),
         ('Greece', 1),
         ('United States', 2),
         ('Greece', 0),
         ('United States', 0),
-        ('Freedonia', 1),
-        ('Greece', 1),
+        ('India', 1),
+        ('Greece', 0),
         ('United States', 1),
         ('Greece', 1),
-        ('Greece', 1),
-        ('Mexico', 3),
+        ('Greece', 3),
         ('Greece', 1),
     ]
     reports = []
@@ -627,9 +701,8 @@ def example_labels_mode():
     # Aggregators aggregate the reports, breaking them down by home country.
     labels = [
         'Greece',
-        'United States',
         'Mexico',
-        'Hannah\'s house',
+        'United States',
     ]
     agg_param = (bits-1, list(map(lambda label: h(label), labels)), True)
     assert mastic.is_valid(agg_param, [])
@@ -664,7 +737,7 @@ def example_labels_mode():
     # Collector computes the aggregate result.
     agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
     print('Election results:', list(zip(labels, agg_result)))
-    assert agg_result == [5, 4, 3, 0]
+    assert agg_result == [6, 0, 4]
 
 
 if __name__ == '__main__':
@@ -672,7 +745,8 @@ if __name__ == '__main__':
     from common import from_be_bytes
 
     example_weighted_heavy_hitters_mode()
-    example_labels_mode()
+    example_aggregation_by_labels_mode()
+    example_weighted_heavy_hitters_mode_with_different_thresholds()
 
     test_vdaf(
         Mastic.with_params(2, Count()),
