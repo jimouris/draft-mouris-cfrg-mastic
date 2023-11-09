@@ -1,26 +1,29 @@
 """Verifiable Distributed Point Function (VIDPF)"""
 
 import sys
-sys.path.append('draft-irtf-cfrg-vdaf/poc')
 
-from common import (ERR_INPUT, format_dst, gen_rand, to_le_bytes, vec_add,
-                    vec_sub, vec_neg, xor)
-from field import Field128, Field2
+sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
+
 import hashlib
+
+from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
+                    vec_sub, xor)
+from field import Field2, Field128
 from xof import XofFixedKeyAes128
+
 
 class Vidpf:
     """A Verifiable Distributed Point Function (VIDPF)."""
 
     # Operational parameters.
-    Field = None # set by `with_params()`
-    ROOT_PROOF = hashlib.sha3_256().digest() # Hash of the empty string
+    Field = None  # set by `with_params()`
+    ROOT_PROOF = hashlib.sha3_256().digest()  # Hash of the empty string
 
     # Bit length of valid input values (i.e., the length of `alpha` in bits).
-    BITS = None # set by `with_params()`
+    BITS = None  # set by `with_params()`
 
     # The length of each output vector (i.e., the length of `beta_leaf`).
-    VALUE_LEN = None # set by `with_params()`
+    VALUE_LEN = None  # set by `with_params()`
 
     # Constants
 
@@ -56,32 +59,40 @@ class Vidpf:
         for i in range(cls.BITS):
             node = (alpha >> (cls.BITS - i - 1))
             bit = node & 1
-            keep, lose = (1, 0) if bit else (0, 1) # if x = 0 then keep <- L, lose <- R
+            # if x = 0 then keep <- L, lose <- R
+            keep, lose = (1, 0) if bit else (0, 1)
 
-            (s_0, t_0) = cls.extend(seed[0], binder) # s_0^L || s_0^R || t_0^L || t_0^R
-            (s_1, t_1) = cls.extend(seed[1], binder) # s_1^L || s_1^R || t_1^L || t_1^R
+            # s_0^L || s_0^R || t_0^L || t_0^R
+            (s_0, t_0) = cls.extend(seed[0], binder)
+            # s_1^L || s_1^R || t_1^L || t_1^R
+            (s_1, t_1) = cls.extend(seed[1], binder)
             seed_cw = xor(s_0[lose], s_1[lose])
             ctrl_cw = (
-                t_0[0] + t_1[0] + Field2(1) + Field2(bit), # t_c^L
+                t_0[0] + t_1[0] + Field2(1) + Field2(bit),  # t_c^L
                 t_0[1] + t_1[1] + Field2(bit),             # t_c^R
             )
 
-            (seed[0], w_0) = cls.convert(correct(s_0[keep], seed_cw, ctrl[0]), i, binder)
-            (seed[1], w_1) = cls.convert(correct(s_1[keep], seed_cw, ctrl[1]), i, binder)
-            ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0]) # t0'
-            ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1]) # t1'
+            (seed[0], w_0) = cls.convert(
+                correct(s_0[keep], seed_cw, ctrl[0]), i, binder)
+            (seed[1], w_1) = cls.convert(
+                correct(s_1[keep], seed_cw, ctrl[1]), i, binder)
+            ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0])  # t0'
+            ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1])  # t1'
 
             w_cw = vec_add(vec_sub(beta, w_0), w_1)
-            mask = cls.Field(1) - cls.Field(2) * cls.Field(ctrl[1].as_unsigned())
+            mask = cls.Field(1) - cls.Field(2) * \
+                cls.Field(ctrl[1].as_unsigned())
             for j in range(len(w_cw)):
                 w_cw[j] *= mask
 
             # Compute hashes for level i
             sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') + to_le_bytes(i, 2) + seed[0])
+            sha3.update(str(node).encode('ascii') +
+                        to_le_bytes(i, 2) + seed[0])
             proof_0 = sha3.digest()
             sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') + to_le_bytes(i, 2) + seed[1])
+            sha3.update(str(node).encode('ascii') +
+                        to_le_bytes(i, 2) + seed[1])
             proof_1 = sha3.digest()
 
             cs_proofs.append(xor(proof_0, proof_1))
@@ -92,7 +103,7 @@ class Vidpf:
     @classmethod
     def eval(cls,
              agg_id,
-             correction_words, # public share
+             correction_words,  # public share
              cs_proofs,        # public share
              init_seed,        # key share
              level,
@@ -140,16 +151,17 @@ class Vidpf:
                             pi_proof,
                             binder,
                         )
-                (seed, ctrl, y, pi_proof) = prefix_tree_share.get((node, current_level))
+                (seed, ctrl, y, pi_proof) = prefix_tree_share.get(
+                    (node, current_level))
 
         # Compute the path proof.
         sha3 = hashlib.sha3_256()
         for prefix in prefixes:
             for current_level in range(level):
                 node = prefix >> (level - current_level)
-                y =  prefix_tree_share[(node,        current_level)  ][2]
-                y0 = prefix_tree_share[(node<<1,     current_level+1)][2]
-                y1 = prefix_tree_share[((node<<1)|1, current_level+1)][2]
+                y = prefix_tree_share[(node,        current_level)][2]
+                y0 = prefix_tree_share[(node << 1,     current_level+1)][2]
+                y1 = prefix_tree_share[((node << 1) | 1, current_level+1)][2]
                 sha3.update(cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1))))
         path_proof = sha3.digest()
 
@@ -177,15 +189,16 @@ class Vidpf:
         """
         (seed_cw, ctrl_cw, w_cw) = correction_word
 
-        (s, t) = cls.extend(prev_seed, binder) # (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-        s[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw)) # s^L
-        s[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw)) # s^R
-        t[0] += ctrl_cw[0] * prev_ctrl # t^L
-        t[1] += ctrl_cw[1] * prev_ctrl # t^R
+        # (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+        (s, t) = cls.extend(prev_seed, binder)
+        s[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw))  # s^L
+        s[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw))  # s^R
+        t[0] += ctrl_cw[0] * prev_ctrl  # t^L
+        t[1] += ctrl_cw[1] * prev_ctrl  # t^R
 
         bit = node & 1
-        next_ctrl = t[bit] # t'^i
-        (next_seed, w) = cls.convert(s[bit], current_level, binder) # s^i, W^i
+        next_ctrl = t[bit]  # t'^i
+        (next_seed, w) = cls.convert(s[bit], current_level, binder)  # s^i, W^i
         # Implementation note: Here we add the correction word to the
         # output if `next_ctrl` is set. We avoid branching on the value of
         # the control bit in order to reduce side channel leakage.
@@ -196,7 +209,8 @@ class Vidpf:
 
         sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(node).encode('ascii') + to_le_bytes(current_level, 2) + next_seed)
+        sha3.update(str(node).encode('ascii') +
+                    to_le_bytes(current_level, 2) + next_seed)
         pi_prime = sha3.digest()
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
@@ -257,7 +271,7 @@ def correct(k_0, k_1, ctrl):
     ''' return k_0 if ctrl == 0 else xor(k_0, k_1) '''
     if isinstance(k_0, bytes):
         return xor(k_0, ctrl.conditional_select(k_1))
-    if isinstance(k_0, list): # list of ints or ring elements
+    if isinstance(k_0, list):  # list of ints or ring elements
         for i in range(len(k_0)):
             k_0[i] += ctrl * k_1[i]
         return k_0
@@ -270,7 +284,8 @@ def main():
     vidpf = Vidpf.with_params(Field128, 2, 1)
 
     binder = b'some nonce'
-    measurements = [0b10, 0b00, 0b11, 0b01, 0b11] # alpha values from different users
+    # alpha values from different users
+    measurements = [0b10, 0b00, 0b11, 0b01, 0b11]
     beta = [vidpf.Field(1)]
     prefixes = [0b0, 0b1]
     level = 0
@@ -281,7 +296,8 @@ def main():
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
-        init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
+        init_seed, correction_words, cs_proofs = vidpf.gen(
+            measurement, beta, binder, rand)
 
         proofs = []
         for agg_id in range(vidpf.SHARES):
@@ -302,7 +318,6 @@ def main():
 
     print('Aggregated:', out)
     assert out == [[Field128(2)], [Field128(3)]]
-
 
     vidpf = Vidpf.with_params(Field128, 16, 1)
     # `alpha` values from different Clients.
@@ -326,7 +341,8 @@ def main():
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
-        init_seed, correction_words, cs_proofs = vidpf.gen(measurement, beta, binder, rand)
+        init_seed, correction_words, cs_proofs = vidpf.gen(
+            measurement, beta, binder, rand)
 
         proofs = []
         for agg_id in range(vidpf.SHARES):
