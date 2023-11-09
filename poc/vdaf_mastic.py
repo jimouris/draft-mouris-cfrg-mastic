@@ -1,15 +1,17 @@
 '''The Mastic VDAF'''
 
 import sys
-sys.path.append('draft-irtf-cfrg-vdaf/poc')
+
+sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
+
+from typing import Optional
 
 from common import Unsigned, front, vec_add, vec_sub
 from flp_generic import FlpGeneric
-from typing import Optional
 from vdaf import Vdaf, test_vdaf
-from vidpf import Vidpf
 from xof import XofShake128
 
+from vidpf import Vidpf
 
 # Domain separation: FLP prove randomness
 USAGE_PROVE_RAND = 0
@@ -23,23 +25,23 @@ USAGE_QUERY_RAND = 2
 
 class Mastic(Vdaf):
     # Operational types and parameters.
-    Field = None # Set by `with_params()`
-    Vidpf = None # Set by `with_params()`
-    Flp = None # Set by `with_params()`
+    Field = None  # Set by `with_params()`
+    Vidpf = None  # Set by `with_params()`
+    Flp = None  # Set by `with_params()`
     Xof = XofShake128
 
     # Parameters required by `Vdaf`.
     ID: Unsigned = 0xFFFFFFFF
     VERIFY_KEY_SIZE = Xof.SEED_SIZE
     NONCE_SIZE = 16
-    RAND_SIZE = None # Set by `with_params()`
+    RAND_SIZE = None  # Set by `with_params()`
     SHARES = 2
     ROUNDS = 1
 
     # Types required by `Vdaf`
-    AggParam = None # TODO(cjpatton)
-    PublicShare = None # TODO(cjpatton)
-    InputShare = None # TODO(cjpatton)
+    AggParam = None  # TODO(cjpatton)
+    PublicShare = None  # TODO(cjpatton)
+    InputShare = None  # TODO(cjpatton)
     PrepMessage = None
 
     @classmethod
@@ -58,11 +60,12 @@ class Mastic(Vdaf):
 
         # Generate FLP proof shares.
         flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
-            flp_prove_rand_seed,
-            cls.domain_separation_tag(USAGE_PROVE_RAND),
-            b'',
-            cls.Flp.PROVE_RAND_LEN,
-        )
+                                                 flp_prove_rand_seed,
+                                                 cls.domain_separation_tag(
+                                                     USAGE_PROVE_RAND),
+                                                 b'',
+                                                 cls.Flp.PROVE_RAND_LEN,
+                                                 )
 
         flp_proof = cls.Flp.prove(beta, flp_prove_rand, [])
         flp_leader_proof_share = vec_sub(
@@ -83,7 +86,7 @@ class Mastic(Vdaf):
         # Check that the range check is done exactly once.
         first_level_range_check = \
             (do_range_check and len(previous_agg_params) == 0) or \
-            (not do_range_check and \
+            (not do_range_check and
                 any(agg_param[2] for agg_param in previous_agg_params))
 
         # Check that the level is always larger or equal to the previous level.
@@ -91,16 +94,17 @@ class Mastic(Vdaf):
             lambda agg_param: agg_param[0],
             previous_agg_params,
         )) + [level]
-        levels_non_decreasing = all(x <= y for (x, y) in zip(levels, levels[1:]))
+        levels_non_decreasing = all(
+            x <= y for (x, y) in zip(levels, levels[1:]))
 
         return first_level_range_check and levels_non_decreasing
-
 
     @classmethod
     def prep_init(cls, verify_key, agg_id, agg_param,
                   nonce, public_share, input_share):
         (level, prefixes, do_range_check) = agg_param
-        (vidpf_init_seed, flp_proof_share) = cls.expand_input_share(agg_id, input_share)
+        (vidpf_init_seed, flp_proof_share) = cls.expand_input_share(
+            agg_id, input_share)
         (vidpf_correction_words, vidpf_cs_proofs) = public_share
 
         # Evaluate the VIDPF.
@@ -121,14 +125,14 @@ class Mastic(Vdaf):
                 cls.Flp.Field,
                 verify_key,
                 cls.domain_separation_tag(USAGE_QUERY_RAND),
-                nonce, # TODO(cjpatton) Consider binding to agg param
+                nonce,  # TODO(cjpatton) Consider binding to agg param
                 cls.Flp.QUERY_RAND_LEN,
             )
 
             flp_verifier_share = cls.Flp.query(beta_share,
                                                flp_proof_share,
                                                flp_query_rand,
-                                               [], # joint randomness
+                                               [],  # joint randomness
                                                cls.SHARES)
 
         prep_state = []
@@ -220,7 +224,7 @@ class Mastic(Vdaf):
     def do_range_check(cls, agg_param):
         (level, _prefixes) = agg_param
         return (level == cls.Vidpf.BITS-1 and not cls.Vidpf.INCREMENTAL_MODE) or \
-                    level == 0
+            level == 0
 
     @classmethod
     def test_vec_encode_input_share(Vdaf, input_share):
@@ -375,7 +379,7 @@ def get_threshold(thresholds, prefix, level):
             return thresholds[(prefix, level)]
         prefix >>= 1
         level -= 1
-    return thresholds['default'] # Return the default threshold
+    return thresholds['default']  # Return the default threshold
 
 
 def compute_heavy_hitters(mastic, bits, thresholds, reports):
@@ -427,8 +431,8 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
             for (prefix, count) in zip(prefixes, agg_result):
                 threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
-                    next_prefixes.append(prefix<<1)
-                    next_prefixes.append((prefix<<1)|1)
+                    next_prefixes.append(prefix << 1)
+                    next_prefixes.append((prefix << 1) | 1)
             prefixes = next_prefixes
         else:
             for (prefix, count) in zip(prefixes, agg_result):
@@ -512,8 +516,9 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
 
 
 def example_aggregation_by_labels_mode():
-    from common import gen_rand
     import hashlib
+
+    from common import gen_rand
     bits = 8
     mastic = Mastic.with_params(bits, Count())
     verify_key = gen_rand(16)
@@ -604,8 +609,8 @@ def example_aggregation_by_labels_mode():
 
 
 if __name__ == '__main__':
-    from flp_generic import Count
     from common import from_be_bytes
+    from flp_generic import Count
 
     example_weighted_heavy_hitters_mode()
     example_aggregation_by_labels_mode()
