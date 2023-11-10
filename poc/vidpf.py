@@ -73,9 +73,9 @@ class Vidpf:
             )
 
             (seed[0], w_0) = cls.convert(
-                correct(s_0[keep], seed_cw, ctrl[0]), i, binder)
+                correct(s_0[keep], seed_cw, ctrl[0]), binder)
             (seed[1], w_1) = cls.convert(
-                correct(s_1[keep], seed_cw, ctrl[1]), i, binder)
+                correct(s_1[keep], seed_cw, ctrl[1]), binder)
             ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0])  # t0'
             ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1])  # t1'
 
@@ -198,7 +198,7 @@ class Vidpf:
 
         bit = node & 1
         next_ctrl = t[bit]  # t'^i
-        (next_seed, w) = cls.convert(s[bit], current_level, binder)  # s^i, W^i
+        (next_seed, w) = cls.convert(s[bit],  binder)  # s^i, W^i
         # Implementation note: Here we add the correction word to the
         # output if `next_ctrl` is set. We avoid branching on the value of
         # the control bit in order to reduce side channel leakage.
@@ -244,8 +244,7 @@ class Vidpf:
         return (new_seed, ctrl)
 
     @classmethod
-    def convert(cls, seed, level, binder):
-        # TODO(jimouris): level is currently unused.
+    def convert(cls, seed, binder):
         '''
         Converting seed to a pseudorandom element of G.
         '''
