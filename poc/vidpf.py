@@ -251,11 +251,6 @@ class Vidpf:
         '''
         xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), binder)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
-        # TODO(cjpatton) This is slightly abusing the `Prg` API, as
-        # `next_vec()` expects a `Field` as its first parameter. Either
-        # re-implement the method here (if the ring modulus is a power of 2,
-        # then this should be quite easy) or update the `Prg` upstream to take
-        # a `Ring` and make `Field` a subclass of `Ring`.
         return (next_seed, xof.next_vec(cls.Field, cls.VALUE_LEN))
 
     @classmethod
