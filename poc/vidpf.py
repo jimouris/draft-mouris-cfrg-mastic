@@ -79,7 +79,7 @@ class Vidpf:
             ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0])  # t0'
             ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1])  # t1'
 
-            w_cw = vec_add(vec_sub(beta, w_0), w_1)
+            w_cw = vec_add(vec_sub([cls.Field(1)] + beta, w_0), w_1)
             mask = cls.Field(1) - cls.Field(2) * \
                 cls.Field(ctrl[1].as_unsigned())
             for j in range(len(w_cw)):
@@ -154,8 +154,19 @@ class Vidpf:
                 (seed, ctrl, y, pi_proof) = prefix_tree_share.get(
                     (node, current_level))
 
+        # Compute the Aggregator's share of `beta`.
+        y0 = prefix_tree_share[(0, 0)][2]
+        y1 = prefix_tree_share[(1, 0)][2]
+        beta_share = vec_add(y0, y1)[1:]  # first element is the counter
+        if agg_id == 1:
+            beta_share = vec_neg(beta_share)
+
+        # Compute the Aggregator's share of the counter.
+        counter_share = y0[0] + y1[0] + cls.Field(agg_id)
+
         # Compute the path proof.
         sha3 = hashlib.sha3_256()
+        sha3.update(cls.Field.encode_vec([counter_share]))
         for prefix in prefixes:
             for current_level in range(level):
                 node = prefix >> (level - current_level)
@@ -171,12 +182,6 @@ class Vidpf:
             (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
 
-        # Compute the Aggregator's share of `beta`.
-        y0 = prefix_tree_share[(0, 0)][2]
-        y1 = prefix_tree_share[(1, 0)][2]
-        beta_share = vec_add(y0, y1)
-        if agg_id == 1:
-            beta_share = vec_neg(beta_share)
         return (beta_share, out_share, pi_proof + path_proof)
 
     @classmethod
@@ -250,7 +255,7 @@ class Vidpf:
         '''
         xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), binder)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
-        return (next_seed, xof.next_vec(cls.Field, cls.VALUE_LEN))
+        return (next_seed, xof.next_vec(cls.Field, 1+cls.VALUE_LEN))
 
     @classmethod
     def with_params(cls, f, bits, value_len):
