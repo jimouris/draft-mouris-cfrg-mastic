@@ -69,7 +69,7 @@ class Vidpf:
             seed_cw = xor(s_0[lose], s_1[lose])
             ctrl_cw = (
                 t_0[0] + t_1[0] + Field2(1) + Field2(bit),  # t_c^L
-                t_0[1] + t_1[1] + Field2(bit),             # t_c^R
+                t_0[1] + t_1[1] + Field2(bit),              # t_c^R
             )
 
             (seed[0], w_0) = cls.convert(
@@ -159,8 +159,8 @@ class Vidpf:
         for prefix in prefixes:
             for current_level in range(level):
                 node = prefix >> (level - current_level)
-                y = prefix_tree_share[(node,        current_level)][2]
-                y0 = prefix_tree_share[(node << 1,     current_level+1)][2]
+                y = prefix_tree_share[(node,             current_level)][2]
+                y0 = prefix_tree_share[(node << 1,       current_level+1)][2]
                 y1 = prefix_tree_share[((node << 1) | 1, current_level+1)][2]
                 sha3.update(cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1))))
         path_proof = sha3.digest()
