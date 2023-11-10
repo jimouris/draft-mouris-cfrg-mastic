@@ -228,9 +228,13 @@ class Mastic(Vdaf):
                 joint_rand_part
             )
         prep_state = [do_range_check]
+
+        # Concatenate the output shares into one aggregatable output, applying
+        # the FLP truncation algorithm on each FLP measurement share.
         truncated_out_share = []
         for val_share in out_share:
-            truncated_out_share += cls.Flp.truncate(val_share)
+            truncated_out_share += [val_share[0]] + \
+                cls.Flp.truncate(val_share[1:])
 
         if do_range_check:
             prep_state += [(truncated_out_share, corrected_joint_rand_seed)]
@@ -275,7 +279,6 @@ class Mastic(Vdaf):
 
     @classmethod
     def prep_next(_cls, prep_state, prep_msg):
-
         (do_range_check, prep) = prep_state
         if do_range_check:
             joint_rand_seed = prep_msg
@@ -294,7 +297,7 @@ class Mastic(Vdaf):
     @classmethod
     def aggregate(cls, agg_param, out_shares):
         (level, prefixes, _do_range_check) = agg_param
-        agg_share = cls.Field.zeros(len(prefixes))
+        agg_share = cls.Field.zeros(len(prefixes)*(1+cls.Flp.OUTPUT_LEN))
         for out_share in out_shares:
             agg_share = vec_add(agg_share, out_share)
         return agg_share
@@ -303,24 +306,16 @@ class Mastic(Vdaf):
     def unshard(cls, agg_param,
                 agg_shares, _num_measurements):
         (level, prefixes, _do_range_check) = agg_param
-        agg = cls.Field.zeros(len(prefixes))
+        agg = cls.Field.zeros(len(prefixes)*(1+cls.Flp.OUTPUT_LEN))
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
 
         agg_result = []
-        for chunk_start in range(0, len(agg), cls.Flp.OUTPUT_LEN):
-            chunk = agg[chunk_start:chunk_start+cls.Flp.OUTPUT_LEN]
-            # We don't know how many measurements correspond to each prefix, so
-            # just use `num_measurements == 0` as a dummy value. This means that
-            # Mastic is not compatible with all FLPs.
-            #
-            # TODO(cjpatton) Decide if we should try to make Mastic compatible
-            # with all FLPs. We can do so by piggy-packing a counter with each
-            # output at the cost of mild communication overhead. It seems like
-            # this counter could just do exactly what PLASMA does {{MST23}}. In
-            # fact, this would give us way to easily extend Mastic to Plain
-            # Heavy-hitters.
-            agg_result.append(cls.Flp.decode(chunk, 0))
+        for chunk_start in range(0, len(agg), 1+cls.Flp.OUTPUT_LEN):
+            chunk = agg[chunk_start:chunk_start+1+cls.Flp.OUTPUT_LEN]
+            meas_count = chunk[0].as_unsigned()
+            encoded_result = chunk[1:]
+            agg_result.append(cls.Flp.decode(encoded_result, meas_count))
         return agg_result
 
     @classmethod
