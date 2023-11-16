@@ -11,13 +11,16 @@ from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
 from field import Field2, Field128
 from xof import XofFixedKeyAes128
 
+# SHA256 hash of b'draft-irtf-cfrg-mastic-00'
+ROOT_PROOF = [206, 120, 68, 97, 175, 91, 66, 71, 249, 86, 238, 111, 111, 71,
+              82, 193, 166, 13, 62, 196, 176, 71, 113, 151, 157, 208, 25, 78,
+              75, 65, 215, 112]
 
 class Vidpf:
     """A Verifiable Distributed Point Function (VIDPF)."""
 
     # Operational parameters.
     Field = None  # set by `with_params()`
-    ROOT_PROOF = hashlib.sha3_256().digest()  # Hash of the empty string
 
     # Bit length of valid input values (i.e., the length of `alpha` in bits).
     BITS = None  # set by `with_params()`
@@ -121,7 +124,7 @@ class Vidpf:
         #
         # Implementation note: We can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
-        pi_proof = cls.ROOT_PROOF
+        pi_proof = ROOT_PROOF
         prefix_tree_share = {}
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
