@@ -107,8 +107,8 @@ class Vidpf:
     def eval(cls,
              agg_id,
              correction_words,  # public share
-             cs_proofs,        # public share
-             init_seed,        # key share
+             cs_proofs,         # public share
+             init_seed,         # key share
              level,
              prefixes,
              binder):
