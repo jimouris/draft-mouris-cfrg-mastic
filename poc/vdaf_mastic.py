@@ -579,8 +579,6 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
                 threshold = get_threshold(thresholds, prefix, level)
                 if count >= threshold:
                     heavy_hitters.append(prefix)
-            print("Weighted heavy-hitters with different thresholds:",
-                  list(map(lambda x: bin(x), heavy_hitters)))
     return heavy_hitters
 
 
@@ -614,6 +612,8 @@ def example_weighted_heavy_hitters_mode():
 
     # Collector and Aggregators compute the weighted heavy hitters.
     heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    print("Weighted heavy-hitters:",
+          list(map(lambda x: bin(x), heavy_hitters)))
     assert heavy_hitters == [0, 9]
 
 
@@ -652,6 +652,8 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
 
     # Collector and Aggregators compute the weighted heavy hitters.
     heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
+    print("Weighted heavy-hitters with different thresholds:",
+          list(map(lambda x: bin(x), heavy_hitters)))
     assert heavy_hitters == [0, 1, 15]
 
 
