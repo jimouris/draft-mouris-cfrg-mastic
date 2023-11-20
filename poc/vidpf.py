@@ -4,17 +4,25 @@ import sys
 
 sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
 
-import hashlib
+import hashlib  # XXX
 
-from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
+from common import (byte, format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
                     vec_sub, xor)
 from field import Field2, Field128
-from xof import XofFixedKeyAes128
+from xof import XofFixedKeyAes128, XofShake128
 
-# SHA256 hash of b'draft-irtf-cfrg-mastic-00'
-ROOT_PROOF = [206, 120, 68, 97, 175, 91, 66, 71, 249, 86, 238, 111, 111, 71,
-              82, 193, 166, 13, 62, 196, 176, 71, 113, 151, 157, 208, 25, 78,
-              75, 65, 215, 112]
+# SHA256 hash of b'draft-irtf-cfrg-mastic-00 vidpf root proof'
+ROOT_PROOF = bytes([64, 61, 152, 174, 170, 21, 228, 181, 194, 92, 129, 145,
+                    198, 15, 134, 7, 142, 98, 197, 10, 212, 193, 126, 23, 108,
+                    61, 240, 26, 147, 69, 189, 58])
+
+# SHA256 hash of b'draft-irtf-cfrg-mastic-00 vidpf hash seed', truncated to 16
+# bytes
+HASH_SEED = bytes([141, 23, 182, 175, 167, 180, 238, 89, 194, 92, 255, 65, 196,
+                   143, 58, 21])
+
+USAGE_PI_PROOF = byte(0)
+USAGE_PATH_PROOF = byte(1)
 
 class Vidpf:
     """A Verifiable Distributed Point Function (VIDPF)."""
@@ -89,14 +97,8 @@ class Vidpf:
                 w_cw[j] *= mask
 
             # Compute hashes for level i
-            sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') +
-                        to_le_bytes(i, 2) + seed[0])
-            proof_0 = sha3.digest()
-            sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') +
-                        to_le_bytes(i, 2) + seed[1])
-            proof_1 = sha3.digest()
+            proof_0 = cls.pi_hash(node, i, seed[0])
+            proof_1 = cls.pi_hash(node, i, seed[1])
 
             cs_proofs.append(xor(proof_0, proof_1))
             correction_words.append((seed_cw, ctrl_cw, w_cw))
@@ -168,16 +170,15 @@ class Vidpf:
         counter_share = y0[0] + y1[0] + cls.Field(agg_id)
 
         # Compute the path proof.
-        sha3 = hashlib.sha3_256()
-        sha3.update(cls.Field.encode_vec([counter_share]))
+        path_binder = cls.Field.encode_vec([counter_share])
         for prefix in prefixes:
             for current_level in range(level):
                 node = prefix >> (level - current_level)
                 y = prefix_tree_share[(node,             current_level)][2]
                 y0 = prefix_tree_share[(node << 1,       current_level+1)][2]
                 y1 = prefix_tree_share[((node << 1) | 1, current_level+1)][2]
-                sha3.update(cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1))))
-        path_proof = sha3.digest()
+                path_binder += cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1)))
+        path_proof = cls.path_hash(path_binder)
 
         # Compute the Aggregator's output share.
         out_share = []
@@ -189,7 +190,7 @@ class Vidpf:
 
     @classmethod
     def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
-                  current_level, node, pi_proof, binder):
+                  i, node, pi_proof, binder):
         """
         Compute the next node in the VIDPF tree along the path determined by
         a candidate prefix. The next node is determined by `bit`, the bit of
@@ -215,11 +216,8 @@ class Vidpf:
         for i in range(len(w)):
             y.append(w[i] + w_cw[i] * mask)
 
-        sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(node).encode('ascii') +
-                    to_le_bytes(current_level, 2) + next_seed)
-        pi_prime = sha3.digest()
+        pi_prime = cls.pi_hash(node, i, next_seed)
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
         sha3 = hashlib.sha3_256()
@@ -231,6 +229,22 @@ class Vidpf:
         pi_proof = xor(pi_proof, sha3.digest())
 
         return (next_seed, next_ctrl, y, pi_proof)
+
+    @classmethod
+    def pi_hash(cls, node, i, seed):
+        return XofShake128(
+            seed,
+            USAGE_PI_PROOF,
+            to_le_bytes(node, (cls.BITS+7)//8) + to_le_bytes(i, 2),
+        ).next(32)
+
+    @classmethod
+    def path_hash(cls, path_binder):
+        return XofShake128(
+            HASH_SEED,
+            USAGE_PATH_PROOF,
+            path_binder,
+        ).next(32)
 
     @classmethod
     def verify(cls, proof_0, proof_1):
@@ -292,9 +306,6 @@ def main():
     prefixes = [0b0, 0b1]
     level = 0
 
-    sha3 = hashlib.sha3_256()
-    sha3.update(str(0).encode('ascii'))
-
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
         rand = gen_rand(vidpf.RAND_SIZE)
@@ -336,9 +347,6 @@ def main():
         0b111101,
     ]
     level = 5
-
-    sha3 = hashlib.sha3_256()
-    sha3.update(str(0).encode('ascii'))
 
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
