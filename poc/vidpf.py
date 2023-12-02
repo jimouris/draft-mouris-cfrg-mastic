@@ -7,9 +7,13 @@ sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
 import hashlib
 
 from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
-                    vec_sub, xor)
+                    vec_sub, xor, zeros)
 from field import Field2, Field128
-from xof import XofFixedKeyAes128
+from xof import XofFixedKeyAes128, XofShake128
+
+ROOT_PI_PROOF = hashlib.sha256(b"vidpf root pi proof").digest()
+
+PROOF_SIZE = 32
 
 
 class Vidpf:
@@ -17,7 +21,6 @@ class Vidpf:
 
     # Operational parameters.
     Field = None  # set by `with_params()`
-    ROOT_PROOF = hashlib.sha3_256().digest()  # Hash of the empty string
 
     # Bit length of valid input values (i.e., the length of `alpha` in bits).
     BITS = None  # set by `with_params()`
@@ -86,16 +89,10 @@ class Vidpf:
                 w_cw[j] *= mask
 
             # Compute hashes for level i
-            sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') +
-                        to_le_bytes(i, 2) + seed[0])
-            proof_0 = sha3.digest()
-            sha3 = hashlib.sha3_256()
-            sha3.update(str(node).encode('ascii') +
-                        to_le_bytes(i, 2) + seed[1])
-            proof_1 = sha3.digest()
-
-            cs_proofs.append(xor(proof_0, proof_1))
+            cs_proofs.append(xor(
+                next_cs_proof(i, seed[0]),
+                next_cs_proof(i, seed[1]),
+            ))
             correction_words.append((seed_cw, ctrl_cw, w_cw))
 
         return (init_seed, correction_words, cs_proofs)
@@ -121,7 +118,7 @@ class Vidpf:
         #
         # Implementation note: We can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
-        pi_proof = cls.ROOT_PROOF
+        pi_proof = ROOT_PI_PROOF
         prefix_tree_share = {}
         for prefix in prefixes:
             if prefix >= 2 ** (level+1):
@@ -161,20 +158,18 @@ class Vidpf:
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
 
-        # Compute the Aggregator's share of the counter.
-        counter_share = y0[0] + y1[0] + cls.Field(agg_id)
+        # Compute the counter.
+        counter = cls.Field.encode_vec([y0[0] + y1[0] + cls.Field(agg_id)])
 
-        # Compute the path proof.
-        sha3 = hashlib.sha3_256()
-        sha3.update(cls.Field.encode_vec([counter_share]))
+        # Compute the path.
+        path = b''
         for prefix in prefixes:
             for current_level in range(level):
                 node = prefix >> (level - current_level)
                 y = prefix_tree_share[(node,             current_level)][2]
                 y0 = prefix_tree_share[(node << 1,       current_level+1)][2]
                 y1 = prefix_tree_share[((node << 1) | 1, current_level+1)][2]
-                sha3.update(cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1))))
-        path_proof = sha3.digest()
+                path += cls.Field.encode_vec(vec_sub(y, vec_add(y0, y1)))
 
         # Compute the Aggregator's output share.
         out_share = []
@@ -182,7 +177,7 @@ class Vidpf:
             (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
             out_share.append(y if agg_id == 0 else vec_neg(y))
 
-        return (beta_share, out_share, pi_proof + path_proof)
+        return (beta_share, out_share, eval_proof(pi_proof, counter, path))
 
     @classmethod
     def eval_next(cls, prev_seed, prev_ctrl, correction_word, cs_proof,
@@ -212,20 +207,15 @@ class Vidpf:
         for i in range(len(w)):
             y.append(w[i] + w_cw[i] * mask)
 
-        sha3 = hashlib.sha3_256()
         # pi' = H(x^{<= i} || s^i)
-        sha3.update(str(node).encode('ascii') +
-                    to_le_bytes(current_level, 2) + next_seed)
-        pi_prime = sha3.digest()
+        pi_prime = next_cs_proof(current_level, next_seed)
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
-        sha3 = hashlib.sha3_256()
         if next_ctrl.as_unsigned() == 1:
             h2 = xor(pi_proof, xor(pi_prime, cs_proof))
         else:
             h2 = xor(pi_proof, pi_prime)
-        sha3.update(h2)
-        pi_proof = xor(pi_proof, sha3.digest())
+        pi_proof = xor(pi_proof, pi_proof_adjustment(h2))
 
         return (next_seed, next_ctrl, y, pi_proof)
 
@@ -278,6 +268,29 @@ def correct(k_0, k_1, ctrl):
     return k_0 + ctrl * k_1
 
 
+def next_cs_proof(level, seed):
+    xof = XofShake128(seed, b'vidpf cs proof', to_le_bytes(level, 2))
+    return xof.next(PROOF_SIZE)
+
+
+def pi_proof_adjustment(h2):
+    xof = XofShake128(
+        zeros(XofShake128.SEED_SIZE),
+        b'vidpf proof adjustment',
+        h2,
+    )
+    return xof.next(PROOF_SIZE)
+
+
+def eval_proof(pi_proof, counter, path):
+    xof = XofShake128(
+        zeros(XofShake128.SEED_SIZE),
+        b'vidpf eval proof',
+        pi_proof + counter + path,
+    )
+    return xof.next(PROOF_SIZE)
+
+
 def main():
     '''Driver'''
     vidpf = Vidpf.with_params(Field128, 2, 1)
@@ -288,9 +301,6 @@ def main():
     beta = [vidpf.Field(1)]
     prefixes = [0b0, 0b1]
     level = 0
-
-    sha3 = hashlib.sha3_256()
-    sha3.update(str(0).encode('ascii'))
 
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
@@ -333,9 +343,6 @@ def main():
         0b111101,
     ]
     level = 5
-
-    sha3 = hashlib.sha3_256()
-    sha3.update(str(0).encode('ascii'))
 
     out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
     for measurement in measurements:
