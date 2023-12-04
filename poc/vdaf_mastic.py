@@ -65,7 +65,7 @@ class Mastic(Vdaf):
     def shard_without_joint_rand(cls, measurement, nonce, rand):
         (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
         (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_helper_proof_share_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
         beta = cls.Flp.encode(meas)
@@ -87,12 +87,12 @@ class Mastic(Vdaf):
         flp_proof = cls.Flp.prove(beta, flp_prove_rand, [])
         flp_leader_proof_share = vec_sub(
             flp_proof,
-            cls.helper_proof_share(flp_helper_proof_share_seed),
+            cls.helper_proof_share(flp_helper_seed),
         )
 
         input_shares = [
             (vidpf_init_seed[0], flp_leader_proof_share, None),
-            (vidpf_init_seed[1], flp_helper_proof_share_seed, None),
+            (vidpf_init_seed[1], None, flp_helper_seed),
         ]
         return (public_share, input_shares)
 
@@ -100,9 +100,8 @@ class Mastic(Vdaf):
     def shard_with_joint_rand(cls, measurement, nonce, rand):
         (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
         (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_helper_proof_share_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_leader_blind, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_helper_blind, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_leader_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
         beta = cls.Flp.encode(meas)
@@ -115,9 +114,9 @@ class Mastic(Vdaf):
         # Generate FLP joint randomness.
         joint_rand_parts = []
         joint_rand_parts.append(cls.joint_rand_part(
-            0, flp_leader_blind, vidpf_init_seed[0], nonce))
+            0, flp_leader_seed, vidpf_init_seed[0], nonce))
         joint_rand_parts.append(cls.joint_rand_part(
-            1, flp_helper_blind, vidpf_init_seed[1], nonce))
+            1, flp_helper_seed, vidpf_init_seed[1], nonce))
         joint_rand = cls.joint_rand(
             cls.joint_rand_seed(joint_rand_parts))
         flp_public_share = joint_rand_parts
@@ -134,20 +133,12 @@ class Mastic(Vdaf):
         flp_proof = cls.Flp.prove(beta, flp_prove_rand, joint_rand)
         flp_leader_proof_share = vec_sub(
             flp_proof,
-            cls.helper_proof_share(flp_helper_proof_share_seed),
+            cls.helper_proof_share(flp_helper_seed),
         )
 
         input_shares = [
-            (
-                vidpf_init_seed[0],
-                flp_leader_proof_share,
-                flp_leader_blind
-            ),
-            (
-                vidpf_init_seed[1],
-                flp_helper_proof_share_seed,
-                flp_helper_blind
-            ),
+            (vidpf_init_seed[0], flp_leader_proof_share, flp_leader_seed),
+            (vidpf_init_seed[1], None, flp_helper_seed),
         ]
         public_share = (
             vidpf_public_share,
@@ -180,8 +171,7 @@ class Mastic(Vdaf):
                   nonce, public_share, input_share):
         (level, prefixes, do_range_check) = agg_param
         (vidpf_init_seed, flp_proof_share, flp_blind) = \
-            cls.expand_input_share(
-            agg_id, input_share)
+            cls.expand_input_share(agg_id, input_share)
         (vidpf_public_share, flp_public_share) = public_share
         (vidpf_correction_words, vidpf_cs_proofs) = vidpf_public_share
         joint_rand_parts = flp_public_share
@@ -320,10 +310,10 @@ class Mastic(Vdaf):
 
     @classmethod
     def expand_input_share(cls, agg_id, input_share):
-        (vidpf_init_seed, flp_proof_share, flp_blind) = input_share
+        (vidpf_init_seed, flp_proof_share, flp_seed) = input_share
         if agg_id > 0:
-            flp_proof_share = cls.helper_proof_share(flp_proof_share)
-        return (vidpf_init_seed, flp_proof_share, flp_blind)
+            flp_proof_share = cls.helper_proof_share(flp_seed)
+        return (vidpf_init_seed, flp_proof_share, flp_seed)
 
     @classmethod
     def helper_proof_share(cls, flp_helper_proof_share_seed):
@@ -406,8 +396,13 @@ class Mastic(Vdaf):
             # circuit so that we can call it here.
             test_vec_name = 'Mastic({}, {})'.format(bits, validity_circuit)
 
-            # Vdaf types and parameters.
-            RAND_SIZE = Vidpf.RAND_SIZE + cls.Xof.SEED_SIZE * 2
+            RAND_SIZE = Vidpf.RAND_SIZE
+            if Flp.JOINT_RAND_LEN > 0:
+                # flp_prove_rand_seed, flp_helper_seed
+                RAND_SIZE += 2 * XofShake128.SEED_SIZE
+            else:
+                # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
+                RAND_SIZE += 3 * XofShake128.SEED_SIZE
 
             # `alpha` and the un-encoded `beta`.
             Measurement = tuple[Unsigned,
