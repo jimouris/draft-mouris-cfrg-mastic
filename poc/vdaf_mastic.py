@@ -203,7 +203,7 @@ class Mastic(Vdaf):
             if cls.Flp.JOINT_RAND_LEN > 0:
                 joint_rand_part = cls.joint_rand_part(
                     agg_id, flp_seed, vidpf_init_seed,
-                    vipdf_public_share, nonce)
+                    vidpf_public_share, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
                 corrected_joint_rand_seed = cls.joint_rand_seed(
                     joint_rand_parts)
@@ -331,7 +331,7 @@ class Mastic(Vdaf):
         return cls.Xof.derive_seed(
             flp_seed,
             cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
-            byte(agg_id) + nonce + beta_share + \
+            byte(agg_id) + nonce + beta_share +
             cls.Vidpf.public_share_as_bytes(public_share),
         )
 

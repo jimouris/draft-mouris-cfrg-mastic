@@ -275,7 +275,6 @@ class Vidpf:
         return out
 
 
-
 def correct(k_0, k_1, ctrl):
     ''' return k_0 if ctrl == 0 else xor(k_0, k_1) '''
     if isinstance(k_0, bytes):
