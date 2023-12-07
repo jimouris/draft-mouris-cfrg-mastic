@@ -477,9 +477,9 @@ starting with "111". Consider the following examples:
 
 1. Popular URLs: `a.example.com` receives a massive amount of traffic whereas
    `b.example.com` may have lower traffic. To identify heavy-hitting search
-   queries on `a.example.com`, the Aggregators should set a high threshold, while
-   in queries in different search engines may require lower thresholds to be
-   considered popular.
+   queries on `a.example.com`, the Aggregators should set a high threshold,
+   while queries with different domain prefixes may require lower thresholds to
+   be considered popular.
 
 2. E-commerce: Grocery items are essential and have a high volume of sales. In
    contrast, electronics, though popular, usually come with a higher price
