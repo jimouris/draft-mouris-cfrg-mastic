@@ -5,7 +5,7 @@ import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
 
 
-from typing import Optional
+from typing import Optional, Union
 
 from common import Unsigned, byte, concat, front, vec_add, vec_sub, zeros
 from flp_generic import FlpGeneric
@@ -408,7 +408,7 @@ class Mastic(Vdaf):
                                 Flp.Measurement]
             AggShare = list[Field]
             AggResult = list[Flp.AggResult]
-            PrepState = list[Field]
+            PrepState = list[Union[bool, tuple, list[Field]]]
 
             # Concatenation of FLP truncated outputs.
             #
