@@ -399,9 +399,8 @@ Mastic uses a combination of techniques to certify the validity of this output.
    as specified in {{vidpf-construction}} does not as specified permit
    evaluation at the root of the VIDPF tree. Instead, each Aggregator
    computes a share of `beta` by evaluating the VIDPF tree at prefixes `0`
-   and `1` and `level == 0` and adding them up. One-hot Verifiability and
-   Path Verifiability imply that the sum is equal to the Aggregator's share
-   of `beta`.
+   and `1` and `level == 0` and adding them up. One-hot Verifiability implies
+   that the sum is equal to the Aggregator's share of `beta`.
 
    > CP: An alternative way to spell this is to say that VIDPF evaluation
    > outputs a share of `beta`, which is what our current API does in the
