@@ -170,7 +170,7 @@ class Mastic(Vdaf):
     def prep_init(cls, verify_key, agg_id, agg_param,
                   nonce, public_share, input_share):
         (level, prefixes, do_range_check) = agg_param
-        (vidpf_init_seed, flp_proof_share, flp_blind) = \
+        (vidpf_init_seed, flp_proof_share, flp_seed) = \
             cls.expand_input_share(agg_id, input_share)
         (vidpf_public_share, flp_public_share) = public_share
         (vidpf_correction_words, vidpf_cs_proofs) = vidpf_public_share
@@ -202,7 +202,7 @@ class Mastic(Vdaf):
             joint_rand = []
             if cls.Flp.JOINT_RAND_LEN > 0:
                 joint_rand_part = cls.joint_rand_part(
-                    agg_id, flp_blind, vidpf_init_seed, nonce)
+                    agg_id, flp_seed, vidpf_init_seed, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
                 corrected_joint_rand_seed = cls.joint_rand_seed(
                     joint_rand_parts)
@@ -316,21 +316,21 @@ class Mastic(Vdaf):
         return (vidpf_init_seed, flp_proof_share, flp_seed)
 
     @classmethod
-    def helper_proof_share(cls, flp_helper_proof_share_seed):
+    def helper_proof_share(cls, flp_seed):
         return cls.Xof.expand_into_vec(
             cls.Field,
-            flp_helper_proof_share_seed,
+            flp_seed,
             cls.domain_separation_tag(USAGE_PROOF_SHARE),
             b'',
             cls.Flp.PROOF_LEN,
         )
 
     @classmethod
-    def joint_rand_part(cls, agg_id, k_blind, inp_share, nonce):
+    def joint_rand_part(cls, agg_id, flp_seed, beta_share, nonce):
         return cls.Xof.derive_seed(
-            k_blind,
+            flp_seed,
             cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
-            byte(agg_id) + nonce + inp_share,
+            byte(agg_id) + nonce + beta_share,
         )
 
     @classmethod
@@ -398,11 +398,11 @@ class Mastic(Vdaf):
 
             RAND_SIZE = Vidpf.RAND_SIZE
             if Flp.JOINT_RAND_LEN > 0:
-                # flp_prove_rand_seed, flp_helper_seed
-                RAND_SIZE += 2 * XofShake128.SEED_SIZE
-            else:
                 # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
                 RAND_SIZE += 3 * XofShake128.SEED_SIZE
+            else:
+                # flp_prove_rand_seed, flp_helper_seed
+                RAND_SIZE += 2 * XofShake128.SEED_SIZE
 
             # `alpha` and the un-encoded `beta`.
             Measurement = tuple[Unsigned,
