@@ -255,7 +255,6 @@ class Vidpf:
         xof = XofShake128(seed, b'vidpf cs proof', binder)
         return xof.next(PROOF_SIZE)
 
-
     @classmethod
     def with_params(cls, f, bits, value_len):
         class VdipfWithField(cls):
