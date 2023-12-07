@@ -90,8 +90,8 @@ class Vidpf:
 
             # Compute hashes for level i
             cs_proofs.append(xor(
-                next_cs_proof(i, seed[0]),
-                next_cs_proof(i, seed[1]),
+                cls.next_cs_proof(node, i, seed[0]),
+                cls.next_cs_proof(node, i, seed[1]),
             ))
             correction_words.append((seed_cw, ctrl_cw, w_cw))
 
@@ -208,7 +208,7 @@ class Vidpf:
             y.append(w[i] + w_cw[i] * mask)
 
         # pi' = H(x^{<= i} || s^i)
-        pi_prime = next_cs_proof(current_level, next_seed)
+        pi_prime = cls.next_cs_proof(node, current_level, next_seed)
 
         # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
         if next_ctrl.as_unsigned() == 1:
@@ -248,6 +248,15 @@ class Vidpf:
         return (next_seed, xof.next_vec(cls.Field, 1+cls.VALUE_LEN))
 
     @classmethod
+    def next_cs_proof(cls, node, level, seed):
+        binder = to_le_bytes(cls.BITS, 2) \
+            + to_le_bytes(node, (cls.BITS + 7) // 8) \
+            + to_le_bytes(level, 2)
+        xof = XofShake128(seed, b'vidpf cs proof', binder)
+        return xof.next(PROOF_SIZE)
+
+
+    @classmethod
     def with_params(cls, f, bits, value_len):
         class VdipfWithField(cls):
             Field = f
@@ -266,11 +275,6 @@ def correct(k_0, k_1, ctrl):
         return k_0
     # int or ring element
     return k_0 + ctrl * k_1
-
-
-def next_cs_proof(level, seed):
-    xof = XofShake128(seed, b'vidpf cs proof', to_le_bytes(level, 2))
-    return xof.next(PROOF_SIZE)
 
 
 def pi_proof_adjustment(h2):
