@@ -410,8 +410,8 @@ The aggregate result is obtained by summing up the encoded measurement shares
 for each prefix and computing some function of the sum. The aggregation
 parameter contains the level and the set of candidate prefixes.
 
-The Aggregators send their aggregate shares to the Collector, who combines them
-to recover the counts of each candidate prefix.
+The Aggregators send their aggregate shares to the Collector, who unshards them
+to recover the results for each candidate prefix.
 
 ## Sharding
 
