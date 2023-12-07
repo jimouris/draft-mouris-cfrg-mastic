@@ -26,7 +26,7 @@ USAGE_QUERY_RAND = 2
 # Domain separation: FLP joint randomness
 USAGE_JOINT_RAND_SEED = 3
 
-# Domain separation: FLP joint randomness
+# Domain separation: FLP joint randomness parts
 USAGE_JOINT_RAND_PART = 4
 
 # Domain separation: FLP joint randomness

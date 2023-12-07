@@ -13,7 +13,7 @@ from xof import XofFixedKeyAes128
 
 
 class Vidpf:
-    """A Verifiable Distributed Point Function (VIDPF)."""
+    """A Verifiable Incremental Distributed Point Function (VIDPF)."""
 
     # Operational parameters.
     Field = None  # set by `with_params()`
@@ -22,7 +22,7 @@ class Vidpf:
     # Bit length of valid input values (i.e., the length of `alpha` in bits).
     BITS = None  # set by `with_params()`
 
-    # The length of each output vector (i.e., the length of `beta_leaf`).
+    # The length of each output vector (i.e., the length of `beta`).
     VALUE_LEN = None  # set by `with_params()`
 
     # Constants
