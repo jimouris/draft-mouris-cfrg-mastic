@@ -354,12 +354,6 @@ class Mastic(Vdaf):
         )
 
     @classmethod
-    def do_range_check(cls, agg_param):
-        (level, _prefixes) = agg_param
-        return (level == cls.Vidpf.BITS-1
-                and not cls.Vidpf.INCREMENTAL_MODE) or level == 0
-
-    @classmethod
     def test_vec_encode_input_share(Vdaf, input_share):
         # TODO(cjpatton) Decide on a serialization format for Mastic.
         return b'dummy input share'
