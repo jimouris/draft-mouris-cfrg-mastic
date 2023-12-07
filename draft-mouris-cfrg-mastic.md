@@ -364,8 +364,8 @@ values, a string, a secret number within a public range, etc.
 As described in {{conventions}}, each Client input consists of two components,
 which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF
 keys that encodes `alpha` and `beta` and an FLP for the validity of `beta`.
-Then the Client sends one key and proof share to each Aggregator and also
-publishes the public share.
+Then the Client sends one VIDPF key to each Aggregator and also publishes the
+VIDPF public share.
 FLPs for certain validity functions, including most range proofs, rely on the
 establishment of shared random coins (`joint randomness`) between the Client and
 all Aggregators.
