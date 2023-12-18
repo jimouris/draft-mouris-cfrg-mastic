@@ -114,9 +114,9 @@ class Mastic(Vdaf):
         # Generate FLP joint randomness.
         joint_rand_parts = []
         joint_rand_parts.append(cls.joint_rand_part(
-            0, flp_leader_seed, vidpf_init_seed[0], nonce))
+            0, flp_leader_seed, vidpf_init_seed[0], vidpf_public_share, nonce))
         joint_rand_parts.append(cls.joint_rand_part(
-            1, flp_helper_seed, vidpf_init_seed[1], nonce))
+            1, flp_helper_seed, vidpf_init_seed[1], vidpf_public_share, nonce))
         joint_rand = cls.joint_rand(
             cls.joint_rand_seed(joint_rand_parts))
         flp_public_share = joint_rand_parts
@@ -202,7 +202,8 @@ class Mastic(Vdaf):
             joint_rand = []
             if cls.Flp.JOINT_RAND_LEN > 0:
                 joint_rand_part = cls.joint_rand_part(
-                    agg_id, flp_seed, vidpf_init_seed, nonce)
+                    agg_id, flp_seed, vidpf_init_seed,
+                    vipdf_public_share, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
                 corrected_joint_rand_seed = cls.joint_rand_seed(
                     joint_rand_parts)
@@ -326,11 +327,12 @@ class Mastic(Vdaf):
         )
 
     @classmethod
-    def joint_rand_part(cls, agg_id, flp_seed, beta_share, nonce):
+    def joint_rand_part(cls, agg_id, flp_seed, beta_share, public_share, nonce):
         return cls.Xof.derive_seed(
             flp_seed,
             cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
-            byte(agg_id) + nonce + beta_share,
+            byte(agg_id) + nonce + beta_share + \
+            cls.Vidpf.public_share_as_bytes(public_share),
         )
 
     @classmethod
@@ -339,7 +341,7 @@ class Mastic(Vdaf):
         return cls.Xof.derive_seed(
             zeros(cls.Xof.SEED_SIZE),
             cls.domain_separation_tag(USAGE_JOINT_RAND_SEED),
-            concat(joint_rand_parts),
+            concat(joint_rand_parts)
         )
 
     @classmethod
