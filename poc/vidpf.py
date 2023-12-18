@@ -6,7 +6,7 @@ sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
 
 import hashlib
 
-from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
+from common import (Bytes, format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
                     vec_sub, xor, zeros)
 from field import Field2, Field128
 from xof import XofFixedKeyAes128, XofShake128
@@ -262,6 +262,18 @@ class Vidpf:
             BITS = bits
             VALUE_LEN = value_len
         return VdipfWithField
+
+    @classmethod
+    def public_share_as_bytes(cls, public_share):
+        (correction_words, cs_proofs) = public_share
+        out = Bytes()
+        for lvl in range(cls.BITS):
+            (seed_cw, ctrl_cw, w_cw) = correction_words[lvl]
+            out += seed_cw + Field2.encode_vec(ctrl_cw)
+            out += cls.Field.encode_vec(w_cw)
+            out += cs_proofs[lvl]
+        return out
+
 
 
 def correct(k_0, k_1, ctrl):
