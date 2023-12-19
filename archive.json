@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2023-12-17T00:39:55.286464+00:00",
+  "timestamp": "2023-12-19T00:37:00.094677+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -383,7 +383,7 @@
       "comments": [
         {
           "author": "divergentdave",
-          "authorAssociation": "NONE",
+          "authorAssociation": "CONTRIBUTOR",
           "body": "Agreed, an encoding for prefixes will be needed eventually for the aggregation parameter, and we may as well use it here. Plus, using ASCII may require implementations to use a bigint library for sufficiently long inputs.",
           "createdAt": "2023-12-07T20:53:49Z",
           "updatedAt": "2023-12-07T20:53:49Z"
@@ -607,7 +607,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/48",
       "state": "OPEN",
       "author": "divergentdave",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [
         "hannahdaviscrypto"
       ],
@@ -633,7 +633,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/49",
       "state": "OPEN",
       "author": "divergentdave",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [
         "cjpatton"
       ],
@@ -659,12 +659,28 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/51",
       "state": "OPEN",
       "author": "divergentdave",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Currently, the proof of concept branches on `next_ctrl.as_unsigned()` when computing `pi_proof`. This should be changed to use `correct()` or `next_ctrl.conditional_select()`, and we should add an implementation note comment, advising to avoid sidechannels, as with other uses of `next_ctrl`.",
       "createdAt": "2023-12-07T22:01:40Z",
       "updatedAt": "2023-12-07T22:01:40Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 53,
+      "id": "I_kwDOJmRsfc56DZ5n",
+      "title": "Tracking issue: Use cases not covered by Poplar1",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/53",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This it to track disucssions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Aggregation-by-labels: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12",
+      "createdAt": "2023-12-19T00:26:57Z",
+      "updatedAt": "2023-12-19T00:26:57Z",
       "closedAt": null,
       "comments": []
     }
@@ -4583,24 +4599,26 @@
       "id": "PR_kwDOJmRsfc5hd4gk",
       "title": "Editorial changes",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/50",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "divergentdave",
-      "authorAssociation": "NONE",
+      "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "This makes a few editorial changes from my first read-through of the document and proof of concept implementation. See the individual commit messages for explanations.",
       "createdAt": "2023-12-07T21:45:32Z",
-      "updatedAt": "2023-12-11T23:30:13Z",
+      "updatedAt": "2023-12-18T22:15:08Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "6dba358ee6b2a0155c29f6152d2ddcf265ddc1b7",
       "headRepository": "divergentdave/draft-mouris-cfrg-mastic",
       "headRefName": "david/editorial",
       "headRefOid": "117c31a310a4b017ae4906ce50bd855958a1a41a",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2023-12-18T22:15:08Z",
+      "mergedAt": "2023-12-18T22:15:08Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "eb319759575476027244cb0c7d88739839b51b44"
+      },
       "comments": [],
       "reviews": [
         {
@@ -4661,6 +4679,85 @@
           "createdAt": "2023-12-11T23:30:13Z",
           "updatedAt": "2023-12-11T23:30:13Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 52,
+      "id": "PR_kwDOJmRsfc5iTcKI",
+      "title": "Add public share to joint randomness derivation",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/52",
+      "state": "OPEN",
+      "author": "hannahdaviscrypto",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Fixes Fiat-Shamir vulnarability highlighted in Issue #48 ",
+      "createdAt": "2023-12-18T20:37:33Z",
+      "updatedAt": "2023-12-18T22:21:32Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "48c38b7ce358e519e77761954b6a87ba6f9319bd",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "hannahdaviscrypto/pub-share",
+      "headRefOid": "8821b3e8b156f6d88f5334ae8906c5386bcc8a70",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@hannahdaviscrypto it looks like you need to rebase your branch on main: \r\n![image](https://github.com/jimouris/draft-mouris-cfrg-mastic/assets/3453007/ed1b9823-704e-4756-bda4-dc4e53d321d9)\r\n",
+          "createdAt": "2023-12-18T20:42:07Z",
+          "updatedAt": "2023-12-18T20:42:07Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc5qj6mq",
+          "commit": {
+            "abbreviatedOid": "8821b3e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-12-18T22:17:19Z",
+          "updatedAt": "2023-12-18T22:21:32Z",
+          "comments": [
+            {
+              "originalPosition": 27,
+              "body": "For consistency (plus `beta_share` is not rthe right term!)\r\n```suggestion\r\n    def joint_rand_part(cls, agg_id, flp_seed, vidpf_key, vidpf_public_share, nonce):\r\n```",
+              "createdAt": "2023-12-18T22:17:19Z",
+              "updatedAt": "2023-12-18T23:18:10Z"
+            },
+            {
+              "originalPosition": 33,
+              "body": "Better aligned with terminology from the VDAF draft\r\n```suggestion\r\n            cls.Vidpf.encode_public_share(public_share),\r\n```",
+              "createdAt": "2023-12-18T22:18:24Z",
+              "updatedAt": "2023-12-18T22:21:32Z"
+            },
+            {
+              "originalPosition": 42,
+              "body": "Why make this change? Did the linter suggest this?\r\n\r\nIn Python3 I believe the convention is to terminate every item in a list with a comma, even the last. (This is the convention in more modern programming languages.)",
+              "createdAt": "2023-12-18T22:19:31Z",
+              "updatedAt": "2023-12-18T22:21:32Z"
+            },
+            {
+              "originalPosition": 5,
+              "body": "Prefer `bytes` instead of `Bytes`: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/222",
+              "createdAt": "2023-12-18T22:20:07Z",
+              "updatedAt": "2023-12-18T22:21:32Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "It might be best to crib this from the base draft: https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/3d2dd77befcf149c818b4bae1744e60c00d0a4f3/poc/idpf_poplar.py#L194",
+              "createdAt": "2023-12-18T22:21:24Z",
+              "updatedAt": "2023-12-18T22:21:32Z"
+            }
+          ]
         }
       ]
     }
