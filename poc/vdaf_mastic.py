@@ -327,12 +327,13 @@ class Mastic(Vdaf):
         )
 
     @classmethod
-    def joint_rand_part(cls, agg_id, flp_seed, beta_share, public_share, nonce):
+    def joint_rand_part(cls, agg_id, flp_seed, vidpf_key, vidpf_public_share,
+                        nonce):
         return cls.Xof.derive_seed(
             flp_seed,
             cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
-            byte(agg_id) + nonce + beta_share +
-            cls.Vidpf.public_share_as_bytes(public_share),
+            byte(agg_id) + nonce + vidpf_key +
+            cls.Vidpf.encode_public_share(vidpf_public_share),
         )
 
     @classmethod
@@ -341,7 +342,7 @@ class Mastic(Vdaf):
         return cls.Xof.derive_seed(
             zeros(cls.Xof.SEED_SIZE),
             cls.domain_separation_tag(USAGE_JOINT_RAND_SEED),
-            concat(joint_rand_parts)
+            concat(joint_rand_parts),
         )
 
     @classmethod
