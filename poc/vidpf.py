@@ -5,8 +5,9 @@ import sys
 sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
 
 import hashlib
+import itertools
 
-from common import (Bytes, format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
+from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
                     vec_sub, xor, zeros)
 from field import Field2, Field128
 from xof import XofFixedKeyAes128, XofShake128
@@ -17,7 +18,7 @@ PROOF_SIZE = 32
 
 
 class Vidpf:
-    """A Verifiable Distributed Point Function (VIDPF)."""
+    """A Verifiable Incremental Distributed Point Function (VIDPF)."""
 
     # Operational parameters.
     Field = None  # set by `with_params()`
@@ -264,15 +265,19 @@ class Vidpf:
         return VdipfWithField
 
     @classmethod
-    def public_share_as_bytes(cls, public_share):
+    def encode_public_share(cls, public_share):
         (correction_words, cs_proofs) = public_share
-        out = Bytes()
+        encoded = bytes()
+        control_bits = list(itertools.chain.from_iterable(
+            cw[1] for cw in correction_words
+        ))
+        encoded += pack_bits(control_bits)
         for lvl in range(cls.BITS):
             (seed_cw, ctrl_cw, w_cw) = correction_words[lvl]
-            out += seed_cw + Field2.encode_vec(ctrl_cw)
-            out += cls.Field.encode_vec(w_cw)
-            out += cs_proofs[lvl]
-        return out
+            encoded += seed_cw
+            encoded += cls.Field.encode_vec(w_cw)
+            encoded += cs_proofs[lvl]
+        return encoded
 
 
 def correct(k_0, k_1, ctrl):
@@ -303,6 +308,14 @@ def eval_proof(pi_proof, counter, path):
         pi_proof + counter + path,
     )
     return xof.next(PROOF_SIZE)
+
+
+def pack_bits(bits):
+    byte_len = (len(bits) + 7) // 8
+    packed = [int(0)] * byte_len
+    for i, bit in enumerate(bits):
+        packed[i // 8] |= bit.as_unsigned() << (i % 8)
+    return bytes(packed)
 
 
 def main():
