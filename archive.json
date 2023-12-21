@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2023-12-19T00:37:00.094677+00:00",
+  "timestamp": "2023-12-21T00:36:22.609764+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -678,9 +678,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "This it to track disucssions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Aggregation-by-labels: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12",
+      "body": "This is to track discussions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Weighted heavy hitters: Suggested in https://eprint.iacr.org/2023/130.pdf, Section 6\r\n- [ ] Aggregation-by-labels: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12 (not safe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273)\r\n- [ ] End evaluation early: The DAP draft describes a situation in which it is desirable to halt evaluation after the collector has detected that a prefix has reached a padding terminator. This is unsafe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273.",
       "createdAt": "2023-12-19T00:26:57Z",
-      "updatedAt": "2023-12-19T00:26:57Z",
+      "updatedAt": "2023-12-19T20:59:13Z",
       "closedAt": null,
       "comments": []
     }
@@ -4694,13 +4694,13 @@
       "labels": [],
       "body": "Fixes Fiat-Shamir vulnarability highlighted in Issue #48 ",
       "createdAt": "2023-12-18T20:37:33Z",
-      "updatedAt": "2023-12-18T22:21:32Z",
+      "updatedAt": "2023-12-19T15:52:45Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "48c38b7ce358e519e77761954b6a87ba6f9319bd",
+      "baseRefOid": "eb319759575476027244cb0c7d88739839b51b44",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "hannahdaviscrypto/pub-share",
-      "headRefOid": "8821b3e8b156f6d88f5334ae8906c5386bcc8a70",
+      "headRefOid": "708c9b96b594118cbf3058324f81ea47417781b4",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -4756,6 +4756,99 @@
               "body": "It might be best to crib this from the base draft: https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/3d2dd77befcf149c818b4bae1744e60c00d0a4f3/poc/idpf_poplar.py#L194",
               "createdAt": "2023-12-18T22:21:24Z",
               "updatedAt": "2023-12-18T22:21:32Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5qo_-H",
+          "commit": {
+            "abbreviatedOid": "8821b3e"
+          },
+          "author": "hannahdaviscrypto",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-12-19T15:25:31Z",
+          "updatedAt": "2023-12-19T15:25:31Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "Gotcha. This also needs to be changed in draft-irtf-cfrg-vdaf/poc/Field.py.",
+              "createdAt": "2023-12-19T15:25:31Z",
+              "updatedAt": "2023-12-19T15:25:31Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5qpATP",
+          "commit": {
+            "abbreviatedOid": "8821b3e"
+          },
+          "author": "hannahdaviscrypto",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-12-19T15:26:11Z",
+          "updatedAt": "2023-12-19T15:26:11Z",
+          "comments": [
+            {
+              "originalPosition": 42,
+              "body": "Picked the wrong branch in the merge. Fixed now.",
+              "createdAt": "2023-12-19T15:26:11Z",
+              "updatedAt": "2023-12-19T15:26:11Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5qpDuM",
+          "commit": {
+            "abbreviatedOid": "8821b3e"
+          },
+          "author": "hannahdaviscrypto",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-12-19T15:32:58Z",
+          "updatedAt": "2023-12-19T15:32:58Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "Can't use it directly but I did steal the method of packing the control bits, thanks!",
+              "createdAt": "2023-12-19T15:32:58Z",
+              "updatedAt": "2023-12-19T15:32:58Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5qpNZE",
+          "commit": {
+            "abbreviatedOid": "708c9b9"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2023-12-19T15:52:22Z",
+          "updatedAt": "2023-12-19T15:52:22Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5qpNlf",
+          "commit": {
+            "abbreviatedOid": "8821b3e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2023-12-19T15:52:45Z",
+          "updatedAt": "2023-12-19T15:52:45Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "If you have a sec, please send a PR :)",
+              "createdAt": "2023-12-19T15:52:45Z",
+              "updatedAt": "2023-12-19T15:52:45Z"
             }
           ]
         }
