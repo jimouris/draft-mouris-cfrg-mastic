@@ -10,7 +10,7 @@ import itertools
 from common import (format_dst, gen_rand, to_le_bytes, vec_add, vec_neg,
                     vec_sub, xor, zeros)
 from field import Field2, Field128
-from xof import XofFixedKeyAes128, XofShake128
+from xof import XofFixedKeyAes128, XofTurboShake128
 
 ROOT_PI_PROOF = hashlib.sha256(b"vidpf root pi proof").digest()
 
@@ -253,7 +253,7 @@ class Vidpf:
         binder = to_le_bytes(cls.BITS, 2) \
             + to_le_bytes(node, (cls.BITS + 7) // 8) \
             + to_le_bytes(level, 2)
-        xof = XofShake128(seed, b'vidpf cs proof', binder)
+        xof = XofTurboShake128(seed, b'vidpf cs proof', binder)
         return xof.next(PROOF_SIZE)
 
     @classmethod
@@ -293,8 +293,8 @@ def correct(k_0, k_1, ctrl):
 
 
 def pi_proof_adjustment(h2):
-    xof = XofShake128(
-        zeros(XofShake128.SEED_SIZE),
+    xof = XofTurboShake128(
+        zeros(XofTurboShake128.SEED_SIZE),
         b'vidpf proof adjustment',
         h2,
     )
@@ -302,8 +302,8 @@ def pi_proof_adjustment(h2):
 
 
 def eval_proof(pi_proof, counter, path):
-    xof = XofShake128(
-        zeros(XofShake128.SEED_SIZE),
+    xof = XofTurboShake128(
+        zeros(XofTurboShake128.SEED_SIZE),
         b'vidpf eval proof',
         pi_proof + counter + path,
     )

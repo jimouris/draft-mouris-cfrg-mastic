@@ -10,7 +10,7 @@ from typing import Optional, Union
 from common import Unsigned, byte, concat, front, vec_add, vec_sub, zeros
 from flp_generic import FlpGeneric
 from vdaf import Vdaf, test_vdaf
-from xof import XofShake128
+from xof import XofTurboShake128
 
 from vidpf import Vidpf
 
@@ -38,7 +38,7 @@ class Mastic(Vdaf):
     Field = None  # Set by `with_params()`
     Vidpf = None  # Set by `with_params()`
     Flp = None  # Set by `with_params()`
-    Xof = XofShake128
+    Xof = XofTurboShake128
 
     # Parameters required by `Vdaf`.
     ID: Unsigned = 0xFFFFFFFF
@@ -396,10 +396,10 @@ class Mastic(Vdaf):
             RAND_SIZE = Vidpf.RAND_SIZE
             if Flp.JOINT_RAND_LEN > 0:
                 # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
-                RAND_SIZE += 3 * XofShake128.SEED_SIZE
+                RAND_SIZE += 3 * XofTurboShake128.SEED_SIZE
             else:
                 # flp_prove_rand_seed, flp_helper_seed
-                RAND_SIZE += 2 * XofShake128.SEED_SIZE
+                RAND_SIZE += 2 * XofTurboShake128.SEED_SIZE
 
             # `alpha` and the un-encoded `beta`.
             Measurement = tuple[Unsigned,
