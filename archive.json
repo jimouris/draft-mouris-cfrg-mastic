@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-11T00:37:40.185311+00:00",
+  "timestamp": "2024-01-14T00:40:47.186385+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -469,7 +469,7 @@
       "labels": [],
       "body": "We would like these to be aligned as possible. We're still optimizing IDPF here and there, e.g., https://github.com/cfrg/draft-irtf-cfrg-vdaf/pull/303. We should decide if we're OK with these optimizations.",
       "createdAt": "2023-10-24T16:46:18Z",
-      "updatedAt": "2023-11-30T18:07:33Z",
+      "updatedAt": "2024-01-12T17:36:40Z",
       "closedAt": null,
       "comments": [
         {
@@ -478,6 +478,13 @@
           "body": "We should expect a speed-up for Mastic here: https://github.com/divviup/libprio-rs/pull/859#issuecomment-1834297018",
           "createdAt": "2023-11-30T18:07:31Z",
           "updatedAt": "2023-11-30T18:07:31Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@armfazh this one is also assigned to you. Basically we took an optimization that reducees the number of AES calls per level from 3 to 2. This improved speed quite a bit, so we want this change for VIDPF as well.",
+          "createdAt": "2024-01-12T17:36:39Z",
+          "updatedAt": "2024-01-12T17:36:39Z"
         }
       ]
     },
@@ -605,7 +612,7 @@
       "id": "I_kwDOJmRsfc55FVS1",
       "title": "Fiat-Shamir vulnerability due to binding to wrong inputs",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/48",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "divergentdave",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [
@@ -614,8 +621,8 @@
       "labels": [],
       "body": "Currently, joint randomness parts depend on each VIDPF key. This is insufficient, because it admits the following attack: An adversarial client generates VIDPF keys honestly for some input alpha, but then throws away the \"w\" part of the correction words in the public share. They can now compute the joint randomness parts, joint randomness seed, and joint randomness field elements, because they only depend on the blinds, VIDPF keys, and nonce (all chosen randomly by honest clients). Next, the dishonest client uses foreknowledge of the joint randomness values to select one of many FLP measurements that result in cancellation during the random linear combination part of the validity circuit. For example, if the circuit is Sum(8), I think they could fix the first seven measurement elements to be, say -1, and then solve to find what value of the eighth measurement element would result in a circuit output of zero. Treating the circuit as a univariate function of the eighth measurement element, it is a quadratic polynomial, known to the attacker, so they should have two zeros to choose from. Now, the attacker can program this adversarially-chosen measurement into the VIDPF by re-running VIDPF key generation, reusing the same initial seeds and alpha. Only the \"w\" parts of the correction words will change. The resulting report would pass one-hotness checks and path checks, because the core seeds/control bits of the VIDPF evaluation were not tampered with. The aggregators would extract the late-programmed adversarial measurement from their collective calls to `VIDPF.eval()` with each key and inputs `0b0` and `0b1`, and it would pass FLP verification by construction.\r\n\r\nThe straightforward fix for this is to compute `beta_share` for each aggregator, as in `Vidpf.eval()`, and replace `vidpf_init_seed[0]`/`vidpf_init_seed[1]` in joint randomness part derivation with each `beta_share`. That way, we would bind joint randomness to the FLP measurement, by binding to both measurement shares. (A less complicated but less efficient option would be to include shares of beta directly in each input share, and use those in both joint randomness derivation and FLP verification, rather than extracting shares of beta from evaluations at `0b0` and `0b1`, as is done currently.)",
       "createdAt": "2023-12-07T20:06:23Z",
-      "updatedAt": "2023-12-07T23:01:44Z",
-      "closedAt": null,
+      "updatedAt": "2024-01-12T22:11:39Z",
+      "closedAt": "2024-01-12T22:11:39Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -634,13 +641,11 @@
       "state": "OPEN",
       "author": "divergentdave",
       "authorAssociation": "CONTRIBUTOR",
-      "assignees": [
-        "cjpatton"
-      ],
+      "assignees": [],
       "labels": [],
       "body": "Currently, path proof computation iterates over prefixes in the outer loop, and levels in the inner loop. Switching this would improve the data locality of implementations, while still committing to all the same data. In particular, the first few iterations of an outer level loop would often hash the same field vector in consecutive iterations of the inner loop. (because, for example, at level 0, it would process node 0 several times, and then process node 1 several times) The field vector arithmetic could even be conditionally reused across inner loop iterations for a further speedup.",
       "createdAt": "2023-12-07T20:59:08Z",
-      "updatedAt": "2023-12-07T21:13:11Z",
+      "updatedAt": "2024-01-12T17:33:42Z",
       "closedAt": null,
       "comments": [
         {
@@ -649,6 +654,13 @@
           "body": "Thanks for the implementation feedback, @divergentdave! I'll make this change and request your review when the PR is ready. It may not happen before the new year.",
           "createdAt": "2023-12-07T21:13:10Z",
           "updatedAt": "2023-12-07T21:13:10Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@armfazh is going to do the implementation of VIDPF in libprio (https://github.com/divviup/libprio-rs). Armando, we will want to resolve this issue as part of this, as this issue aligns the VIDPF spec with the current IDPF implementation.",
+          "createdAt": "2024-01-12T17:33:40Z",
+          "updatedAt": "2024-01-12T17:33:40Z"
         }
       ]
     },
@@ -664,9 +676,17 @@
       "labels": [],
       "body": "Currently, the proof of concept branches on `next_ctrl.as_unsigned()` when computing `pi_proof`. This should be changed to use `correct()` or `next_ctrl.conditional_select()`, and we should add an implementation note comment, advising to avoid sidechannels, as with other uses of `next_ctrl`.",
       "createdAt": "2023-12-07T22:01:40Z",
-      "updatedAt": "2023-12-07T22:01:40Z",
+      "updatedAt": "2024-01-12T17:34:46Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "@armfazh similarly here. Please propose a change for the reference implementation of VIDPF that resolves this issue.",
+          "createdAt": "2024-01-12T17:34:45Z",
+          "updatedAt": "2024-01-12T17:34:45Z"
+        }
+      ]
     },
     {
       "number": 53,
@@ -4687,24 +4707,26 @@
       "id": "PR_kwDOJmRsfc5iTcKI",
       "title": "Add public share to joint randomness derivation",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/52",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "hannahdaviscrypto",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Fixes Fiat-Shamir vulnarability highlighted in Issue #48 ",
       "createdAt": "2023-12-18T20:37:33Z",
-      "updatedAt": "2023-12-19T15:52:45Z",
+      "updatedAt": "2024-01-12T16:54:59Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "eb319759575476027244cb0c7d88739839b51b44",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "hannahdaviscrypto/pub-share",
       "headRefOid": "708c9b96b594118cbf3058324f81ea47417781b4",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-01-12T16:54:59Z",
+      "mergedAt": "2024-01-12T16:54:59Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "797ff495ad4bb7e5898f24812802ab5b6bfcefa5"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -4853,6 +4875,40 @@
           ]
         }
       ]
+    },
+    {
+      "number": 54,
+      "id": "PR_kwDOJmRsfc5j9GmG",
+      "title": "Upgrade reference to base draft",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/54",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "In draft-08, SHAKE was replaced with TurboSHAKE, so upgrade the dependency accordingly.\r\n\r\nThe latest version of the main branch has been checked out rather than the tagged version (draft-irtf-cfrg-vdaf-08). This is because the latest version resolves a technical issue regarding the implementation of TurboSHAKE. This was resolved by upgrading PyCryptodomex to the latest version:\r\n\r\n$ sage -pip install --upgrade pycryptodomex\r\n\r\nVersion 3.20.0 is required.",
+      "createdAt": "2024-01-12T17:54:57Z",
+      "updatedAt": "2024-01-12T17:57:25Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "797ff495ad4bb7e5898f24812802ab5b6bfcefa5",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/upgrade-base-draft",
+      "headRefOid": "1304dca2a3e33c4c4fb0f87f49b5d6f5dfc2ecf9",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Reviewer note: you'll need to update your submodule. I think this works:\r\n```\r\n$ git submodule update --recursive --remote\r\n```",
+          "createdAt": "2024-01-12T17:55:16Z",
+          "updatedAt": "2024-01-12T17:55:16Z"
+        }
+      ],
+      "reviews": []
     }
   ]
 }
