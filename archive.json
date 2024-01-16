@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-14T00:40:47.186385+00:00",
+  "timestamp": "2024-01-16T00:37:21.126547+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -4881,24 +4881,26 @@
       "id": "PR_kwDOJmRsfc5j9GmG",
       "title": "Upgrade reference to base draft",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/54",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "In draft-08, SHAKE was replaced with TurboSHAKE, so upgrade the dependency accordingly.\r\n\r\nThe latest version of the main branch has been checked out rather than the tagged version (draft-irtf-cfrg-vdaf-08). This is because the latest version resolves a technical issue regarding the implementation of TurboSHAKE. This was resolved by upgrading PyCryptodomex to the latest version:\r\n\r\n$ sage -pip install --upgrade pycryptodomex\r\n\r\nVersion 3.20.0 is required.",
       "createdAt": "2024-01-12T17:54:57Z",
-      "updatedAt": "2024-01-12T17:57:25Z",
+      "updatedAt": "2024-01-15T17:32:33Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "797ff495ad4bb7e5898f24812802ab5b6bfcefa5",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/upgrade-base-draft",
       "headRefOid": "1304dca2a3e33c4c4fb0f87f49b5d6f5dfc2ecf9",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-01-15T17:32:33Z",
+      "mergedAt": "2024-01-15T17:32:33Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "9f2c8eb3b02c13e80250e71c1f4515a75140ac4d"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -4908,7 +4910,21 @@
           "updatedAt": "2024-01-12T17:55:16Z"
         }
       ],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc5smnVG",
+          "commit": {
+            "abbreviatedOid": "1304dca"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-01-15T17:16:20Z",
+          "updatedAt": "2024-01-15T17:16:20Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
