@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-18T00:37:19.467106+00:00",
+  "timestamp": "2024-01-21T00:40:55.962388+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -701,6 +701,22 @@
       "body": "This is to track discussions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Weighted heavy hitters: Suggested in https://eprint.iacr.org/2023/130.pdf, Section 6\r\n- [ ] Aggregation-by-labels: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12 (not safe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273)\r\n- [ ] End evaluation early: The DAP draft describes a situation in which it is desirable to halt evaluation after the collector has detected that a prefix has reached a padding terminator. This is unsafe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273.",
       "createdAt": "2023-12-19T00:26:57Z",
       "updatedAt": "2023-12-19T20:59:13Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 55,
+      "id": "I_kwDOJmRsfc58qUoy",
+      "title": "Feature: Non-incremental mode of operation (at lower communication cost?)",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/55",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Suppose we know we were only going to use Mastic in \"non-incremental\" mode only, i.e., we only evaluate at inputs of length `BITS`. This is exactly the \"aggregate-by-label\" use case described in the draft.\r\n\r\nThe length of the public shares is linear in `BITS`. This is because we need to generate a correction word and VIDPF proof for every level of the tree. In non-incremental mode, could we tweak the construction so that the communication cost can be reduced? Perhaps not the VIDPF proofs, but maybe the correction words?\r\n\r\nThis would be useful if we wanted to use Mastic for large $\\beta$ values, e.g., a histogram with 100s-1000s of buckets.",
+      "createdAt": "2024-01-19T21:47:34Z",
+      "updatedAt": "2024-01-19T21:47:34Z",
       "closedAt": null,
       "comments": []
     }
