@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 21 June 2024                             University of Delaware
+Expires: 28 July 2024                             University of Delaware
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                        19 December 2023
+                                                         25 January 2024
 
 
                             The Mastic VDAF
@@ -60,11 +60,11 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 21 June 2024.
+   This Internet-Draft will expire on 28 July 2024.
 
 Copyright Notice
 
-   Copyright (c) 2023 IETF Trust and the persons identified as the
+   Copyright (c) 2024 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
    This document is subject to BCP 78 and the IETF Trust's Legal
@@ -411,14 +411,14 @@ Table of Contents
    As described in Section 2, each Client input consists of two
    components, which we denote alpha and beta.  At a high level, the
    Client generates VIDPF keys that encodes alpha and beta and an FLP
-   for the validity of beta.  Then the Client sends one key and proof
-   share to each Aggregator and also publishes the public share.  FLPs
-   for certain validity functions, including most range proofs, rely on
-   the establishment of shared random coins (joint randomness) between
-   the Client and all Aggregators.  When it is necessary for the Client
-   to generate joint randomness, it includes generator seeds in its
-   shares for each Aggregator, and the Aggregators confirm that they
-   have derived the same joint randomness during the FLP verification
+   for the validity of beta.  Then the Client sends one VIDPF key to
+   each Aggregator and also publishes the VIDPF public share.  FLPs for
+   certain validity functions, including most range proofs, rely on the
+   establishment of shared random coins (joint randomness) between the
+   Client and all Aggregators.  When it is necessary for the Client to
+   generate joint randomness, it includes generator seeds in its shares
+   for each Aggregator, and the Aggregators confirm that they have
+   derived the same joint randomness during the FLP verification
    process.
 
    The Aggregators agree on an initial set of level-bit strings, where
@@ -463,7 +463,7 @@ Table of Contents
    candidate prefixes.
 
    The Aggregators send their aggregate shares to the Collector, who
-   combines them to recover the counts of each candidate prefix.
+   unshards them to recover the results for each candidate prefix.
 
 4.1.  Sharding
 
@@ -537,8 +537,8 @@ Table of Contents
    1.  Popular URLs: a.example.com receives a massive amount of traffic
        whereas b.example.com may have lower traffic.  To identify heavy-
        hitting search queries on a.example.com, the Aggregators should
-       set a high threshold, while in queries in different search
-       engines may require lower thresholds to be considered popular.
+       set a high threshold, while queries with different domain
+       prefixes may require lower thresholds to be considered popular.
 
    2.  E-commerce: Grocery items are essential and have a high volume of
        sales.  In contrast, electronics, though popular, usually come
