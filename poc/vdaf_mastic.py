@@ -357,14 +357,25 @@ class Mastic(Vdaf):
         )
 
     @classmethod
-    def test_vec_encode_input_share(Vdaf, input_share):
-        # TODO(cjpatton) Decide on a serialization format for Mastic.
-        return b'dummy input share'
+    def test_vec_encode_input_share(cls, input_share):
+        (init_seed, proof_share, seed) = input_share
+        encoded = bytes()
+        encoded += init_seed
+        if proof_share != None:
+            encoded += cls.Field.encode_vec(proof_share)
+        if seed != None:
+            encoded += seed
+        return encoded
 
     @classmethod
-    def test_vec_encode_public_share(Vdaf, public_share):
-        # TODO(cjpatton) Decide on a serialization format for Mastic.
-        return b'dummy public share'
+    def test_vec_encode_public_share(cls, public_share):
+        ((correction_words, cs_proofs), joint_rand_parts) = public_share
+        encoded = bytes()
+        encoded += cls.Vidpf.encode_public_share((correction_words, cs_proofs))
+        if joint_rand_parts != None:
+            for seed in joint_rand_parts:
+                encoded += seed
+        return encoded
 
     @classmethod
     def test_vec_encode_agg_share(Vdaf, agg_share):
@@ -742,10 +753,70 @@ def example_aggregation_by_labels_mode():
     assert agg_result == [6, 0, 4]
 
 
+def example_poplar1_overhead():
+    from common import gen_rand
+    from flp_generic import Count, Sum
+    from vdaf_poplar1 import Poplar1
+
+    nonce = gen_rand(16)
+
+    cls = Poplar1.with_bits(256)
+    (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
+    b = 0
+    p = len(cls.test_vec_encode_public_share(public_share))
+    b += p
+    print('Poplar1(256) public share len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    b += p
+    print('Poplar1(256) input share 0 len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    b += p
+    print('Poplar1(256) input share 1 len:', p)
+    poplar1_bytes_uploaded = b
+
+    cls = Mastic.with_params(256, Count())
+    (public_share, input_shares) = cls.shard((0, 0),
+                                             nonce,
+                                             gen_rand(cls.RAND_SIZE))
+    b = 0
+    p = len(cls.test_vec_encode_public_share(public_share))
+    b += p
+    print('Mastic(256,Count()) public share len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    b += p
+    print('Mastic(256,Count()) input share 0 len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    b += p
+    print('Mastic(256,Count()) input share 1 len:', p)
+    mastic_count_bytes_uploaded = b
+
+    cls = Mastic.with_params(256, Sum(8))
+    (public_share, input_shares) = cls.shard((0, 0),
+                                             nonce,
+                                             gen_rand(cls.RAND_SIZE))
+    b = 0
+    p = len(cls.test_vec_encode_public_share(public_share))
+    b += p
+    print('Mastic(256,Sum(8)) public share len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    b += p
+    print('Mastic(256,Sum(8)) input share 0 len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    b += p
+    print('Mastic(256,Sum(8)) input share 1 len:', p)
+    mastic_sum8_bytes_uploaded = b
+
+    print('Mastic(256,Count()) overhead for Poplar1(256): {:.2f}%'.format(
+        mastic_count_bytes_uploaded / poplar1_bytes_uploaded * 100))
+    print('Mastic(256,Sum(8)) overhead for Mastic(256,Count()): {:.2f}%'.format(
+        mastic_sum8_bytes_uploaded / mastic_count_bytes_uploaded * 100))
+
+
 if __name__ == '__main__':
     from common import from_be_bytes
     from flp_generic import Count, Sum
 
+    example_poplar1_overhead()
     example_weighted_heavy_hitters_mode()
     example_aggregation_by_labels_mode()
     example_weighted_heavy_hitters_mode_with_different_thresholds()
