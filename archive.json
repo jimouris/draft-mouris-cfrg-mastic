@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-25T00:38:05.520046+00:00",
+  "timestamp": "2024-01-28T00:37:19.605128+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -712,11 +712,13 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "cjpatton"
+      ],
       "labels": [],
       "body": "Suppose we know we were only going to use Mastic in \"non-incremental\" mode only, i.e., we only evaluate at inputs of length `BITS`. This is exactly the \"aggregate-by-label\" use case described in the draft.\r\n\r\nThe length of the public shares is linear in `BITS`. This is because we need to generate a correction word and VIDPF proof for every level of the tree. In non-incremental mode, could we tweak the construction so that the communication cost can be reduced? Perhaps not the VIDPF proofs, but maybe the correction words?\r\n\r\nThis would be useful if we wanted to use Mastic for large $\\beta$ values, e.g., a histogram with 100s-1000s of buckets.",
       "createdAt": "2024-01-19T21:47:34Z",
-      "updatedAt": "2024-01-19T21:47:34Z",
+      "updatedAt": "2024-01-26T21:05:17Z",
       "closedAt": null,
       "comments": []
     }
@@ -4941,6 +4943,32 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 56,
+      "id": "PR_kwDOJmRsfc5lFcfO",
+      "title": "Add script for benchmarking communication cost",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/56",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-01-25T16:34:15Z",
+      "updatedAt": "2024-01-25T16:34:19Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "9f2c8eb3b02c13e80250e71c1f4515a75140ac4d",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/poplar1-overhaead",
+      "headRefOid": "ef85bf668cc77b942772c5bb8426260175598e7e",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
