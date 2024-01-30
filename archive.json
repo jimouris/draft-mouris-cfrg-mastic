@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-28T00:37:19.605128+00:00",
+  "timestamp": "2024-01-30T00:35:06.074296+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -4949,26 +4949,42 @@
       "id": "PR_kwDOJmRsfc5lFcfO",
       "title": "Add script for benchmarking communication cost",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/56",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "",
       "createdAt": "2024-01-25T16:34:15Z",
-      "updatedAt": "2024-01-25T16:34:19Z",
+      "updatedAt": "2024-01-29T21:53:02Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "9f2c8eb3b02c13e80250e71c1f4515a75140ac4d",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/poplar1-overhaead",
       "headRefOid": "ef85bf668cc77b942772c5bb8426260175598e7e",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-01-29T21:53:02Z",
+      "mergedAt": "2024-01-29T21:53:02Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "8e182826804438207e4c4b73f7555250605e3003"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc5uM9_6",
+          "commit": {
+            "abbreviatedOid": "ef85bf6"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-01-29T15:01:16Z",
+          "updatedAt": "2024-01-29T15:01:16Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
