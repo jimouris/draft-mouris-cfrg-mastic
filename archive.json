@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-01-30T00:35:06.074296+00:00",
+  "timestamp": "2024-02-01T00:36:47.229792+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -709,7 +709,7 @@
       "id": "I_kwDOJmRsfc58qUoy",
       "title": "Feature: Non-incremental mode of operation (at lower communication cost?)",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/55",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -718,9 +718,17 @@
       "labels": [],
       "body": "Suppose we know we were only going to use Mastic in \"non-incremental\" mode only, i.e., we only evaluate at inputs of length `BITS`. This is exactly the \"aggregate-by-label\" use case described in the draft.\r\n\r\nThe length of the public shares is linear in `BITS`. This is because we need to generate a correction word and VIDPF proof for every level of the tree. In non-incremental mode, could we tweak the construction so that the communication cost can be reduced? Perhaps not the VIDPF proofs, but maybe the correction words?\r\n\r\nThis would be useful if we wanted to use Mastic for large $\\beta$ values, e.g., a histogram with 100s-1000s of buckets.",
       "createdAt": "2024-01-19T21:47:34Z",
-      "updatedAt": "2024-01-26T21:05:17Z",
-      "closedAt": null,
-      "comments": []
+      "updatedAt": "2024-01-31T03:38:30Z",
+      "closedAt": "2024-01-31T03:38:29Z",
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "This doesn't work without significant changes.\r\n\r\nWe enforce the variant that each node we traverse is equal to the sum of its children. We can't enforce this invariant without computing words for intermediate nodes.\r\n\r\nOne thought is to bring back \"delayed input FLPs\" to check that either the sum of the leaves is a valid input or equal to 0.",
+          "createdAt": "2024-01-31T03:38:30Z",
+          "updatedAt": "2024-01-31T03:38:30Z"
+        }
+      ]
     }
   ],
   "pulls": [
