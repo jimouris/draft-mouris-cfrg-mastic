@@ -754,9 +754,12 @@ def example_aggregation_by_labels_mode():
 
 
 def example_poplar1_overhead():
+    import math
+
     from common import gen_rand
-    from flp_generic import Count, Sum
+    from flp_generic import Count, Histogram, Sum
     from vdaf_poplar1 import Poplar1
+    from vdaf_prio3 import Prio3Histogram
 
     nonce = gen_rand(16)
 
@@ -810,6 +813,46 @@ def example_poplar1_overhead():
         mastic_count_bytes_uploaded / poplar1_bytes_uploaded * 100))
     print('Mastic(256,Sum(8)) overhead for Mastic(256,Count()): {:.2f}%'.format(
         mastic_sum8_bytes_uploaded / mastic_count_bytes_uploaded * 100))
+
+    cls = Mastic.with_params(32, Histogram(100, 10))
+    (public_share, input_shares) = cls.shard((0, 0),
+                                             nonce,
+                                             gen_rand(cls.RAND_SIZE))
+    b = 0
+    p = len(cls.test_vec_encode_public_share(public_share))
+    b += p
+    print('Mastic(32,Histogram(100, 10)) public share len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    b += p
+    print('Mastic(32,Histogram(100, 10)) input share 0 len:', p)
+    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    b += p
+    print('Mastic(32,Histogram(100, 10)) input share 1 len:', p)
+    print('Mastic(32,Histogram(100, 10)) total upload len:', b)
+    mastic_hist_bytes_uploaded = b
+
+    length = 100 * 100  # base histogram length * number of attributes
+    chunk_length = math.floor(math.sqrt(length))
+    cls = Prio3Histogram.with_params(length, chunk_length).with_shares(2)
+    (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
+    b = 0
+    p = len(cls.test_vec_encode_public_share(public_share))
+    b += p
+    print('Prio3Histogram({}, {}) public share len:'.format(
+        length, chunk_length), p)
+    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    b += p
+    print('Prio3Histogram({}, {}) input share 0 len:'.format(
+        length, chunk_length), p)
+    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    b += p
+    print('Prio3Histogram({}, {}) input share 1 len:'.format(
+        length, chunk_length), p)
+    print('Prio3Histogram({}, {}) total upload len:'.format(
+        length, chunk_length), b)
+    prio3_hist_bytes_uploaded = b
+
+    print(prio3_hist_bytes_uploaded / mastic_hist_bytes_uploaded)
 
 
 if __name__ == '__main__':
