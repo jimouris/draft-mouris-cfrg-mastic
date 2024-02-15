@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-02-13T00:35:33.259209+00:00",
+  "timestamp": "2024-02-15T00:35:01.066870+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -4999,25 +4999,35 @@
       "id": "PR_kwDOJmRsfc5mMCzq",
       "title": "Compare overhead of Prio3 for attribute-based metrics",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/57",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "",
       "createdAt": "2024-02-06T20:31:22Z",
-      "updatedAt": "2024-02-06T21:30:36Z",
+      "updatedAt": "2024-02-13T16:10:05Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "8e182826804438207e4c4b73f7555250605e3003",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/prio3-overhead",
       "headRefOid": "76c1439372bc78c09c2c6ff69adbebaa7ebd541a",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
-      "comments": [],
+      "closedAt": "2024-02-13T16:10:05Z",
+      "mergedAt": "2024-02-13T16:10:05Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "a521374cb60b93ac671644fd3dc7a46cf19f7688"
+      },
+      "comments": [
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "@cjpatton reminder to merge this :)",
+          "createdAt": "2024-02-13T13:43:30Z",
+          "updatedAt": "2024-02-13T13:43:30Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc5vPlJM",
