@@ -47,6 +47,18 @@ normative:
 
 informative:
 
+  BBCGGI21:
+    title: "Lightweight Techniques for Private Heavy Hitters"
+    author:
+      - ins: D. Boneh
+      - ins: E. Boyle
+      - ins: H. Corrigan-Gibbs
+      - ins: N. Gilboa
+      - ins: Y. Ishai
+    date: 2021
+    seriesinfo: IEEE S&P 2021
+    target: https://ia.cr/2021/017
+
   CP22:
     title: "Lightweight, Maliciously Secure Verifiable Function Secret Sharing"
     author:
@@ -65,7 +77,7 @@ informative:
     seriesinfo: EUROCRYPT 2014
     target: https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35
 
-  MST23:
+  MST24:
     title: "PLASMA: Private, Lightweight Aggregated Statistics against Malicious Adversaries"
     author:
       - ins: Dimitris Mouris
@@ -85,6 +97,13 @@ informative:
       - ins: Nektarios Georgios Tsoutsos
     date : 2024
     target: https://ia.cr/2024/221
+
+  W3C23:
+    title: "Network Error Logging"
+    author:
+      - ins: W3C Working Group
+    date: 2023
+    target: https://www.w3.org/TR/network-error-logging
 
 --- abstract
 
@@ -124,7 +143,7 @@ measurements that would otherwise corrupt the computation of the histogram.
 This document describes Mastic, a VDAF that can be used as a drop-in
 replacement for Poplar1, while offering improved performance and communication
 cost. [CP: We'll need numbers to back this up.] Based on the PLASMA protocol
-{{MST23}}, the scheme's design also improves communication complexity, requiring
+{{MST24}}, the scheme's design also improves communication complexity, requiring
 just one round for report preparation compared to Poplar1's two rounds. Mastic
 is specified in {{vdaf}}.
 
@@ -289,7 +308,7 @@ malicious Client to fool the Aggregators into accepting malformed counter
 
 To mitigate these issues, IDPF must be composed with some interactive mechanism
 for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
-{{MST23}} for this purpose, which endows IDPF with the following properties:
+{{MST24}} for this purpose, which endows IDPF with the following properties:
 
 1. One-hot Verifiability: There is at most one prefix of each length whose
    value under f is non-zero. In particular, the output shares at each level
@@ -304,7 +323,7 @@ for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
    such values equal `beta`.
 
 Below we describe the syntax of VIDPF; in {{vidpf-construction}} we specify the
-concrete construction of {{MST23}}.
+concrete construction of {{MST24}}.
 
 A concrete `Vidpf` defines the types and constants enumerated in
 {{vidpf-param}}. In addition, it implements the following methods:
@@ -332,7 +351,7 @@ The verifiability properties are guaranteed as long as each Aggregator computes
 the same VIDPF proof. Note that One-hot Verifiability and Path Verifiability
 are not sufficient to ensure robustness of Mastic; we will also need to ensure
 that the `beta` chosen by the Client is "in range". We will rely on FLPs
-({{flp}}) for this purpose. ({{MST23}} describe a simple `range(2)` check, but
+({{flp}}) for this purpose. ({{MST24}} describe a simple `range(2)` check, but
 we would like more sophisticated range checks for Mastic.)
 
 Note that `Vidpf` is less general than `Idpf` as defined {{Section 8 of !VDAF}}
@@ -586,7 +605,7 @@ attack conditions in which the vast majority of Clients are malicious.
 In the simple case where the `beta` value is a constant (e.g., 1) we can replace
 the FLP check with a simpler check. FLPs are not compatible with proof
 aggregation the way VIDPFs are. In order to perform the range check without
-FLPs, we use an extension of VIDPF described by {{MST23}}. The high-level idea
+FLPs, we use an extension of VIDPF described by {{MST24}}. The high-level idea
 here is that the Aggregators can evaluate the empty string and verify that they
 have shares of the constant `beta`. Next, as described in {{vdaf}}, we use the
 "one-hot verifiability" and "path verifiability" checks to verify that each
@@ -616,7 +635,7 @@ one of the Aggregators starts acting maliciously, they can arbitrarily add to
 the aggregation result (simply by adding to their own aggregation shares)
 without the honest Aggregator noticing.
 
-We can solve this problem in Mastic by using a technique from {{MST23}} that
+We can solve this problem in Mastic by using a technique from {{MST24}} that
 lifts the two-party semi-honest secure PLASMA to the three-party maliciously secure
 setting. Rather than having two Aggregators as in the previous setting, this
 flavor involves three Aggregators, where every pair of Aggregators communicate
@@ -663,15 +682,154 @@ malicious Aggregator.
 
 > NOTE to be specified in full detail.
 
+# Applications of `Mastic`
+
+Based on the two modes of operation of Mastic (i.e., Weighted Heavy-Hitters
+{{weighted-heavy-hitters}} and Attribute-Based Metrics
+{{aggregation-by-labels}}), we describe two applications of interest.
+
+## Network Error Logging {#NEL}
+Network Error Logging (NEL) is a mechanism used by web browsers to report errors
+that occur while attempting to establish a connection to a server {{W3C23}}. Some
+of these errors are visible to the server, but not all: failures in DNS, TCP,
+TLS, and HTTP can occur without the server having any visibility into the issue.
+A small amount of connection errors is expected, even under normal operating
+conditions; but a sudden, substantial increase in errors may be an indication of
+an outage, or a configuration issue impacting millions of users. Without a
+reporting mechanism like NEL, these events would only manifest in the server's
+telemetry as a drop in overall traffic.
+
+NEL is particularly important for content delivery networks, such as Akamai,
+AWS, or Cloudflare, that handle HTTP traffic for a large number of websites
+(typically millions). A content delivery network acts as a reverse proxy between
+clients and origin servers that provides a layer of caching and security
+services, such as DDoS protection.
+
+Reports are comprised of the URL the client attempted to navigate to (e.g.,
+`https://example.com`), the type of error that occurred, and metadata related to
+the attempt, such as the time that elapsed between when the connection attempt
+began and the error was observed (e.g., {{W3C23}}, Section 7). Clients may also
+report successful connection attempts to give the server a sense of the error
+rate. The exact client behavior is determined by the reporting policy specified
+by the server (see {{W3C23}}, Section 5.1).
+
+NEL data is privacy-sensitive for two reasons. First, it exposes information
+that the server would not otherwise have access to, which can be abused to probe
+the client's network configuration as described in [{{W3C23}}, Section 9].
+Second, for operational reasons, the reporting endpoint may be organizationally
+separated from the server (i.e., run on different cloud infrastructures),
+leading to an increased risk of the client's browsing history being exposed
+(e.g., in a data breach).
+
+**Private NEL with Mastic.** MPC helps mitigate these risks by revealing to the
+endpoint only the information it needs to fulfill its service level objectives.
+This means, of course, we must be satisfied with limited functionality.
+Fortunately, Mastic allows us to preserve the most important functionality of
+NEL while minimizing privacy loss.
+
+We consider here a simplified version of NEL where each client reports a tuple
+`(dom, err)` consisting of a domain name dom (e.g., `example.com`) and a value
+err that represents an error (e.g., `dns.unreachable`) or an indication that no
+error occurred (e.g., `ok`). Notably, this can be easily extended in Mastic to
+represent more elaborate metrics. e.g., where each weight includes the time it
+took each browser to report the error (and the aggregate is the average error
+reporting time), user agent (browser type and version), etc. However, our main
+goal is to understand 1) the distribution of errors and 2) which domains are
+impacted.
+
+We expect there to be a large number of distinct domain names (millions in the
+case of content delivery networks) and only a small number of error variants
+(the NEL spec {{W3C23}} defines 30 variants). The following Mastic parameters
+are suitable for this application.
+
+* **Inputs:** Each input `alpha` encodes the domain `dom` truncated to `n = 256`
+bits, which is sufficient to represent most of the domains on the internet
+{{MST24}}, {{BBCGGI21}}. Domains that are shorter than `n` bits are padded with
+0s.
+* **Weights:** Each weight `beta` represents the error variant `dom`. To compute
+the distribution of errors, we encode each error variant as a distinct bucket of
+a histogram so that `[1, 0, 0, ...]` represents `ok`, `[0, 1, 0, ...]`
+represents `dns.unreachable`, `[0, 0, 1, ...]` represents
+`dns.name_not_resolved`, and so on. There are 30 such variants (see {{W3C23}},
+Section 6), so the language `L` of valid weights is exactly the set of length-30
+vectors over `F` containing all 0s except for a single 1.
+* **Ordering:** Our `order(·)` function computes the ratio of reports with `err
+!= ok` to reports with `err = ok`. The latter is simply the first bucket of the
+aggregated histogram; the former is the sum of the remaining 29 buckets. Note
+that our ordering of aggregated weights considers the error rate rather than the
+raw error count. This ensures that the signal for less popular domains is not
+swamped by the noise generated by popular sites (network issues may impact some
+domains but not others). Another benefit is that, under normal operating
+conditions, there will be a small number of heavy-hitting domains, which means
+Mastic will run very efficiently. During an incident, there will be more heavy
+hitters, which means it will take longer to compute the set of impacted domains.
+However, we get the errors immediately at the root of the prefix tree, which is
+the most important information needed to begin remediation. As more levels are
+evaluated we get more detailed errors.
+
+
+## Attribute-Based Browser Telemetry {#attribute-based-telemetry}
+Web browsers, like Chrome, Firefox, or Safari, collect telemetry generated by
+users as they surf the web to gain insights into trends that guide product
+decisions. In many cases, Prio can be used to privately aggregate this
+telemetry. However, this comes at the cost of flexibility.
+
+For example, Mozilla is using Prio to collect page load metrics from Firefox for
+a list of known popular sites (e.g., `google.com`). The purpose of these metrics
+is to detect if changes to these sites cause regressions that might be
+correlated with an increased average load time or error rate. A subtle, but
+important requirement for this system is the ability to break down the metrics
+by client attributes. The most crucial attributes are 1) the software version,
+and 2) the information about the client's location.
+
+As we mentioned above, meeting this requirement by increasing the size of the
+histogram leads to intolerable communication overhead. An alternative is to have
+each client upload this information in the clear alongside its Prio report so
+that the reports can be grouped by version and location. The downside of this
+approach is that it significantly reduces the anonymity set of each user since
+they are only mixed with their attribute group rather than the entire
+population.
+
+**Private Browser Telemetry with Mastic.** Mastic provides a simple solution to
+this problem. For the sake of presentation, we consider a simplified version of
+Mozilla's use case (the same approach can be applied to any aggregation task for
+which Prio is suitable). Each client reports a tuple `(ver, loc, site, time)`
+where: `ver` is a string representing the client's software version (e.g.,
+`Firefox/122.0`); `loc` is a string encoding its country code (e.g., `GR`, `US`,
+`IN`, etc.); `site` is one of a fixed set of sites (e.g., `google.com`,
+`wikipedia.org`, etc.); and `time` is the load time of the site in seconds. The
+version and location are included in the Mastic input; the site and load time
+are encoded by the corresponding weight. Notably, this is just one example of
+what Mastic can do; the same idea can be applied to other types of metrics.
+
+Compared to the private NEL application in {{NEL}}, the number of possible
+inputs here is relatively small: there are less than 200 country codes and a
+handful of browser versions in wide use at any given time. This means the
+aggregators can enumerate a set of inputs of interest and evaluate them
+immediately. Consider the following parameters for Mastic, in its
+attribute-based metrics mode of operation {{aggregation-by-labels}}:
+* **Attributes:** Two-letter country codes can easily be encoded in 2 bytes.
+Likewise, the number of distinct browser versions is easily less than 216, so 2
+bytes are sufficient. Therefore, each `alpha` can be encoded with just `n =
+32`bits.
+* **Values:** Similar to private NEL, each weight `beta` is a 0-vector except
+for a single 1 representing a bucket in a histogram. We represent `(site, time)`
+as a histogram bucket as follows. First, we quantize time (in seconds) into one
+of four buckets: `[0, 0.1)`, `[0.1, 1)`, `[1, 5)`, and `[5, inf)`. Let `t \in
+[4]` denote the time bucket for `time`. Next, suppose we wish to track metrics
+for 25 sites. Let `s \in [25]` denote the index of `site` in this list. Then the
+index of 1 in `beta` is simply `t * s` such that `|beta| = m = 4 * 25 = 100`.
+
+
 # Definition of `Vidpf` {#vidpf-construction}
 
-The construction of {{MST23}} builds on techniques from {{CP22}} to lift an IDPF
+The construction of {{MST24}} builds on techniques from {{CP22}} to lift an IDPF
 to a VIDPF with the properties described in {{vidpf}}. Instead of a 2-round
 "secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
 
 TODO(jimouris) Add an overview.
 
-> NOTE To be specified. The design is based on VIDPF from {{MST23}}.
+> NOTE To be specified. The design is based on VIDPF from {{MST24}}.
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc for the
 > reference implementation.
 
