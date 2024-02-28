@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 16 August 2024                           University of Delaware
+Expires: 31 August 2024                                          Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                        13 February 2024
+                                                        28 February 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 16 August 2024.
+   This Internet-Draft will expire on 31 August 2024.
 
 Copyright Notice
 
@@ -785,10 +785,15 @@ Table of Contents
               <https://link.springer.com/
               chapter/10.1007/978-3-642-55220-5_35>.
 
+   [MPDST24]  Dimitris Mouris, Christopher Patton, Hannah Davis, Pratik
+              Sarkar, and Nektarios Georgios Tsoutsos, "Mastic: Private
+              Weighted Heavy-Hitters and Attribute-Based Metrics", 2024,
+              <https://ia.cr/2024/221>.
+
    [MST23]    Dimitris Mouris, Pratik Sarkar, and Nektarios Georgios
               Tsoutsos, "PLASMA: Private, Lightweight Aggregated
-              Statistics against Malicious Adversaries", 2023,
-              <https://ia.cr/2023/080>.
+              Statistics against Malicious Adversaries", PETS 2024 ,
+              2024, <https://ia.cr/2023/080>.
 
    [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
               Ed., "HTTP Semantics", STD 97, RFC 9110,
@@ -811,8 +816,8 @@ Authors' Addresses
 
 
    Dimitris Mouris
-   University of Delaware
-   Email: jimouris@udel.edu
+   Nillion
+   Email: dimitris@nillion.com
 
 
    Christopher Patton
