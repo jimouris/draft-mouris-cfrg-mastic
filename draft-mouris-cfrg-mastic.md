@@ -28,8 +28,8 @@ author:
     email: hannah.e.davis@seagate.com
  -
     fullname: Dimitris Mouris
-    organization: University of Delaware
-    email: jimouris@udel.edu
+    organization: Nillion
+    email: dimitris@nillion.com
  -
     name: Christopher Patton
     organization: Cloudflare
@@ -71,8 +71,20 @@ informative:
       - ins: Dimitris Mouris
       - ins: Pratik Sarkar
       - ins: Nektarios Georgios Tsoutsos
-    date : 2023
+    date : 2024
+    seriesinfo: PETS 2024
     target: https://ia.cr/2023/080
+
+  MPDST24:
+    title: "Mastic: Private Weighted Heavy-Hitters and Attribute-Based Metrics"
+    author:
+      - ins: Dimitris Mouris
+      - ins: Christopher Patton
+      - ins: Hannah Davis
+      - ins: Pratik Sarkar
+      - ins: Nektarios Georgios Tsoutsos
+    date : 2024
+    target: https://ia.cr/2024/221
 
 --- abstract
 

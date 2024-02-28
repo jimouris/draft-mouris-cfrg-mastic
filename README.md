@@ -14,7 +14,7 @@ First clone the repository and its submodules.
 $ git clone --recurse-submodules git@github.com:jimouris/draft-mouris-cfrg-mastic.git
 ```
 
-Next, install `sagemath` and `pycryptodomex`:
+Next, install `sagemath` and `pycryptodomex` (version >= 3.20):
 ```shell
 apt install sagemath
 sage --pip install pycryptodomex
