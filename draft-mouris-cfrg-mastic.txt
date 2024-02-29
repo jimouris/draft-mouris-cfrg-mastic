@@ -651,9 +651,9 @@ Table of Contents
 
 5.1.  Weighted Heavy-Hitters
 
-      NOTE to be specified in full detail.  For an end-to-end example,
-      see example_weighted_heavy_hitters_mode() in the reference
-      implementation.
+      See Section 1.1.1 for a motivating application and
+      example_weighted_heavy_hitters_mode() in the reference
+      implementation for an end-to-end example.
 
    The primary use case for Mastic is a variant of the heavy-hitters
    problem, in which the prefix counts are replaced with a notion of
@@ -681,8 +681,7 @@ Table of Contents
 
 5.1.1.  Different Thresholds
 
-      NOTE to be specified in full detail.  For an end-to-end example,
-      see
+      For an end-to-end example, see
       example_weighted_heavy_hitters_mode_with_different_thresholds() in
       the reference implementation.
 
@@ -724,9 +723,9 @@ Table of Contents
 
 5.2.  Attribute-based Metrics
 
-      NOTE to be specified in full detail.  For an end-to-end example,
-      see example_attribute_based_metrics_mode() in the reference
-      implementation.
+      See Section 1.1.2 for a motivating application and
+      example_attribute_based_metrics_mode() in the reference
+      implementation for an end-to-end example.
 
    In this mode of operation, we take the beta value to be the Client's
    measurement and alpha to be an arbitrary "attribute".  For a given
