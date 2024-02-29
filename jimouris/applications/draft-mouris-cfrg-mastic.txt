@@ -133,13 +133,13 @@ Table of Contents
    measurements that would otherwise corrupt the computation of the
    histogram.
 
-   This document describes Mastic, a VDAF that can be used as a drop-in
-   replacement for Poplar1, while offering improved performance and
-   communication cost.  [CP: We'll need numbers to back this up.]  Based
-   on the PLASMA protocol [MST24], the scheme's design also improves
-   communication complexity, requiring just one round for report
-   preparation compared to Poplar1's two rounds.  Mastic is specified in
-   Section 4.
+   This document describes Mastic [MPDST24], a VDAF that can be used as
+   a drop-in replacement for Poplar1, while offering improved
+   performance and communication cost.  [CP: We'll need numbers to back
+   this up.]  Based on the PLASMA protocol [MST24], the scheme's design
+   also improves communication complexity, requiring just one round for
+   report preparation compared to Poplar1's two rounds.  Mastic is
+   specified in Section 4.
 
    Mastic is also highly extensible.  Like Poplar1, Mastic's core
    functionality is to compute prefix histograms.  Mastic allows this
