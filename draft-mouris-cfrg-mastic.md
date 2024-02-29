@@ -614,8 +614,9 @@ to recover the results for each candidate prefix.
 
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 
-> NOTE to be specified in full detail. For an end-to-end example, see
-> `example_weighted_heavy_hitters_mode()` in the reference implementation.
+> See {{NEL}} for a motivating application and
+> `example_weighted_heavy_hitters_mode()` in the reference implementation for an
+> end-to-end example.
 
 The primary use case for Mastic is a variant of the heavy-hitters problem, in
 which the prefix counts are replaced with a notion of weight that is specific to
@@ -640,7 +641,7 @@ minimum weight rather than a minimum count. In addition:
 
 ### Different Thresholds {#different-thresholds}
 
-> NOTE to be specified in full detail. For an end-to-end example, see
+> For an end-to-end example, see
 > `example_weighted_heavy_hitters_mode_with_different_thresholds()` in the
 > reference implementation.
 
@@ -679,8 +680,9 @@ threshold 5 should be used. However, if the Aggregators search for prefix
 
 ## Attribute-based Metrics {#attribute-based-metrics}
 
-> NOTE to be specified in full detail. For an end-to-end example, see
-> `example_attribute_based_metrics_mode()` in the reference implementation.
+> See {{attribute-based-telemetry}} for a motivating application and
+> `example_attribute_based_metrics_mode()` in the reference implementation for
+> an end-to-end example.
 
 In this mode of operation, we take the `beta` value to be the Client's
 measurement and `alpha` to be an arbitrary "attribute". For a given sequence of
@@ -706,7 +708,7 @@ The Aggregators MAY aggregate a report any number times, but:
    reports are aggregated and remove any invalid reports before aggregating
    again.
 
-1. The aggregation parameter MUST specify the last level of the VIDPF tree
+2. The aggregation parameter MUST specify the last level of the VIDPF tree
    (i.e., `level` MUST be `Vidpf.BITS-1`).
 
 > OPEN ISSUE Figure out if these requirements are strict enough. We may need to
