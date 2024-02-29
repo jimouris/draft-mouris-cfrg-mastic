@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-02-27T00:34:28.208851+00:00",
+  "timestamp": "2024-02-29T00:34:38.245083+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -729,6 +729,42 @@
           "updatedAt": "2024-01-31T03:38:30Z"
         }
       ]
+    },
+    {
+      "number": 58,
+      "id": "I_kwDOJmRsfc6AvX32",
+      "title": "Labels -> Attribute-Based Metrics",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/58",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [
+        "cjpatton"
+      ],
+      "labels": [],
+      "body": "Update the draft language from `labels` to attribute-based metrics.",
+      "createdAt": "2024-02-28T21:30:50Z",
+      "updatedAt": "2024-02-28T21:30:51Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 59,
+      "id": "I_kwDOJmRsfc6AvX8N",
+      "title": "Add Applications",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/59",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [
+        "jimouris"
+      ],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-02-28T21:31:04Z",
+      "updatedAt": "2024-02-28T21:31:04Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -5040,6 +5076,229 @@
           "body": "",
           "createdAt": "2024-02-06T21:30:36Z",
           "updatedAt": "2024-02-06T21:30:36Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 60,
+      "id": "PR_kwDOJmRsfc5oOXaM",
+      "title": "Add applications",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/60",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [
+        "jimouris"
+      ],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-02-28T22:00:41Z",
+      "updatedAt": "2024-02-29T00:13:52Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "4d4470ae4871f59db5a4249e510d82cfcd5e25d3",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/applications",
+      "headRefOid": "6b95814c846eb6ac1b95abb17c7fba11f4c98dba",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc5xtHWt",
+          "commit": {
+            "abbreviatedOid": "6b95814"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-02-28T23:39:14Z",
+          "updatedAt": "2024-02-28T23:53:23Z",
+          "comments": [
+            {
+              "originalPosition": 100,
+              "body": "```suggestion\r\n# Motivating Applications\r\n```",
+              "createdAt": "2024-02-28T23:39:14Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 106,
+              "body": "```suggestion\r\n### Network Error Logging {#NEL}\r\n\r\n```",
+              "createdAt": "2024-02-28T23:39:21Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 100,
+              "body": "Let's make this a subsection of the intro.",
+              "createdAt": "2024-02-28T23:39:47Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 139,
+              "body": "**This doesn't render the way you want it to in all version of internet drafts**.\r\n\r\n```suggestion\r\nMPC helps mitigate these risks by revealing to the\r\n```",
+              "createdAt": "2024-02-28T23:40:30Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 118,
+              "body": "Internet-Drafts shouldn't reference specific companies or institutions. \"Content delivery network\" is clear enough to the intended audience.\r\n\r\n```suggestion\r\nNEL is particularly important for content delivery networks that handle HTTP traffic for a large number of websites\r\n```",
+              "createdAt": "2024-02-28T23:42:23Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 160,
+              "body": "```suggestion\r\n* Each input `alpha` encodes the domain `dom` truncated to `n = 256`\r\n```",
+              "createdAt": "2024-02-28T23:42:52Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 164,
+              "body": "```suggestion\r\n0s.\r\n\r\n* Each weight `beta` represents the error variant `dom`. To compute\r\n```",
+              "createdAt": "2024-02-28T23:43:16Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 171,
+              "body": "Note that unicode charcters, like \"\u00b7\", should not appear in internet drafts. With the exception of authors, it's a good idea to make sure every character is ASCII.\r\n```suggestion\r\nvectors over `F` containing all 0s except for a single 1.\r\n\r\n* Our `order` function computes the ratio of reports with `err\r\n```",
+              "createdAt": "2024-02-28T23:44:05Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 171,
+              "body": "Make sure we have defined `order` for the reader, probably in the conventions section.",
+              "createdAt": "2024-02-28T23:46:24Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 186,
+              "body": "```suggestion\r\n## Attribute-Based Browser Telemetry {#attribute-based-telemetry}\r\n\r\n```",
+              "createdAt": "2024-02-28T23:46:48Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 187,
+              "body": "```suggestion\r\nWeb browsers collect telemetry generated by\r\n```",
+              "createdAt": "2024-02-28T23:47:01Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 193,
+              "body": "```suggestion\r\na list of known popular sites (e.g., `example.com`). The purpose of these metrics\r\n```",
+              "createdAt": "2024-02-28T23:47:09Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 192,
+              "body": "We'll need to remove mention Mozilla by name and speak about a hypothetical browser.",
+              "createdAt": "2024-02-28T23:47:44Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 198,
+              "body": "This is Mozilla's preference, but others might do something else.\r\n```suggestion\r\nby client attributes. Suppose for example that we want to aggregate by 1) the software version,\r\nand 2) information about the client's location.\r\n```",
+              "createdAt": "2024-02-28T23:48:51Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 201,
+              "body": "Have we actually mentioned this? We did in the paper, but I'm not sure we made the Prio3 comparison here.\r\n\r\nFWIW, I don't think we necessarily need to. could we just remove this paragraph without interrupting the flow?",
+              "createdAt": "2024-02-28T23:49:39Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 208,
+              "body": "```suggestion\r\nMastic provides a simple solution to\r\n```",
+              "createdAt": "2024-02-28T23:50:40Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 211,
+              "body": "```suggestion\r\nwhich Prio3 ({{Section 7 of !VDAF}}) is suitable). Each client reports a tuple `(ver, loc, site, time)`\r\n```",
+              "createdAt": "2024-02-28T23:51:48Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 213,
+              "body": "```suggestion\r\nwhere: `ver` is a string representing the client's software version; `loc` is a string encoding its country code (e.g., `GR`, `US`,\r\n```",
+              "createdAt": "2024-02-28T23:52:17Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 214,
+              "body": "```suggestion\r\n`IN`, etc.); `site` is one of a fixed set of sites (e.g., `example.com`,\r\n```",
+              "createdAt": "2024-02-28T23:52:26Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            },
+            {
+              "originalPosition": 230,
+              "body": "```suggestion\r\n\r\n* Similar to private NEL, each weight `beta` is a 0-vector except\r\n```",
+              "createdAt": "2024-02-28T23:53:06Z",
+              "updatedAt": "2024-02-28T23:53:23Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5xtQRI",
+          "commit": {
+            "abbreviatedOid": "6b95814"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-02-29T00:13:52Z",
+          "updatedAt": "2024-02-29T00:13:52Z",
+          "comments": [
+            {
+              "originalPosition": 201,
+              "body": "good catch.",
+              "createdAt": "2024-02-29T00:13:52Z",
+              "updatedAt": "2024-02-29T00:13:52Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 61,
+      "id": "PR_kwDOJmRsfc5oO4OR",
+      "title": "Rename \"aggregation-by-labels\" to \"attribute-based metrics\"",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/61",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #58.",
+      "createdAt": "2024-02-29T00:08:29Z",
+      "updatedAt": "2024-02-29T00:22:15Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "4d4470ae4871f59db5a4249e510d82cfcd5e25d3",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjaptton/58",
+      "headRefOid": "35e77218c9936feb9d7dd41410a34989cbbfe6e0",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc5xtR_E",
+          "commit": {
+            "abbreviatedOid": "35e7721"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-02-29T00:22:15Z",
+          "updatedAt": "2024-02-29T00:22:15Z",
           "comments": []
         }
       ]
