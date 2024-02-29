@@ -205,7 +205,7 @@ majority setting.
 
 Mastic has two modes of operation, i.e., Weighted Heavy-Hitters
 {{weighted-heavy-hitters}} and Attribute-Based Metrics
-{{aggregation-by-labels}}. We describe one applications of interest for each
+{{attribute-based-metrics}}. We describe one applications of interest for each
 mode.
 
 ### Network Error Logging {#NEL}
@@ -326,18 +326,18 @@ inputs here is relatively small: there are less than 200 country codes and a
 handful of browser versions in wide use at any given time. This means the
 aggregators can enumerate a set of inputs of interest and evaluate them
 immediately. Consider the following parameters for Mastic, in its
-attribute-based metrics mode of operation {{aggregation-by-labels}}:
+attribute-based metrics mode of operation {{attribute-based-metrics}}:
 * Attributes: Two-letter country codes can easily be encoded in 2 bytes.
 Likewise, the number of distinct browser versions is easily less than 216, so 2
-bytes are sufficient. Therefore, each `alpha` can be encoded with just `n =
-32`bits.
+bytes are sufficient. Therefore, each `alpha` can be encoded with just `n = 32`
+bits.
 * Values: Similar to private NEL, each weight `beta` is a 0-vector except for a
 single 1 representing a bucket in a histogram. We represent `(site, time)` as a
 histogram bucket as follows. First, we quantize time (in seconds) into one of
 four buckets: `[0, 0.1)`, `[0.1, 1)`, `[1, 5)`, and `[5, inf)`. Let `t \in [4]`
 denote the time bucket for `time`. Next, suppose we wish to track metrics for 25
 sites. Let `s \in [25]` denote the index of `site` in this list. Then the index
-of 1 in `beta` is simply `t * s` such that `|beta| = m = 4 * 25 = 100`.
+of 1 in `beta` is simply `t * s` such that `|beta| = 4 * 25 = 100`.
 
 
 # Conventions and Definitions {#conventions}
