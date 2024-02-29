@@ -660,7 +660,7 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
     assert heavy_hitters == [0, 1, 15]
 
 
-def example_aggregation_by_labels_mode():
+def example_attribute_based_metrics_mode():
     import hashlib
 
     from common import gen_rand
@@ -668,25 +668,25 @@ def example_aggregation_by_labels_mode():
     mastic = Mastic.with_params(bits, Sum(2))
     verify_key = gen_rand(16)
 
-    def h(label):
+    def h(attr):
         """
-        Hash the label to a fixed-size string whose size matches the bit-size
-        for our instance of Mastic. For testing purposes, we truncate to the
-        first `8` bits of the hash; in practice we would need collision
+        Hash the attribute to a fixed-size string whose size matches the
+        bit-size for our instance of Mastic. For testing purposes, we truncate
+        to the first `8` bits of the hash; in practice we would need collision
         resistance. Mastic should be reasonably fast even for `bits == 256`
         (the same as SHA-3).
         """
         assert bits == 8
         sha3 = hashlib.sha3_256()
-        sha3.update(label.encode('ascii'))
+        sha3.update(attr.encode('ascii'))
         return sha3.digest()[0]
 
     # Clients shard their measurements. Each measurement is comprised of
     # (`alpha`, `beta`) where `beta` is the Client's contribution to the
-    # aggregate with label `alpha`.
+    # aggregate with attribute `alpha`.
     #
     # In this example, each Client casts a "vote" (between '0' and '3') and
-    # labels their vote with their home country.
+    # attributes their vote with their home country.
     measurements = [
         ('United States', 1),
         ('Greece', 1),
@@ -701,23 +701,23 @@ def example_aggregation_by_labels_mode():
         ('Greece', 1),
     ]
     reports = []
-    for (label, vote) in measurements:
+    for (attr, vote) in measurements:
         nonce = gen_rand(16)
         rand = gen_rand(mastic.RAND_SIZE)
         (public_share, input_shares) = mastic.shard(
-            (h(label), vote),
+            (h(attr), vote),
             nonce,
             rand,
         )
         reports.append((nonce, public_share, input_shares))
 
     # Aggregators aggregate the reports, breaking them down by home country.
-    labels = [
+    attrs = [
         'Greece',
         'Mexico',
         'United States',
     ]
-    agg_param = (bits-1, list(map(lambda label: h(label), labels)), True)
+    agg_param = (bits-1, list(map(lambda attr: h(attr), attrs)), True)
     assert mastic.is_valid(agg_param, [])
 
     # Aggregators prepare reports for aggregation.
@@ -749,7 +749,7 @@ def example_aggregation_by_labels_mode():
 
     # Collector computes the aggregate result.
     agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
-    print('Election results:', list(zip(labels, agg_result)))
+    print('Election results:', list(zip(attrs, agg_result)))
     assert agg_result == [6, 0, 4]
 
 
@@ -861,7 +861,7 @@ if __name__ == '__main__':
 
     example_poplar1_overhead()
     example_weighted_heavy_hitters_mode()
-    example_aggregation_by_labels_mode()
+    example_attribute_based_metrics_mode()
     example_weighted_heavy_hitters_mode_with_different_thresholds()
 
     test_vdaf(

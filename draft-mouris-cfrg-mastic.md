@@ -142,22 +142,23 @@ desirable feature for a secure aggregation systems is the ability to "drill
 down" on the data by splitting up the aggregate based on specific properties of
 the clients. For example, a browser vendor may wish to partition aggregates by
 version (different versions of the browser may have different performance
-profiles) or geographic location. We will call these properties "labels". [CP:
-See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489 for the
+profiles) or geographic location. We will call these properties "attributes".
+[CP: See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489 for the
 discussion that originally motivated this idea.]
 
-Aggregating by labels requires representing the information in such a way that
-that measurements submitted by clients with the same label are aggregated
-together. Prio3 can be adapted for this purpose, but the communication cost
-would be linear in the number of possible distinct labels, which quickly
-becomes prohibitive if the label space is large or subject to change over time.
-For example, the label might encode the client's user agent ({{Section 10.1.5
-of ?RFC9110}}), a value can vary widely and that changes over time.
+This requires representing the information in such a way that that measurements
+submitted by clients with the same attribute are aggregated together. Prio3 can
+be adapted for this purpose, but the communication cost would be linear in the
+number of possible distinct attributes, which quickly becomes prohibitive if
+the number of attributes is large or subject to change over time. For example,
+attributes might encode the client's user agent ({{Section 10.1.5 of
+?RFC9110}}), a value can vary widely and that changes over time.
 
-Mastic encodes the label and measurement with constant communication overhead
-such that, for an arbitrary sequence of labels, the reports can be "queried" to
-reveal the aggregate for each label without learning the label or measurement
-of any client. We describe this mode of operation in {{aggregation-by-labels}}.
+Mastic encodes the attribute and measurement with constant communication
+overhead such that, for an arbitrary sequence of attributes, the reports can be
+"queried" to reveal the aggregate for each attribute without learning the
+attribute or measurement of any client. We describe this mode of operation in
+{{attribute-based-metrics}}.
 
 Finally, we describe two modes of operation for Mastic that admit useful
 performance and security trade-offs.
@@ -201,14 +202,14 @@ This document uses the following terms as defined in {{!VDAF}}:
 "prep share", and
 "report".
 
-In Mastic, a Client's VDAF measurement comprises two components, which we denote
-`alpha` and `beta`. The function that each component serves depends on the use
-case: for weighted ({{weighted-heavy-hitters}}) and plain
+In Mastic, a Client's VDAF measurement comprises two components, which we
+denote `alpha` and `beta`. The function that each component serves depends on
+the use case: for weighted ({{weighted-heavy-hitters}}) and plain
 ({{plain-heavy-hitters-with-proof-aggregation}}) heavy-hitters, we shall refer
 to `alpha` as the "payload" and `beta` as the payload's "weight"; for
-aggregation-by-labels ({{aggregation-by-labels}}), we shall refer to `alpha` as
-the "label" and to `beta` as the "payload". When doing so is unambiguous, we may
-also refer to the payload as the "measurement".
+attribute-based-metrics ({{attribute-based-metrics}}), we shall refer to
+`alpha` as the "attribute" and to `beta` as the "payload". When doing so is
+unambiguous, we may also refer to the payload as the "measurement".
 
 The DPF tree always has as a root the "empty string", which in turn has strings
 "0" and "1" as the left and right children, respectively.
@@ -241,7 +242,7 @@ An implementation of the `Flp` interface in {{Section 7.1 of !VDAF}} is
 required. This object implements a zero-knowledge proof system used to verify
 that the measurement conforms to the data type required by the application: for
 weighted heavy hitters ({{weighted-heavy-hitters}}), FLPs are used to check the
-weight; in aggregation-by-labels ({{aggregation-by-labels}}), they are used
+weight; in attribute-based-metrics ({{attribute-based-metrics}}), they are used
 to check the measurement itself.
 
 The Client generates a proof and sends secret shares of this proof to each
@@ -357,10 +358,10 @@ necessary for Path Verifiability.
 > https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
 
 This section describes Mastic, a VDAF suitable for a plethora of aggregation
-functions including sum, mean, histograms, heavy hitters, weighted heavy-hitters
-(see {{weighted-heavy-hitters}}), aggregation by labels (see
-{{aggregation-by-labels}}), linear regression and more. Mastic allows computing
-functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
+functions including sum, mean, histograms, heavy hitters, weighted
+heavy-hitters (see {{weighted-heavy-hitters}}), attribute-based metrics (see
+{{attribute-based-metrics}}), linear regression and more. Mastic allows
+computing functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
 
 The core component of Mastic is a VIDPF as defined in {{vidpf}}. VIDPFs
 inherently have the "one-hot verifiability" property, meaning that in each
@@ -513,27 +514,28 @@ threshold 5 should be used. However, if the Aggregators search for prefix
 "11101", then threshold 2 should be used.
 
 
-## Aggregation by Labels {#aggregation-by-labels}
+## Attribute-based Metrics {#attribute-based-metrics}
 
 > NOTE to be specified in full detail. For an end-to-end example, see
-> `example_aggregation_by_labels_mode()` in the reference implementation.
+> `example_attribute_based_metrics_mode()` in the reference implementation.
 
 In this mode of operation, we take the `beta` value to be the Client's
-measurement and `alpha` to be an arbitrary "label". For a given sequence of
-labels, the goal of the Collector is to aggregate the measurements that share
-the same label. This provides functionality similar to Prio3 {{!VDAF}}, except
-that the aggregate is partitioned by Clients who share some property. For
-example, the label might encode the Client's user agent {{?RFC9110}}.
+measurement and `alpha` to be an arbitrary "attribute". For a given sequence of
+attributes, the goal of the Collector is to aggregate the measurements that
+share the same attribute. This provides functionality similar to Prio3
+{{!VDAF}}, except that the aggregate is partitioned by Clients who share some
+property. For example, the attribute might encode the Client's user agent
+{{?RFC9110}}.
 
-Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus, it is
-necessary for each application to choose a scheme for encoding labels as
+Mastic requires each `alpha` to have the same length (`Vidpf.BITS`). Thus, it
+is necessary for each application to choose a scheme for encoding attributes as
 fixed-length strings. The following scheme is RECOMMENDED. Choose a
 cryptographically secure hash function, such as SHA256
 {{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
-string, and interpret each bit of the hash as a bit of the VIDPF index. [CP: Are
-we comfortable recommending truncating the hash? Collisions aren't so bad since
-the Client can just lie about `alpha` anyway. The main thing is to pick a value
-for `BITS` that is large enough to avoid accidental collisions.]
+string, and interpret each bit of the hash as a bit of the VIDPF index. [CP:
+Are we comfortable recommending truncating the hash? Collisions aren't so bad
+since the Client can just lie about `alpha` anyway. The main thing is to pick a
+value for `BITS` that is large enough to avoid accidental collisions.]
 
 The Aggregators MAY aggregate a report any number times, but:
 
