@@ -139,7 +139,7 @@ one server is honest, no individual measurement is observed in the clear. At
 the same time, Poplar1 allows the servers to detect and remove any invalid
 measurements that would otherwise corrupt the computation of the histogram.
 
-This document describes Mastic, a VDAF that can be used as a drop-in
+This document describes Mastic {{MPDST24}}, a VDAF that can be used as a drop-in
 replacement for Poplar1, while offering improved performance and communication
 cost. [CP: We'll need numbers to back this up.] Based on the PLASMA protocol
 {{MST24}}, the scheme's design also improves communication complexity, requiring
