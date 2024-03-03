@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-02-29T00:34:38.245083+00:00",
+  "timestamp": "2024-03-03T00:36:52.273288+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -735,7 +735,7 @@
       "id": "I_kwDOJmRsfc6AvX32",
       "title": "Labels -> Attribute-Based Metrics",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/58",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [
@@ -744,8 +744,8 @@
       "labels": [],
       "body": "Update the draft language from `labels` to attribute-based metrics.",
       "createdAt": "2024-02-28T21:30:50Z",
-      "updatedAt": "2024-02-28T21:30:51Z",
-      "closedAt": null,
+      "updatedAt": "2024-02-29T01:19:53Z",
+      "closedAt": "2024-02-29T01:19:53Z",
       "comments": []
     },
     {
@@ -753,7 +753,7 @@
       "id": "I_kwDOJmRsfc6AvX8N",
       "title": "Add Applications",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/59",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [
@@ -762,8 +762,8 @@
       "labels": [],
       "body": "",
       "createdAt": "2024-02-28T21:31:04Z",
-      "updatedAt": "2024-02-28T21:31:04Z",
-      "closedAt": null,
+      "updatedAt": "2024-02-29T01:58:25Z",
+      "closedAt": "2024-02-29T01:58:25Z",
       "comments": []
     }
   ],
@@ -5085,26 +5085,28 @@
       "id": "PR_kwDOJmRsfc5oOXaM",
       "title": "Add applications",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/60",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [
         "jimouris"
       ],
       "labels": [],
-      "body": "",
+      "body": "Closes #59 ",
       "createdAt": "2024-02-28T22:00:41Z",
-      "updatedAt": "2024-02-29T00:13:52Z",
+      "updatedAt": "2024-02-29T01:58:27Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "4d4470ae4871f59db5a4249e510d82cfcd5e25d3",
+      "baseRefOid": "7a10cd2f562add30d5b2e8751397adc9b25b217b",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/applications",
-      "headRefOid": "6b95814c846eb6ac1b95abb17c7fba11f4c98dba",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "778e9b628b5b25e0c1d6295c1fd1b02961ad178f",
+      "closedAt": "2024-02-29T01:58:24Z",
+      "mergedAt": "2024-02-29T01:58:24Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "e513a33c882075ca8c0cc0bb702225c5896872ea"
+      },
       "comments": [],
       "reviews": [
         {
@@ -5260,6 +5262,19 @@
               "updatedAt": "2024-02-29T00:13:52Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc5xtiWG",
+          "commit": {
+            "abbreviatedOid": "eb7ee4f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-02-29T01:19:41Z",
+          "updatedAt": "2024-02-29T01:19:41Z",
+          "comments": []
         }
       ]
     },
@@ -5268,24 +5283,26 @@
       "id": "PR_kwDOJmRsfc5oO4OR",
       "title": "Rename \"aggregation-by-labels\" to \"attribute-based metrics\"",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/61",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #58.",
       "createdAt": "2024-02-29T00:08:29Z",
-      "updatedAt": "2024-02-29T00:22:15Z",
+      "updatedAt": "2024-02-29T01:19:52Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "4d4470ae4871f59db5a4249e510d82cfcd5e25d3",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjaptton/58",
       "headRefOid": "35e77218c9936feb9d7dd41410a34989cbbfe6e0",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-02-29T01:19:52Z",
+      "mergedAt": "2024-02-29T01:19:52Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "7a10cd2f562add30d5b2e8751397adc9b25b217b"
+      },
       "comments": [],
       "reviews": [
         {
