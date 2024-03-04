@@ -132,7 +132,7 @@ search with a subroutine solving the "private prefix histogram" subproblem. The
 goal of this subproblem is to compute a histogram over the fixed-length
 prefixes of client measurement strings without revealing the prefixes. The
 subproblem can be solved using a Verifiable Distributed Aggregation Function,
-or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-07}}. In particular, the Poplar1 VDAF
+or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-08}}. In particular, the Poplar1 VDAF
 described in {{Section 8 of !VDAF}} describes how to distribute this
 computation amongst a small set of aggregation servers such that, as long as
 one server is honest, no individual measurement is observed in the clear. At
@@ -141,19 +141,18 @@ measurements that would otherwise corrupt the computation of the histogram.
 
 This document describes Mastic {{MPDST24}}, a VDAF that can be used as a drop-in
 replacement for Poplar1, while offering improved performance and communication
-cost. [CP: We'll need numbers to back this up.] Based on the PLASMA protocol
-{{MST24}}, the scheme's design also improves communication complexity, requiring
-just one round for report preparation compared to Poplar1's two rounds. Mastic
-is specified in {{vdaf}}.
+cost. Based on the PLASMA protocol {{MST24}}, the scheme's design also improves
+communication complexity, requiring just one round for report preparation
+compared to Poplar1's two rounds. Mastic is specified in {{vdaf}}.
 
 Mastic is also highly extensible. Like Poplar1, Mastic's core functionality is
 to compute prefix histograms. Mastic allows this basic counter data type to be
 generalized to support a wide variety of secure aggregation tasks. In
 particular, Mastic supports any data type that can be expressed as a type for
 the Prio3 VDAF {{Section 7 of !VDAF}}. For example, the counter could be
-replaced with a bounded weight (say, representing a dollar amount) such that
-the heaviest "weight" measurements are recovered. We describe this mode of
-operation in {{weighted-heavy-hitters}}.
+replaced with a bounded weight (say, representing how much time was sepnt on a
+website) such that the heaviest "weight" measurements are recovered. We
+describe this mode of operation in {{weighted-heavy-hitters}}.
 
 This generalization also allows Mastic to support another important use case. A
 desirable feature for a secure aggregation systems is the ability to "drill
@@ -170,13 +169,12 @@ be adapted for this purpose, but the communication cost would be linear in the
 number of possible distinct attributes, which quickly becomes prohibitive if
 the number of attributes is large or subject to change over time. For example,
 attributes might encode the client's user agent ({{Section 10.1.5 of
-?RFC9110}}), a value can vary widely and that changes over time.
+?RFC9110}}), which has many possible values that tend to change over time.
 
-Mastic encodes the attribute and measurement with constant communication
-overhead such that, for an arbitrary sequence of attributes, the reports can be
-"queried" to reveal the aggregate for each attribute without learning the
-attribute or measurement of any client. We describe this mode of operation in
-{{attribute-based-metrics}}.
+Mastic encodes the attribute and measurement such that, for an arbitrary
+sequence of attributes, the reports can be "queried" to reveal the aggregate
+for each attribute without learning the attribute or measurement of any client.
+We describe this mode of operation in {{attribute-based-metrics}}.
 
 Finally, we describe two modes of operation for Mastic that admit useful
 performance and security trade-offs.
@@ -199,7 +197,6 @@ can lift the security of Mastic from the semi-honest setting to malicious
 security. While more complex to implement than 2-party Mastic, this mode allows
 achieves "full security", where both privacy and robustness hold in the honest
 majority setting.
-
 
 ## Motivating Applications
 
@@ -226,7 +223,7 @@ network acts as a reverse proxy between clients and origin servers that provides
 a layer of caching and security services, such as DDoS protection.
 
 Reports are comprised of the URL the client attempted to navigate to (e.g.,
-`https://example.com`), the type of error that occurred, and metadata related to
+"https://example.com"), the type of error that occurred, and metadata related to
 the attempt, such as the time that elapsed between when the connection attempt
 began and the error was observed (e.g., Section 7 of {{W3C23}}). Clients may
 also report successful connection attempts to give the server a sense of the
@@ -246,76 +243,51 @@ it needs to fulfill its service level objectives. This means, of course, we must
 be satisfied with limited functionality. Fortunately, Mastic allows us to
 preserve the most important functionality of NEL while minimizing privacy loss.
 
-We consider here a simplified version of NEL where each client reports a tuple
-`(dom, err)` consisting of a domain name dom (e.g., `example.com`) and a value
-err that represents an error (e.g., `dns.unreachable`) or an indication that no
-error occurred (e.g., `ok`). Notably, this can be easily extended in Mastic to
-represent more elaborate metrics. e.g., where each weight includes the time it
-took each browser to report the error (and the aggregate is the average error
-reporting time), user agent (browser type and version), etc. However, our main
-goal is to understand 1) the distribution of errors and 2) which domains are
-impacted.
+Mastic can be applied to a simplified version of NEL where each client reports
+a tuple `(dom, err)` consisting of a domain name dom (e.g., "example.com") and
+a value err that represents an error (e.g., "dns.unreachable") or an indication
+that no error occurred (e.g., "ok"). Notably, this can be easily extended in
+Mastic to represent more elaborate metrics. e.g., where each weight includes
+the time it took each browser to report the error (and the aggregate is the
+average error reporting time), user agent (browser type and version), etc.
+However, our main goal is to understand 1) the distribution of errors and 2)
+which domains are impacted.
 
 We expect there to be a large number of distinct domain names (millions in the
 case of content delivery networks) and only a small number of error variants
 (the NEL spec {{W3C23}} defines 30 variants). The following Mastic parameters
 are suitable for this application.
 
-* Inputs: Each input `alpha` encodes the domain `dom` truncated to `n = 256`
-bits, which is sufficient to represent most of the domains on the internet
-{{MST24}}, {{BBCGGI21}}. Domains that are shorter than `n` bits are padded with
-0s.
-* Weights: Each weight `beta` represents the error variant `dom`. To compute the
-distribution of errors, we encode each error variant as a distinct bucket of a
-histogram so that `[1, 0, 0, ...]` represents `ok`, `[0, 1, 0, ...]` represents
-`dns.unreachable`, `[0, 0, 1, ...]` represents `dns.name_not_resolved`, and so
-on. There are 30 such variants (see {{W3C23}}, Section 6), so the language of
-valid weights defined by the {{flp}} is exactly the set of length-30 vectors
-over `Vidpf.Field` containing all 0s except for a single 1.
-* Ordering: Our `order` function (see {{order}}) computes the ratio of reports
-with `err != ok` to reports with `err = ok`. The latter is simply the first
-bucket of the aggregated histogram; the former is the sum of the remaining 29
-buckets. Note that our ordering of aggregated weights considers the error rate
-rather than the raw error count. This ensures that the signal for less popular
-domains is not swamped by the noise generated by popular sites (network issues
-may impact some domains but not others). Another benefit is that, under normal
-operating conditions, there will be a small number of heavy-hitting domains,
-which means Mastic will run very efficiently. During an incident, there will be
-more heavy hitters, which means it will take longer to compute the set of
-impacted domains. However, we get the errors immediately at the root of the
-prefix tree, which is the most important information needed to begin
-remediation. As more levels are evaluated we get more detailed errors.
-
+Each input would encode the domain `dom` encoded with a number of bits
+sufficient to uniquely represent most of the domains; and each weight would
+represent the error variant `dom`. To compute the distribution of errors, we
+would encode each error variant as a distinct bucket of a histogram so that
+`[1, 0, 0, ...]` represents "ok", `[0, 1, 0, ...]` represents
+"dns.unreachable", and so on. (See ection 6 of {{W3C23}}.), This is similar to
+Prio3Histogram ({{Section 7 of !VDAF}}.)
 
 ### Attribute-Based Browser Telemetry {#attribute-based-telemetry}
 
-Web browsers collect telemetry generated by users as they surf the web to gain
-insights into trends that guide product decisions. In many cases, Prio3 can be
-used to privately aggregate this telemetry. However, this comes at the cost of
-flexibility.
+Web browsers collect telemetry generated by users as they navigate the web to
+gain insights into trends that guide product decisions. In many cases, Prio3
+({{Section 7 of !VDAF}}) can be used to privately aggregate this telemetry.
+However, this comes at the cost of flexibility.
 
 For example, Prio3 can be used to collect page load metrics from Browser for a
-list of known popular sites (e.g., `example.com`). The purpose of these metrics
+list of known popular sites (e.g., "example.com"). The purpose of these metrics
 is to detect if changes to these sites cause regressions that might be
 correlated with an increased average load time or error rate. A subtle, but
 important requirement for this system is the ability to break down the metrics
 by client attributes. Suppose for example that we want to aggregate by 1) the
 software version, and 2) the information about the client's location.
 
-Meeting this requirement by increasing the size of the histogram leads to
-intolerable communication overhead. An alternative is to have each client upload
-this information in the clear alongside its Prio3 report so that the reports can
-be grouped by version and location. The downside of this approach is that it
-significantly reduces the anonymity set of each user since they are only mixed
-with their attribute group rather than the entire population.
-
 Mastic provides a simple solution to this problem. For the sake of presentation,
 we consider a simplified use case (the same approach can be applied to any
 aggregation task for which Prio3 ({{Section 7 of !VDAF}}) is suitable). Each
 client reports a tuple `(ver, loc, site, time)` where: `ver` is a string
-representing the client's software version (e.g., `Browser/122.0`); `loc` is a
-string encoding its country code (e.g., `GR`, `US`, `IN`, etc.); `site` is one
-of a fixed set of sites (e.g., `example.com`, `website.org`, etc.); and `time`
+representing the client's software version (e.g., "Browser/122.0"); `loc` is a
+string encoding its country code (e.g., "GR", "US", "IN", etc.); `site` is one
+of a fixed set of sites (e.g., "example.com", "example.org", etc.); and `time`
 is the load time of the site in seconds. The version and location are included
 in the Mastic input; the site and load time are encoded by the corresponding
 weight. Notably, this is just one example of what Mastic can do; the same idea
@@ -327,17 +299,19 @@ handful of browser versions in wide use at any given time. This means the
 aggregators can enumerate a set of inputs of interest and evaluate them
 immediately. Consider the following parameters for Mastic, in its
 attribute-based metrics mode of operation {{attribute-based-metrics}}:
+
 * Attributes: Two-letter country codes can easily be encoded in 2 bytes.
-Likewise, the number of distinct browser versions is easily less than 216, so 2
-bytes are sufficient. Therefore, each `alpha` can be encoded with just `n = 32`
-bits.
-* Values: Similar to private NEL, each weight `beta` is a 0-vector except for a
-single 1 representing a bucket in a histogram. We represent `(site, time)` as a
-histogram bucket as follows. First, we quantize time (in seconds) into one of
-four buckets: `[0, 0.1)`, `[0.1, 1)`, `[1, 5)`, and `[5, inf)`. Let `t \in [4]`
-denote the time bucket for `time`. Next, suppose we wish to track metrics for 25
-sites. Let `s \in [25]` denote the index of `site` in this list. Then the index
-of 1 in `beta` is simply `t * s` such that `|beta| = 4 * 25 = 100`.
+  Likewise, the number of distinct browser versions is easily less than 216, so
+  2 bytes are sufficient. Therefore, each attribute can be encoded with just
+  `32` bits.
+
+* Values: Similar to private NEL, each weight is a `0`-vector except for a
+  single `1` representing a bucket in a histogram. We represent `(site, time)`
+  as a histogram bucket as follows. First, we quantize time (in seconds) into
+  one of four buckets: `[0, 0.1)`, `[0.1, 1)`, `[1, 5)`, and `[5, inf)`. Let `0
+  < t <= 4` denote the time bucket for `time`. Next, suppose we wish to track
+  metrics for `25` sites. Let `0 < s <= 25` denote the index of `site` in this
+  list. Then the index of 1 is simply `t * s`.
 
 
 # Conventions and Definitions {#conventions}
