@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-03-14T00:34:19.083972+00:00",
+  "timestamp": "2024-03-17T00:37:40.745538+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -698,9 +698,9 @@
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "This is to track discussions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Weighted heavy hitters: Suggested in https://eprint.iacr.org/2023/130.pdf, Section 6\r\n- [ ] Aggregation-by-labels: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12 (not safe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273)\r\n- [ ] End evaluation early: The DAP draft describes a situation in which it is desirable to halt evaluation after the collector has detected that a prefix has reached a padding terminator. This is unsafe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273.",
+      "body": "This is to track discussions in various places where Mastic fills a gap not currently covered by Poplar1.\r\n\r\n- [ ] Weighted heavy hitters: Suggested in https://eprint.iacr.org/2023/130.pdf, Section 6\r\n- [ ] Attribute-based metrics: https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489\r\n- [ ] Estimation of quantiles: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/12 (not safe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273)\r\n- [ ] End evaluation early: The DAP draft describes a situation in which it is desirable to halt evaluation after the collector has detected that a prefix has reached a padding terminator. This is unsafe due to https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/273.",
       "createdAt": "2023-12-19T00:26:57Z",
-      "updatedAt": "2023-12-19T20:59:13Z",
+      "updatedAt": "2024-03-14T17:27:42Z",
       "closedAt": null,
       "comments": []
     },
