@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-08-27T00:42:36.537910+00:00",
+  "timestamp": "2024-08-29T00:43:11.276223+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -771,15 +771,15 @@
       "id": "I_kwDOJmRsfc6Tng-D",
       "title": "Double the length of the joint randomness seed",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/62",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "See https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/319#issuecomment-2299836818.",
       "createdAt": "2024-08-20T22:03:47Z",
-      "updatedAt": "2024-08-20T22:03:47Z",
-      "closedAt": null,
+      "updatedAt": "2024-08-27T18:51:44Z",
+      "closedAt": "2024-08-27T18:51:44Z",
       "comments": []
     }
   ],
