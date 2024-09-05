@@ -1,18 +1,20 @@
 '''The Mastic VDAF'''
 
-import sys
+from typing import Optional, Sequence, TypeAlias, TypeVar, cast
 
-sys.path.append('draft-irtf-cfrg-vdaf/poc')  # nopep8
+from vdaf_poc.common import (byte, concat, front, to_be_bytes, vec_add,
+                             vec_sub, zeros)
+from vdaf_poc.field import NttField
+from vdaf_poc.flp_bbcggi19 import Count, FlpBBCGGI19, Sum, Valid
+from vdaf_poc.vdaf import Vdaf
+from vdaf_poc.xof import XofTurboShake128
 
+from vidpf import CorrectionWord, Vidpf
 
-from typing import Optional, Union
+Measurement = TypeVar("Measurement")
+AggResult = TypeVar("AggResult")
+F = TypeVar("F", bound=NttField)
 
-from common import Unsigned, byte, concat, front, vec_add, vec_sub, zeros
-from flp_generic import FlpGeneric
-from vdaf import Vdaf, test_vdaf
-from xof import XofTurboShake128
-
-from vidpf import Vidpf
 
 # Domain separation: FLP prove randomness
 USAGE_PROVE_RAND = 0
@@ -32,122 +34,189 @@ USAGE_JOINT_RAND_PART = 4
 # Domain separation: FLP joint randomness
 USAGE_JOINT_RANDOMNESS = 5
 
+# Mastic version
+VERSION = 0
 
-class Mastic(Vdaf):
-    # Operational types and parameters.
-    Field = None  # Set by `with_params()`
-    Vidpf = None  # Set by `with_params()`
-    Flp = None  # Set by `with_params()`
-    Xof = XofTurboShake128
+MasticAggParam: TypeAlias = tuple[
+    int,            # level
+    Sequence[int],  # prefixes
+    bool,           # whether to do the range check
+]
 
-    # Parameters required by `Vdaf`.
-    ID: Unsigned = 0xFFFFFFFF
-    VERIFY_KEY_SIZE = Xof.SEED_SIZE
+MasticPublicShare: TypeAlias = tuple[
+    tuple[
+        list[CorrectionWord],  # VIDPF correction worrds
+        list[bytes],           # VIDPF "cs proofs"
+    ],
+    Optional[list[bytes]],  # FLP public share
+]
+
+MasticInputShare: TypeAlias = tuple[
+    bytes,              # VIDPF key
+    Optional[list[F]],  # FLP leader proof share
+    Optional[bytes],    # FLP seed
+]
+
+MasticPrepState: TypeAlias = tuple[
+    list[F],          # Truncated output share
+    Optional[bytes],  # FLP corrected joint rand seed
+]
+
+MasticPrepShare: TypeAlias = tuple[
+    bytes,  # VIDPF proof
+    Optional[tuple[
+        list[F],          # FLP verifier share
+        Optional[bytes],  # FLP joint randomness part
+    ]],
+]
+
+MasticPrepMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
+
+
+class Mastic(
+        # TODO Figure out why unit tests fail if this code is uncommented.
+        #
+        # Generic[Measurement, AggResult, F],
+        Vdaf[
+            tuple[int, Measurement],  # Measurement
+            MasticAggParam,
+            MasticPublicShare,
+            MasticInputShare,
+            list[F],  # OutShare
+            list[F],  # AggShare
+            list[AggResult],  # AggResult
+            MasticPrepState,
+            MasticPrepShare,
+            MasticPrepMessage,
+        ]):
+
+    ID: int = 0xFFFFFFFF
+    # TODO Use a generic XOF rather than a specific one.
+    VERIFY_KEY_SIZE = XofTurboShake128.SEED_SIZE
     NONCE_SIZE = 16
-    RAND_SIZE = None  # Set by `with_params()`
     SHARES = 2
     ROUNDS = 1
 
-    # Types required by `Vdaf`
-    AggParam = None  # TODO(cjpatton)
-    PublicShare = None  # TODO(cjpatton)
-    InputShare = None  # TODO(cjpatton)
-    PrepMessage = None
-
-    @classmethod
-    def shard(cls, measurement, nonce, rand):
-        if cls.Flp.JOINT_RAND_LEN > 0:
-            return cls.shard_with_joint_rand(measurement, nonce, rand)
+    def __init__(self,
+                 bits: int,
+                 valid: Valid[Measurement, AggResult, F]):
+        self.field = valid.field
+        self.flp = FlpBBCGGI19(valid)
+        self.vidpf = Vidpf(valid.field, bits, valid.MEAS_LEN)
+        self.RAND_SIZE = self.vidpf.RAND_SIZE
+        if self.flp.JOINT_RAND_LEN > 0:
+            # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
+            self.RAND_SIZE += 3 * XofTurboShake128.SEED_SIZE
         else:
-            return cls.shard_without_joint_rand(measurement, nonce, rand)
+            # flp_prove_rand_seed, flp_helper_seed
+            self.RAND_SIZE += 2 * XofTurboShake128.SEED_SIZE
 
-    @classmethod
-    def shard_without_joint_rand(cls, measurement, nonce, rand):
-        (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
-        (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_helper_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+    def shard(self,
+              measurement: tuple[int, Measurement],
+              nonce: bytes,
+              rand: bytes
+              ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+        if self.flp.JOINT_RAND_LEN > 0:
+            return self.shard_with_joint_rand(measurement, nonce, rand)
+        else:
+            return self.shard_without_joint_rand(measurement, nonce, rand)
+
+    def shard_without_joint_rand(
+            self,
+            measurement: tuple[int, Measurement],
+            nonce: bytes,
+            rand: bytes,
+    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+        (vidpf_gen_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
-        beta = cls.Flp.encode(meas)
+        beta = self.flp.encode(meas)
 
         # Generate VIDPF keys.
-        (vidpf_init_seed, vidpf_correction_words, vidpf_cs_proofs) = \
-            cls.Vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
-        public_share = ((vidpf_correction_words, vidpf_cs_proofs), None)
+        (vidpf_init_seed, vidpf_public_share) = \
+            self.vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
 
         # Generate FLP proof shares.
-        flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
-                                                 flp_prove_rand_seed,
-                                                 cls.domain_separation_tag(
-                                                     USAGE_PROVE_RAND),
-                                                 b'',
-                                                 cls.Flp.PROVE_RAND_LEN,
-                                                 )
+        flp_prove_rand = XofTurboShake128.expand_into_vec(self.field,
+                                                          flp_prove_rand_seed,
+                                                          self.domain_separation_tag(
+                                                              USAGE_PROVE_RAND),
+                                                          b'',
+                                                          self.flp.PROVE_RAND_LEN,
+                                                          )
 
-        flp_proof = cls.Flp.prove(beta, flp_prove_rand, [])
+        flp_proof = self.flp.prove(beta, flp_prove_rand, [])
         flp_leader_proof_share = vec_sub(
             flp_proof,
-            cls.helper_proof_share(flp_helper_seed),
+            self.helper_proof_share(flp_helper_seed),
         )
 
+        public_share = (vidpf_public_share, None)
         input_shares = [
             (vidpf_init_seed[0], flp_leader_proof_share, None),
             (vidpf_init_seed[1], None, flp_helper_seed),
         ]
         return (public_share, input_shares)
 
-    @classmethod
-    def shard_with_joint_rand(cls, measurement, nonce, rand):
-        (vidpf_gen_rand, rand) = front(cls.Vidpf.RAND_SIZE, rand)
-        (flp_prove_rand_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_leader_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
-        (flp_helper_seed, rand) = front(cls.Xof.SEED_SIZE, rand)
+    def shard_with_joint_rand(
+            self,
+            measurement: tuple[int, Measurement],
+            nonce: bytes,
+            rand: bytes,
+    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+        flp_leader_proof_share: Optional[list[F]]
+        flp_public_share: Optional[list[bytes]]
+
+        (vidpf_gen_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
+        (flp_leader_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
-        beta = cls.Flp.encode(meas)
+        beta = self.flp.encode(meas)
 
         # Generate VIDPF keys.
-        (vidpf_init_seed, vidpf_correction_words, vidpf_cs_proofs) = \
-            cls.Vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
-        vidpf_public_share = (vidpf_correction_words, vidpf_cs_proofs)
+        (vidpf_init_seed, vidpf_public_share) = \
+            self.vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
 
         # Generate FLP joint randomness.
         joint_rand_parts = []
-        joint_rand_parts.append(cls.joint_rand_part(
+        joint_rand_parts.append(self.joint_rand_part(
             0, flp_leader_seed, vidpf_init_seed[0], vidpf_public_share, nonce))
-        joint_rand_parts.append(cls.joint_rand_part(
+        joint_rand_parts.append(self.joint_rand_part(
             1, flp_helper_seed, vidpf_init_seed[1], vidpf_public_share, nonce))
-        joint_rand = cls.joint_rand(
-            cls.joint_rand_seed(joint_rand_parts))
+        joint_rand = self.joint_rand(
+            self.joint_rand_seed(joint_rand_parts))
         flp_public_share = joint_rand_parts
 
         # Generate FLP proof shares.
-        flp_prove_rand = cls.Xof.expand_into_vec(cls.Field,
-                                                 flp_prove_rand_seed,
-                                                 cls.domain_separation_tag(
-                                                     USAGE_PROVE_RAND),
-                                                 b'',
-                                                 cls.Flp.PROVE_RAND_LEN,
-                                                 )
+        flp_prove_rand = XofTurboShake128.expand_into_vec(self.field,
+                                                          flp_prove_rand_seed,
+                                                          self.domain_separation_tag(
+                                                              USAGE_PROVE_RAND),
+                                                          b'',
+                                                          self.flp.PROVE_RAND_LEN,
+                                                          )
 
-        flp_proof = cls.Flp.prove(beta, flp_prove_rand, joint_rand)
+        flp_proof = self.flp.prove(beta, flp_prove_rand, joint_rand)
         flp_leader_proof_share = vec_sub(
             flp_proof,
-            cls.helper_proof_share(flp_helper_seed),
+            self.helper_proof_share(flp_helper_seed),
         )
 
+        public_share = (vidpf_public_share, flp_public_share)
         input_shares = [
             (vidpf_init_seed[0], flp_leader_proof_share, flp_leader_seed),
-            (vidpf_init_seed[1], None, flp_helper_seed),
+            (vidpf_init_seed[1], None, cast(Optional[bytes], flp_helper_seed)),
         ]
-        public_share = (
-            vidpf_public_share,
-            flp_public_share
-        )
         return (public_share, input_shares)
 
-    @classmethod
-    def is_valid(cls, agg_param, previous_agg_params):
+    def is_valid(self,
+                 agg_param: MasticAggParam,
+                 previous_agg_params: list[MasticAggParam],
+                 ) -> bool:
         (level, prefixes, do_range_check) = agg_param
 
         # Check that the range check is done exactly once.
@@ -166,18 +235,24 @@ class Mastic(Vdaf):
 
         return first_level_range_check and levels_non_decreasing
 
-    @classmethod
-    def prep_init(cls, verify_key, agg_id, agg_param,
-                  nonce, public_share, input_share):
+    def prep_init(
+            self,
+            verify_key: bytes,
+            agg_id: int,
+            agg_param: MasticAggParam,
+            nonce: bytes,
+            public_share: MasticPublicShare,
+            input_share: MasticInputShare,
+    ) -> tuple[MasticPrepState, MasticPrepShare]:
         (level, prefixes, do_range_check) = agg_param
         (vidpf_init_seed, flp_proof_share, flp_seed) = \
-            cls.expand_input_share(agg_id, input_share)
+            self.expand_input_share(agg_id, input_share)
         (vidpf_public_share, flp_public_share) = public_share
         (vidpf_correction_words, vidpf_cs_proofs) = vidpf_public_share
         joint_rand_parts = flp_public_share
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, vidpf_proof) = cls.Vidpf.eval(
+        (beta_share, out_share, vidpf_proof) = self.vidpf.eval(
             agg_id,
             vidpf_correction_words,
             vidpf_cs_proofs,
@@ -188,64 +263,70 @@ class Mastic(Vdaf):
         )
 
         # Compute the FLP verifier share, if applicable.
-        flp_verifier_share = None
+        corrected_joint_rand_seed = None
+        flp_prep_share = None
         if do_range_check:
-            flp_query_rand = cls.Xof.expand_into_vec(
-                cls.Flp.Field,
+            flp_query_rand = XofTurboShake128.expand_into_vec(
+                self.field,
                 verify_key,
-                cls.domain_separation_tag(USAGE_QUERY_RAND),
+                self.domain_separation_tag(USAGE_QUERY_RAND),
                 nonce,  # TODO(cjpatton) Consider binding to agg param
-                cls.Flp.QUERY_RAND_LEN,
+                self.flp.QUERY_RAND_LEN,
             )
 
-            corrected_joint_rand_seed, joint_rand_part = None, None
+            joint_rand_part = None
             joint_rand = []
-            if cls.Flp.JOINT_RAND_LEN > 0:
-                joint_rand_part = cls.joint_rand_part(
+            if self.flp.JOINT_RAND_LEN > 0:
+                assert flp_seed is not None
+                assert joint_rand_parts is not None
+                joint_rand_part = self.joint_rand_part(
                     agg_id, flp_seed, vidpf_init_seed,
                     vidpf_public_share, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
-                corrected_joint_rand_seed = cls.joint_rand_seed(
+                corrected_joint_rand_seed = self.joint_rand_seed(
                     joint_rand_parts)
-                joint_rand = cls.joint_rand(corrected_joint_rand_seed)
-            flp_verifier_share = (
-                cls.Flp.query(
+                joint_rand = self.joint_rand(corrected_joint_rand_seed)
+            flp_prep_share = (
+                self.flp.query(
                     beta_share,
                     flp_proof_share,
                     flp_query_rand,
                     joint_rand,
-                    cls.SHARES
+                    2,
                 ),
                 joint_rand_part
             )
-        prep_state = [do_range_check]
 
         # Concatenate the output shares into one aggregatable output, applying
         # the FLP truncation algorithm on each FLP measurement share.
         truncated_out_share = []
         for val_share in out_share:
             truncated_out_share += [val_share[0]] + \
-                cls.Flp.truncate(val_share[1:])
+                self.flp.truncate(val_share[1:])
 
-        if do_range_check:
-            prep_state += [(truncated_out_share, corrected_joint_rand_seed)]
-        else:
-            prep_state.append(truncated_out_share)
-        prep_share = (vidpf_proof, flp_verifier_share)
+        prep_state = (truncated_out_share, corrected_joint_rand_seed)
+        prep_share = (vidpf_proof, flp_prep_share)
         return (prep_state, prep_share)
 
-    @classmethod
-    def prep_shares_to_prep(cls, agg_param, prep_shares):
+    def prep_shares_to_prep(
+            self,
+            agg_param: MasticAggParam,
+            prep_shares: list[MasticPrepShare],
+    ) -> MasticPrepMessage:
         (_level, _prefixes, do_range_check) = agg_param
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
 
-        (vidpf_proof_0, flp_verifier_share_0) = prep_shares[0]
-        (vidpf_proof_1, flp_verifier_share_1) = prep_shares[1]
+        (vidpf_proof_0, flp_prep_share_0) = prep_shares[0]
+        (vidpf_proof_1, flp_prep_share_1) = prep_shares[1]
         if do_range_check:
-            flp_verifier_share_0, flp_jr_0 = flp_verifier_share_0
-            flp_verifier_share_1, flp_jr_1 = flp_verifier_share_1
-            if cls.Flp.JOINT_RAND_LEN > 0:
+            assert flp_prep_share_0 is not None
+            assert flp_prep_share_1 is not None
+            (flp_verifier_share_0, flp_jr_0) = flp_prep_share_0
+            (flp_verifier_share_1, flp_jr_1) = flp_prep_share_1
+            if self.flp.JOINT_RAND_LEN > 0:
+                assert flp_jr_0 is not None
+                assert flp_jr_1 is not None
                 joint_rand_parts = [flp_jr_0, flp_jr_1]
 
         # Verify the VIDPF output.
@@ -258,249 +339,167 @@ class Mastic(Vdaf):
                 raise ValueError('prep share with missing FLP verifier share')
 
             flp_verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
-            if not cls.Flp.decide(flp_verifier):
+            if not self.flp.decide(flp_verifier):
                 raise Exception('FLP verification failed')
 
             joint_rand_seed = None
-            if cls.Flp.JOINT_RAND_LEN > 0:
-                joint_rand_seed = cls.joint_rand_seed(joint_rand_parts)
+            if self.flp.JOINT_RAND_LEN > 0:
+                joint_rand_seed = self.joint_rand_seed(joint_rand_parts)
             return joint_rand_seed
 
         return None
 
-    @classmethod
-    def prep_next(_cls, prep_state, prep_msg):
-        (do_range_check, prep) = prep_state
-        if do_range_check:
+    def prep_next(self,
+                  prep_state: MasticPrepState,
+                  prep_msg: MasticPrepMessage,
+                  ) -> list[F]:
+        (out_share, corrected_joint_rand_seed) = prep_state
+        if corrected_joint_rand_seed is not None:
+            if prep_msg is None:
+                raise ValueError('unexpected prep message')
+
             joint_rand_seed = prep_msg
-            (out_share, corrected_joint_rand_seed) = prep
             # If joint randomness was used, check that the value computed by the
             # Aggregators matches the value indicated by the Client.
             if joint_rand_seed != corrected_joint_rand_seed:
                 raise Exception("FLP joint randomness verification failed")
 
-            return out_share
+        return out_share
 
-        if prep_msg != None:
-            raise ValueError('unexpected prep message')
-        return prep
-
-    @classmethod
-    def aggregate(cls, agg_param, out_shares):
+    def aggregate(self,
+                  agg_param: MasticAggParam,
+                  out_shares: list[list[F]],
+                  ) -> list[F]:
         (level, prefixes, _do_range_check) = agg_param
-        agg_share = cls.Field.zeros(len(prefixes)*(1+cls.Flp.OUTPUT_LEN))
+        agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
         for out_share in out_shares:
             agg_share = vec_add(agg_share, out_share)
         return agg_share
 
-    @classmethod
-    def unshard(cls, agg_param,
-                agg_shares, _num_measurements):
+    def unshard(self,
+                agg_param: MasticAggParam,
+                agg_shares: list[list[F]],
+                _num_measurements: int,
+                ) -> list[AggResult]:
         (level, prefixes, _do_range_check) = agg_param
-        agg = cls.Field.zeros(len(prefixes)*(1+cls.Flp.OUTPUT_LEN))
+        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
 
         agg_result = []
-        for chunk_start in range(0, len(agg), 1+cls.Flp.OUTPUT_LEN):
-            chunk = agg[chunk_start:chunk_start+1+cls.Flp.OUTPUT_LEN]
+        for chunk_start in range(0, len(agg), 1+self.flp.OUTPUT_LEN):
+            chunk = agg[chunk_start:chunk_start+1+self.flp.OUTPUT_LEN]
             meas_count = chunk[0].as_unsigned()
             encoded_result = chunk[1:]
-            agg_result.append(cls.Flp.decode(encoded_result, meas_count))
+            agg_result.append(self.flp.decode(encoded_result, meas_count))
         return agg_result
 
-    @classmethod
-    def expand_input_share(cls, agg_id, input_share):
-        (vidpf_init_seed, flp_proof_share, flp_seed) = input_share
-        if agg_id > 0:
-            flp_proof_share = cls.helper_proof_share(flp_seed)
+    def expand_input_share(
+            self,
+            agg_id: int,
+            input_share: MasticInputShare,
+    ) -> tuple[bytes, list[F], Optional[bytes]]:
+        if agg_id == 0:
+            (vidpf_init_seed, flp_proof_share, flp_seed) = input_share
+            assert flp_proof_share is not None
+        else:
+            (vidpf_init_seed, _, flp_seed) = input_share
+            assert flp_seed is not None
+            flp_proof_share = self.helper_proof_share(flp_seed)
         return (vidpf_init_seed, flp_proof_share, flp_seed)
 
-    @classmethod
-    def helper_proof_share(cls, flp_seed):
-        return cls.Xof.expand_into_vec(
-            cls.Field,
+    def helper_proof_share(self, flp_seed: bytes) -> list[F]:
+        return XofTurboShake128.expand_into_vec(
+            self.field,
             flp_seed,
-            cls.domain_separation_tag(USAGE_PROOF_SHARE),
+            self.domain_separation_tag(USAGE_PROOF_SHARE),
             b'',
-            cls.Flp.PROOF_LEN,
+            self.flp.PROOF_LEN,
         )
 
-    @classmethod
-    def joint_rand_part(cls, agg_id, flp_seed, vidpf_key, vidpf_public_share,
-                        nonce):
-        return cls.Xof.derive_seed(
+    def joint_rand_part(self,
+                        agg_id: int,
+                        flp_seed: bytes,
+                        vidpf_key: bytes,
+                        # TODO Reduce type complexity.
+                        vidpf_public_share: tuple[list[CorrectionWord], list[bytes]],
+                        nonce: bytes,
+                        ) -> bytes:
+        return XofTurboShake128.derive_seed(
             flp_seed,
-            cls.domain_separation_tag(USAGE_JOINT_RAND_PART),
+            self.domain_separation_tag(USAGE_JOINT_RAND_PART),
             byte(agg_id) + nonce + vidpf_key +
-            cls.Vidpf.encode_public_share(vidpf_public_share),
+            self.vidpf.encode_public_share(vidpf_public_share),
         )
 
-    @classmethod
-    def joint_rand_seed(cls, joint_rand_parts):
+    def joint_rand_seed(self, joint_rand_parts: list[bytes]) -> bytes:
         """Derive the joint randomness seed from its parts."""
-        return cls.Xof.derive_seed(
-            zeros(cls.Xof.SEED_SIZE),
-            cls.domain_separation_tag(USAGE_JOINT_RAND_SEED),
+        return XofTurboShake128.derive_seed(
+            zeros(XofTurboShake128.SEED_SIZE),
+            self.domain_separation_tag(USAGE_JOINT_RAND_SEED),
             concat(joint_rand_parts),
         )
 
-    @classmethod
-    def joint_rand(cls, joint_rand_seed):
+    def joint_rand(self, joint_rand_seed: bytes) -> list[F]:
         """Derive the joint randomness from its seed."""
-        return cls.Xof.expand_into_vec(
-            cls.Flp.Field,
+        return XofTurboShake128.expand_into_vec(
+            self.field,
             joint_rand_seed,
-            cls.domain_separation_tag(USAGE_JOINT_RANDOMNESS),
+            self.domain_separation_tag(USAGE_JOINT_RANDOMNESS),
             b'',
-            cls.Flp.JOINT_RAND_LEN,
+            self.flp.JOINT_RAND_LEN,
         )
 
-    @classmethod
-    def test_vec_encode_input_share(cls, input_share):
+    def test_vec_encode_input_share(
+        self,
+        input_share: MasticInputShare,
+    ) -> bytes:
         (init_seed, proof_share, seed) = input_share
         encoded = bytes()
         encoded += init_seed
-        if proof_share != None:
-            encoded += cls.Field.encode_vec(proof_share)
-        if seed != None:
+        if proof_share is not None:
+            encoded += self.field.encode_vec(proof_share)
+        if seed is not None:
             encoded += seed
         return encoded
 
-    @classmethod
-    def test_vec_encode_public_share(cls, public_share):
+    def test_vec_encode_public_share(
+        self,
+        public_share: MasticPublicShare,
+    ) -> bytes:
         ((correction_words, cs_proofs), joint_rand_parts) = public_share
         encoded = bytes()
-        encoded += cls.Vidpf.encode_public_share((correction_words, cs_proofs))
-        if joint_rand_parts != None:
+        encoded += self.vidpf.encode_public_share(
+            (correction_words, cs_proofs))
+        if joint_rand_parts is not None:
             for seed in joint_rand_parts:
                 encoded += seed
         return encoded
 
-    @classmethod
-    def test_vec_encode_agg_share(Vdaf, agg_share):
+    def test_vec_encode_agg_share(self, agg_share: list[F]) -> bytes:
         # TODO(cjpatton) Decide on a serialization format for Mastic.
         return b'dummy agg share'
 
-    @classmethod
-    def test_vec_encode_prep_share(Vdaf, prep_share):
+    def test_vec_encode_prep_share(
+            self, prep_share: MasticPrepShare) -> bytes:
         # TODO(cjpatton) Decide on a serialization format for Mastic.
         return b'dummy prep share'
 
-    @classmethod
-    def test_vec_encode_prep_msg(Vdaf, prep_message):
+    def test_vec_encode_prep_msg(
+            self, prep_message: MasticPrepMessage) -> bytes:
         # TODO(cjpatton) Decide on a serialization format for Mastic.
         return b'dummy prep message'
 
-    @classmethod
-    def with_params(cls, bits, validity_circuit):
-
-        class MasticWithParams(cls):
-            # Operational types and parameters.
-            Flp = FlpGeneric(validity_circuit)
-            Field = Flp.Field
-            Vidpf = Vidpf.with_params(Flp.Field, bits, Flp.MEAS_LEN)
-            # TODO(cjpatton) Add test_vec_name to base spec for the validity
-            # circuit so that we can call it here.
-            test_vec_name = 'Mastic({}, {})'.format(bits, validity_circuit)
-
-            RAND_SIZE = Vidpf.RAND_SIZE
-            if Flp.JOINT_RAND_LEN > 0:
-                # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
-                RAND_SIZE += 3 * XofTurboShake128.SEED_SIZE
-            else:
-                # flp_prove_rand_seed, flp_helper_seed
-                RAND_SIZE += 2 * XofTurboShake128.SEED_SIZE
-
-            # `alpha` and the un-encoded `beta`.
-            Measurement = tuple[Unsigned,
-                                Flp.Measurement]
-            AggShare = list[Field]
-            AggResult = list[Flp.AggResult]
-            PrepState = list[Union[bool, tuple, list[Field]]]
-
-            # Concatenation of FLP truncated outputs.
-            #
-            # TODO(cjpatton) Maybe represent this instead as a list of lists.
-            # This is currently incompatible with the test vector generation
-            # logic.
-            OutShare = list[Field]
-
-            # Level proof and optional verifier share.
-            PrepShare = tuple[bytes,
-                              Optional[list[Field]]]
-
-        return MasticWithParams
-
-
-def test_valid_agg_params():
-    mastic = Mastic.with_params(4, Count())
-
-    assert mastic.is_valid(
-        (0, (0,), True),
-        [],
-    )
-
-    assert mastic.is_valid(
-        (2, (0b100,), True),
-        [],
-    )
-
-    # Expect invalid because we never do the range check.
-    assert not mastic.is_valid(
-        (0, (0,), False),
-        [],
-    )
-
-    assert mastic.is_valid(
-        (1, (0b10,), False),
-        [
-            (0, (0,), True),
-        ],
-    )
-
-    # Expect invalid because we do the range check twice.
-    assert not mastic.is_valid(
-        (1, (0b10,), True),
-        [
-            (0, (0,), True),
-        ],
-    )
-
-    # Expect invalid because we don't do the range check at the first level.
-    assert not mastic.is_valid(
-        (1, (0b10,), True),
-        [
-            (0, (0,), False),
-        ],
-    )
-
-    # Expect invalid because we never do the range check.
-    assert not mastic.is_valid(
-        (1, (0b10,), False),
-        [
-            (0, (0,), False),
-        ],
-    )
-
-    # Expect invalid because the level decreases.
-    assert not mastic.is_valid(
-        (1, (0b10,), False),
-        [
-            (2, (0b100,), True),
-        ],
-    )
-
-    assert mastic.is_valid(
-        (2, (0b101,), False),
-        [
-            (2, (0b100,), True),
-        ],
-    )
+    def domain_separation_tag(self, usage) -> bytes:
+        return concat([
+            to_be_bytes(VERSION, 1),
+            to_be_bytes(self.ID, 4),
+            to_be_bytes(usage, 2),
+        ])
 
 
 def get_reports_from_measurements(mastic, measurements):
-    from common import gen_rand
+    from vdaf_poc.common import gen_rand
 
     reports = []
     for measurement in measurements:
@@ -526,7 +525,7 @@ def get_threshold(thresholds, prefix, level):
 
 
 def compute_heavy_hitters(mastic, bits, thresholds, reports):
-    from common import gen_rand
+    from vdaf_poc.common import gen_rand
 
     verify_key = gen_rand(16)
 
@@ -586,9 +585,10 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
 
 
 def example_weighted_heavy_hitters_mode():
-    from flp_generic import Count
+    from vdaf_poc.field import Field64
+
     bits = 4
-    mastic = Mastic.with_params(bits, Count())
+    mastic = Mastic(bits, Count(Field64))
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -621,9 +621,10 @@ def example_weighted_heavy_hitters_mode():
 
 
 def example_weighted_heavy_hitters_mode_with_different_thresholds():
-    from flp_generic import Count
+    from vdaf_poc.field import Field64
+
     bits = 4
-    mastic = Mastic.with_params(bits, Count())
+    mastic = Mastic(bits, Count(Field64))
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -663,9 +664,11 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
 def example_attribute_based_metrics_mode():
     import hashlib
 
-    from common import gen_rand
+    from vdaf_poc.common import gen_rand
+    from vdaf_poc.field import Field64
+
     bits = 8
-    mastic = Mastic.with_params(bits, Sum(2))
+    mastic = Mastic(bits, Sum(Field64, 3))
     verify_key = gen_rand(16)
 
     def h(attr):
@@ -756,14 +759,15 @@ def example_attribute_based_metrics_mode():
 def example_poplar1_overhead():
     import math
 
-    from common import gen_rand
-    from flp_generic import Count, Histogram, Sum
-    from vdaf_poplar1 import Poplar1
-    from vdaf_prio3 import Prio3Histogram
+    from vdaf_poc.common import gen_rand
+    from vdaf_poc.field import Field64, Field128
+    from vdaf_poc.flp_bbcggi19 import Histogram
+    from vdaf_poc.vdaf_poplar1 import Poplar1
+    from vdaf_poc.vdaf_prio3 import Prio3Histogram
 
     nonce = gen_rand(16)
 
-    cls = Poplar1.with_bits(256)
+    cls = Poplar1(256)
     (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
     b = 0
     p = len(cls.test_vec_encode_public_share(public_share))
@@ -777,7 +781,7 @@ def example_poplar1_overhead():
     print('Poplar1(256) input share 1 len:', p)
     poplar1_bytes_uploaded = b
 
-    cls = Mastic.with_params(256, Count())
+    cls = Mastic(256, Count(Field64))
     (public_share, input_shares) = cls.shard((0, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
@@ -793,7 +797,7 @@ def example_poplar1_overhead():
     print('Mastic(256,Count()) input share 1 len:', p)
     mastic_count_bytes_uploaded = b
 
-    cls = Mastic.with_params(256, Sum(8))
+    cls = Mastic(256, Sum(Field64, 8))
     (public_share, input_shares) = cls.shard((0, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
@@ -814,7 +818,7 @@ def example_poplar1_overhead():
     print('Mastic(256,Sum(8)) overhead for Mastic(256,Count()): {:.2f}%'.format(
         mastic_sum8_bytes_uploaded / mastic_count_bytes_uploaded * 100))
 
-    cls = Mastic.with_params(32, Histogram(100, 10))
+    cls = Mastic(32, Histogram(Field128, 100, 10))
     (public_share, input_shares) = cls.shard((0, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
@@ -833,7 +837,7 @@ def example_poplar1_overhead():
 
     length = 100 * 100  # base histogram length * number of attributes
     chunk_length = math.floor(math.sqrt(length))
-    cls = Prio3Histogram.with_params(length, chunk_length).with_shares(2)
+    cls = Prio3Histogram(2, length, chunk_length)
     (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
     b = 0
     p = len(cls.test_vec_encode_public_share(public_share))
@@ -855,128 +859,9 @@ def example_poplar1_overhead():
     print(prio3_hist_bytes_uploaded / mastic_hist_bytes_uploaded)
 
 
+# TODO Move this to a separate file.
 if __name__ == '__main__':
-    from common import from_be_bytes
-    from flp_generic import Count, Sum
-
     example_poplar1_overhead()
     example_weighted_heavy_hitters_mode()
     example_attribute_based_metrics_mode()
     example_weighted_heavy_hitters_mode_with_different_thresholds()
-
-    test_vdaf(
-        Mastic.with_params(2, Count()),
-        (0, (0b0, 0b1), True),
-        [
-            (0b10, 1),
-            (0b00, 1),
-            (0b11, 1),
-            (0b01, 1),
-            (0b11, 1),
-        ],
-        [2, 3],
-    )
-
-    test_vdaf(
-        Mastic.with_params(2, Count()),
-        (1, (0b00, 0b01), True),
-        [
-            (0b10, 1),
-            (0b00, 1),
-            (0b11, 1),
-            (0b01, 1),
-            (0b01, 0),
-        ],
-        [1, 1],
-    )
-
-    test_vdaf(
-        Mastic.with_params(16, Count()),
-        (14, (0b111100001111000,), True),
-        [
-            (0b1111000011110000, 0),
-            (0b1111000011110001, 1),
-            (0b0111000011110000, 0),
-            (0b1111000011110010, 1),
-            (0b1111000000000000, 0),
-        ],
-        [1],
-    )
-
-    test_vdaf(
-        Mastic.with_params(256, Count()),
-        (
-            63,
-            (
-                from_be_bytes(b'00000000'),
-                from_be_bytes(b'01234567'),
-            ),
-            True,
-        ),
-        [
-            (from_be_bytes(b'0123456789abcdef0123456789abcdef'), 1),
-            (from_be_bytes(b'01234567890000000000000000000000'), 1),
-        ],
-        [0, 2],
-    )
-
-    test_vdaf(
-        Mastic.with_params(2, Sum(3)),
-        (0, (0b0, 0b1), True),
-        [
-            (0b10, 1),
-            (0b00, 6),
-            (0b11, 7),
-            (0b01, 5),
-            (0b11, 2),
-        ],
-        [11, 10],
-    )
-
-    test_vdaf(
-        Mastic.with_params(2, Sum(2)),
-        (1, (0b00, 0b01), True),
-        [
-            (0b10, 3),
-            (0b00, 2),
-            (0b11, 0),
-            (0b01, 1),
-            (0b01, 2),
-        ],
-        [2, 3],
-    )
-
-    test_vdaf(
-        Mastic.with_params(16, Sum(1)),
-        (14, (0b111100001111000,), True),
-        [
-            (0b1111000011110000, 0),
-            (0b1111000011110001, 1),
-            (0b0111000011110000, 0),
-            (0b1111000011110010, 1),
-            (0b1111000000000000, 0),
-        ],
-        [1],
-    )
-
-    test_vdaf(
-        Mastic.with_params(256, Sum(8)),
-        (
-            63,
-            (
-                from_be_bytes(b'00000000'),
-                from_be_bytes(b'01234567'),
-            ),
-            True,
-        ),
-        [
-            (from_be_bytes(b'0123456789abcdef0123456789abcdef'), 121),
-            (from_be_bytes(b'01234567890000000000000000000000'), 6),
-        ],
-        [0, 127],
-    )
-
-    # TODO(cjpatton) Add tests for a circuit with `MEAS_LEN > 1` so that we can
-    # assess whether any `Vidpf` encode assumes `len(beta) == 1`.
-
-    test_valid_agg_params()
