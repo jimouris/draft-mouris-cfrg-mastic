@@ -44,10 +44,7 @@ MasticAggParam: TypeAlias = tuple[
 ]
 
 MasticPublicShare: TypeAlias = tuple[
-    tuple[
-        list[CorrectionWord],  # VIDPF correction worrds
-        list[bytes],           # VIDPF "cs proofs"
-    ],
+    list[CorrectionWord],   # VIDPF correction words
     Optional[list[bytes]],  # FLP public share
 ]
 
@@ -135,7 +132,7 @@ class Mastic(
         beta = self.flp.encode(meas)
 
         # Generate VIDPF keys.
-        (vidpf_init_seed, vidpf_public_share) = \
+        (vidpf_public_share, vidpf_keys) = \
             self.vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
 
         # Generate FLP proof shares.
@@ -155,8 +152,8 @@ class Mastic(
 
         public_share = (vidpf_public_share, None)
         input_shares = [
-            (vidpf_init_seed[0], flp_leader_proof_share, None),
-            (vidpf_init_seed[1], None, flp_helper_seed),
+            (vidpf_keys[0], flp_leader_proof_share, None),
+            (vidpf_keys[1], None, flp_helper_seed),
         ]
         return (public_share, input_shares)
 
@@ -178,15 +175,15 @@ class Mastic(
         beta = self.flp.encode(meas)
 
         # Generate VIDPF keys.
-        (vidpf_init_seed, vidpf_public_share) = \
+        (vidpf_public_share, vidpf_keys) = \
             self.vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
 
         # Generate FLP joint randomness.
         joint_rand_parts = []
         joint_rand_parts.append(self.joint_rand_part(
-            0, flp_leader_seed, vidpf_init_seed[0], vidpf_public_share, nonce))
+            0, flp_leader_seed, vidpf_keys[0], vidpf_public_share, nonce))
         joint_rand_parts.append(self.joint_rand_part(
-            1, flp_helper_seed, vidpf_init_seed[1], vidpf_public_share, nonce))
+            1, flp_helper_seed, vidpf_keys[1], vidpf_public_share, nonce))
         joint_rand = self.joint_rand(
             self.joint_rand_seed(joint_rand_parts))
         flp_public_share = joint_rand_parts
@@ -208,8 +205,8 @@ class Mastic(
 
         public_share = (vidpf_public_share, flp_public_share)
         input_shares = [
-            (vidpf_init_seed[0], flp_leader_proof_share, flp_leader_seed),
-            (vidpf_init_seed[1], None, cast(Optional[bytes], flp_helper_seed)),
+            (vidpf_keys[0], flp_leader_proof_share, flp_leader_seed),
+            (vidpf_keys[1], None, cast(Optional[bytes], flp_helper_seed)),
         ]
         return (public_share, input_shares)
 
@@ -245,18 +242,16 @@ class Mastic(
             input_share: MasticInputShare,
     ) -> tuple[MasticPrepState, MasticPrepShare]:
         (level, prefixes, do_range_check) = agg_param
-        (vidpf_init_seed, flp_proof_share, flp_seed) = \
+        (vidpf_key, flp_proof_share, flp_seed) = \
             self.expand_input_share(agg_id, input_share)
         (vidpf_public_share, flp_public_share) = public_share
-        (vidpf_correction_words, vidpf_cs_proofs) = vidpf_public_share
         joint_rand_parts = flp_public_share
 
         # Evaluate the VIDPF.
         (beta_share, out_share, vidpf_proof) = self.vidpf.eval(
             agg_id,
-            vidpf_correction_words,
-            vidpf_cs_proofs,
-            vidpf_init_seed,
+            vidpf_public_share,
+            vidpf_key,
             level,
             prefixes,
             nonce,
@@ -280,7 +275,7 @@ class Mastic(
                 assert flp_seed is not None
                 assert joint_rand_parts is not None
                 joint_rand_part = self.joint_rand_part(
-                    agg_id, flp_seed, vidpf_init_seed,
+                    agg_id, flp_seed, vidpf_key,
                     vidpf_public_share, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
                 corrected_joint_rand_seed = self.joint_rand_seed(
@@ -421,8 +416,7 @@ class Mastic(
                         agg_id: int,
                         flp_seed: bytes,
                         vidpf_key: bytes,
-                        # TODO Reduce type complexity.
-                        vidpf_public_share: tuple[list[CorrectionWord], list[bytes]],
+                        vidpf_public_share: list[CorrectionWord],
                         nonce: bytes,
                         ) -> bytes:
         return XofTurboShake128.derive_seed(
@@ -467,10 +461,9 @@ class Mastic(
         self,
         public_share: MasticPublicShare,
     ) -> bytes:
-        ((correction_words, cs_proofs), joint_rand_parts) = public_share
+        (correction_words, joint_rand_parts) = public_share
         encoded = bytes()
-        encoded += self.vidpf.encode_public_share(
-            (correction_words, cs_proofs))
+        encoded += self.vidpf.encode_public_share(correction_words)
         if joint_rand_parts is not None:
             for seed in joint_rand_parts:
                 encoded += seed

@@ -1,6 +1,5 @@
 """Verifiable Distributed Point Function (VIDPF)"""
 
-import hashlib
 import itertools
 from typing import Generic, Sequence, TypeAlias, TypeVar
 
@@ -11,20 +10,45 @@ from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 F = TypeVar("F", bound=NttField)
 
-ROOT_PI_PROOF = hashlib.sha256(b"vidpf root pi proof").digest()
-
 PROOF_SIZE = 32
 
-CorrectionWord: TypeAlias = tuple[bytes, tuple[Field2, Field2], list[F]]
+# Walk proof for an empty tree.
+PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
+                              b"vidpf proof init",
+                              b'').next(PROOF_SIZE)
+
+# TODO Consider using `bool` instead of `Field2` to improve readability.
+Ctrl: TypeAlias = list[Field2]
+
+CorrectionWord: TypeAlias = tuple[
+    bytes,    # seed
+    Ctrl,     # control bits
+    list[F],  # payload
+    bytes,    # node proof
+]
+
+PrefixTreeIndex: TypeAlias = tuple[int, int]  # node, level
+
+PrefixTreeEntry: TypeAlias = tuple[
+    bytes,    # selected seed at this node
+    Field2,   # selected control bit at this node
+    list[F],  # payload at this node
+    bytes,    # proof for the walk so far
+]
 
 
 class Vidpf(Generic[F]):
-    """A Verifiable Incremental Distributed Point Function (VIDPF)."""
+    """
+    The Verifiable Incremental Distributed Point Function (VIDPF) of [MST24].
+    """
 
-    # Size in bytes of each vidpf key share.
+    # Size in bytes of each VIDPF key.
     KEY_SIZE = XofFixedKeyAes128.SEED_SIZE
 
-    # Number of random bytes consumed by the `gen()` algorithm.
+    # Size in bytes of the nonce.
+    NONCE_SIZE = XofFixedKeyAes128.SEED_SIZE
+
+    # Number of random bytes consumed by the VIDPF key generation algorithm.
     RAND_SIZE = 2 * XofFixedKeyAes128.SEED_SIZE
 
     def __init__(self, field: type[F], bits: int, value_len: int):
@@ -32,252 +56,320 @@ class Vidpf(Generic[F]):
         self.BITS = bits
         self.VALUE_LEN = value_len
 
-    # TODO Align API with draft-irtf-cfrg-vdaf-12.
     def gen(self,
             alpha: int,
             beta: list[F],
-            binder: bytes,
+            nonce: bytes,
             rand: bytes,
-            # TODO Reduce type complexity
-            ) -> tuple[list[bytes], tuple[list[CorrectionWord], list[bytes]]]:
+            ) -> tuple[list[CorrectionWord], list[bytes]]:
         '''
-        https://eprint.iacr.org/2023/080.pdf VIDPF.Gen
+        The VIDPF key generation algorithm.
+
+        Returns the public share (i.e., the correction word for each
+        level of the tree) and two keys, one fore each aggregator.
+
+        Implementation note: for clarity, this algorithm has not been
+        written in a manner that is side-channel resistant. To avoid
+        leading `alpha` via a side-channel, implementations should avoid
+        branching or indexing into arrays in a data-dependent manner.
         '''
-        if alpha >= 2**self.BITS:
-            raise ValueError("alpha too long")
+        if alpha not in range(2 ** self.BITS):
+            raise ValueError("alpha out of range")
+        if len(beta) != self.VALUE_LEN:
+            raise ValueError("incorrect beta length")
+        if len(nonce) != self.NONCE_SIZE:
+            raise ValueError("incorrect nonce size")
         if len(rand) != self.RAND_SIZE:
             raise ValueError("randomness has incorrect length")
 
-        init_seed = [
-            rand[:XofFixedKeyAes128.SEED_SIZE],
-            rand[XofFixedKeyAes128.SEED_SIZE:],
-        ]
+        keys = [rand[:self.KEY_SIZE], rand[self.KEY_SIZE:]]
 
-        # s0^0, s1^0, t0^0, t1^0
-        seed = init_seed.copy()
+        # [MST24, Fig. 15]: s0^0, s1^0, t0^0, t1^0
+        seed = keys.copy()
         ctrl = [Field2(0), Field2(1)]
         correction_words = []
-        cs_proofs = []
         for i in range(self.BITS):
             node = (alpha >> (self.BITS - i - 1))
             bit = node & 1
-            # if x = 0 then keep <- L, lose <- R
-            keep, lose = (1, 0) if bit else (0, 1)
 
-            # s_0^L || s_0^R || t_0^L || t_0^R
-            (s_0, t_0) = self.extend(seed[0], binder)
-            # s_1^L || s_1^R || t_1^L || t_1^R
-            (s_1, t_1) = self.extend(seed[1], binder)
-            seed_cw = xor(s_0[lose], s_1[lose])
-            ctrl_cw = (
-                t_0[0] + t_1[0] + Field2(1) + Field2(bit),  # t_c^L
-                t_0[1] + t_1[1] + Field2(bit),              # t_c^R
+            # [MST24]: if x = 0 then keep <- L, lose <- R
+            #
+            # Implementation note: the value of `bits` is
+            # `alpha`-dependent.
+            (keep, lose) = (1, 0) if bit else (0, 1)
+
+            # Extend: compute the left and right children the current
+            # level of the tree. During evaluation, one of these children
+            # will be selected as the next seed and control bit.
+            #
+            # [MST24]: s_0^L || s_0^R || t_0^L || t_0^R
+            #          s_1^L || s_1^R || t_1^L || t_1^R
+            (s0, t0) = self.extend(seed[0], nonce)
+            (s1, t1) = self.extend(seed[1], nonce)
+
+            # Compute the seed and control bit of this level's correction
+            # word. Our goal is to maintain the following invariant,
+            # after correction:
+            #
+            # * If evaluation is on path, then the seed should be
+            #   pseudorandom and the control bit should be `bit`. The
+            #   seed is the sum of the shares of the seeds we're
+            #  "losing" from the extended seed.
+            #
+            # * If evaluation is off path, then the seed should be the
+            #   all zero string and the control should be `1-bit`.
+            #
+            # Implementation note: the index `lose` is `alpha`-dependent.
+            seed_cw = xor(s0[lose], s1[lose])
+            ctrl_cw = [
+                t0[0] + t1[0] + Field2(1-bit),  # [MST24]: t_c^L
+                t0[1] + t1[1] + Field2(bit),    # [MST24]: t_c^R
+            ]
+
+            # Correct.
+            #
+            # Implementation note: the index `keep` is `alpha`-dependent,
+            # as is `ctrl`.
+            if ctrl[0] == Field2(1):
+                s0[keep] = xor(s0[keep], seed_cw)
+                t0[keep] = t0[keep] + ctrl_cw[keep]
+            if ctrl[1] == Field2(1):
+                s1[keep] = xor(s1[keep], seed_cw)
+                t1[keep] = t1[keep] + ctrl_cw[keep]
+
+            # Convert.
+            (seed[0], w0) = self.convert(s0[keep], nonce)
+            (seed[1], w1) = self.convert(s1[keep], nonce)
+            ctrl[0] = t0[keep]  # [MST24]: t0'
+            ctrl[1] = t1[keep]  # [MST24]: t1'
+
+            # Compute the payload of this level's correction word.
+            #
+            # Implementation note: `ctrl` is `alpha`-dependent.
+            w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
+            if ctrl[1] == Field2(1):
+                w_cw = vec_neg(w_cw)
+
+            # Compute the proof for this level's correction word. This is
+            # used to correct the node proof during evaluation.
+            proof_cw = xor(
+                self.node_proof(seed[0], node, i),
+                self.node_proof(seed[1], node, i),
             )
 
-            (seed[0], w_0) = self.convert(
-                correct(s_0[keep], seed_cw, ctrl[0]), binder)
-            (seed[1], w_1) = self.convert(
-                correct(s_1[keep], seed_cw, ctrl[1]), binder)
-            ctrl[0] = correct(t_0[keep], ctrl_cw[keep], ctrl[0])  # t0'
-            ctrl[1] = correct(t_1[keep], ctrl_cw[keep], ctrl[1])  # t1'
+            correction_words.append((seed_cw, ctrl_cw, w_cw, proof_cw))
 
-            w_cw = vec_add(vec_sub([self.field(1)] + beta, w_0), w_1)
-            mask = self.field(1) - self.field(2) * \
-                self.field(ctrl[1].as_unsigned())
-            for j in range(len(w_cw)):
-                w_cw[j] *= mask
+        return (correction_words, keys)
 
-            # Compute hashes for level i
-            cs_proofs.append(xor(
-                self.next_cs_proof(node, i, seed[0]),
-                self.next_cs_proof(node, i, seed[1]),
-            ))
-            correction_words.append((seed_cw, ctrl_cw, w_cw))
-
-        return (init_seed, (correction_words, cs_proofs))
-
-    # TODO Align API with draft-irtf-cfrg-vdaf-12.
     def eval(self,
              agg_id: int,
-             correction_words: list[CorrectionWord],
-             cs_proofs: list[bytes],
-             init_seed: bytes,
+             public_share: list[CorrectionWord],
+             key: bytes,
              level: int,
              prefixes: Sequence[int],
-             binder: bytes
+             nonce: bytes,
              ) -> tuple[list[F], list[list[F]], bytes]:
-        if agg_id >= 2:
+        """
+        The VIDPF key evaluation algorithm.
+
+        Return the aggregator's share of `beta`, its output share for
+        each prefix, and its proof.
+        """
+        if agg_id not in range(2):
             raise ValueError("invalid aggregator ID")
-        if level >= self.BITS:
+        if len(public_share) != self.BITS:
+            raise ValueError("corrections words list has incorrect length")
+        if level not in range(self.BITS):
             raise ValueError("level too deep")
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        # Compute the Aggregator's share of the prefix tree and the one-hot
-        # proof (`pi_proof`).
+        # Evaluate our share of the prefix tree. Along the way, compute
+        # the walk proof. (TODO Define "walk proof" and probably call it
+        # something else.)
         #
-        # Implementation note: We can save computation by storing
+        # Implementation note: we can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
-        pi_proof = ROOT_PI_PROOF
-        # TODO Reduce type complexity
-        prefix_tree_share: dict[tuple[int, int],
-                                tuple[bytes, Field2, list[F], bytes]] = {}
+        prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
+        proof = PROOF_INIT
         for prefix in prefixes:
-            if prefix >= 2 ** (level+1):
+            if prefix not in range(2 ** (level+1)):
                 raise ValueError("prefix too long")
 
-            # The Aggregator's output share is the value of a node of
-            # the IDPF tree at the given `level`. The node's value is
-            # computed by traversing the path defined by the candidate
-            # `prefix`. Each node in the tree is represented by a seed
-            # (`seed`) and a set of control bits (`ctrl`).
-            seed = init_seed
+            seed = key
             ctrl = Field2(agg_id)
-            for current_level in range(level+1):
-                node = prefix >> (level - current_level)
+            for i in range(level+1):
+                node = prefix >> (level - i)
                 for s in [0, 1]:
                     # Compute the value for the node `node` and its sibling
-                    # `node ^ s`. The latter is used for computing the path
-                    # proof.
-                    if not prefix_tree_share.get((node ^ s, current_level)):
-                        prefix_tree_share[(node ^ s, current_level)] = self.eval_next(
+                    # `node ^ s`. The sibling is used to compute the path
+                    # and counter for the evaluation proof.
+                    if not prefix_tree_share.get((node ^ s, i)):
+                        prefix_tree_share[(node ^ s, i)] = self.eval_next(
                             seed,
                             ctrl,
-                            correction_words[current_level],
-                            cs_proofs[current_level],
-                            current_level,
+                            public_share[i],
+                            i,
                             node ^ s,
-                            pi_proof,
-                            binder,
+                            proof,
+                            nonce,
                         )
-                (seed, ctrl, y, pi_proof) = prefix_tree_share[(
-                    node, current_level)]
+                (seed, ctrl, w, proof) = prefix_tree_share[(node, i)]
 
-        # Compute the Aggregator's share of `beta`.
-        y0 = prefix_tree_share[(0, 0)][2]
-        y1 = prefix_tree_share[(1, 0)][2]
-        beta_share = vec_add(y0, y1)[1:]  # first element is the counter
+        # Compute the aggregator's share of `beta`.
+        w0 = prefix_tree_share[(0, 0)][2]
+        w1 = prefix_tree_share[(1, 0)][2]
+        beta_share = vec_add(w0, w1)[1:]
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
 
-        # Compute the counter.
-        counter = self.field.encode_vec([y0[0] + y1[0] + self.field(agg_id)])
+        # Check that the first element of the payload is equal to 1.
+        #
+        # Each aggregator holds an additive share of the counter, so we
+        # aggregator 1 negate its share and add 1 so that they both
+        # compute the same value for `counter`.
+        counter = self.field.encode_vec([w0[0] + w1[0] + self.field(agg_id)])
 
-        # Compute the path.
+        # Path check: For each node, check that the payload is equal to
+        # the sum of its children.
         path = b''
         for prefix in prefixes:
-            for current_level in range(level):
-                node = prefix >> (level - current_level)
-                y = prefix_tree_share[(node,             current_level)][2]
-                y0 = prefix_tree_share[(node << 1,       current_level+1)][2]
-                y1 = prefix_tree_share[((node << 1) | 1, current_level+1)][2]
-                path += self.field.encode_vec(vec_sub(y, vec_add(y0, y1)))
+            for i in range(level):
+                node = prefix >> (level - i)
+                w = prefix_tree_share[(node,             i)][2]
+                w0 = prefix_tree_share[(node << 1,       i+1)][2]
+                w1 = prefix_tree_share[((node << 1) | 1, i+1)][2]
+                path += self.field.encode_vec(vec_sub(w, vec_add(w0, w1)))
 
-        # Compute the Aggregator's output share.
+        # Compute the aggregator's output share.
         out_share = []
         for prefix in prefixes:
-            (_seed, _ctrl, y, _pi_proof) = prefix_tree_share[(prefix, level)]
-            out_share.append(y if agg_id == 0 else vec_neg(y))
+            w = prefix_tree_share[(prefix, level)][2]
+            out_share.append(w if agg_id == 0 else vec_neg(w))
 
-        return (beta_share, out_share, eval_proof(pi_proof, counter, path))
+        # Compute the evaluation proof. If both aggregators compute the
+        # same value, then they agree on the walk proof, path and
+        # counter.
+        proof = eval_proof(proof, counter, path)
+        return (beta_share, out_share, proof)
 
-    def eval_next(self, prev_seed, prev_ctrl, correction_word, cs_proof,
-                  current_level, node, pi_proof, binder):
+    def eval_next(self,
+                  seed: bytes,
+                  ctrl: Field2,
+                  correction_word: CorrectionWord,
+                  i: int,  # current level
+                  node: int,
+                  proof: bytes,
+                  nonce: bytes,
+                  ) -> tuple[bytes, Field2, list[F], bytes]:
         """
-        Compute the next node in the VIDPF tree along the path determined by
-        a candidate prefix. The next node is determined by `bit`, the bit of
-        the prefix corresponding to the next level of the tree.
+        Extend a node in the tree, select and correct one of its
+        children, then convert it into a payload and the next seed.
         """
-        (seed_cw, ctrl_cw, w_cw) = correction_word
+        (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
+        keep = node & 1
 
-        # (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-        (s, t) = self.extend(prev_seed, binder)
-        s[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw))  # s^L
-        s[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw))  # s^R
-        t[0] += ctrl_cw[0] * prev_ctrl  # t^L
-        t[1] += ctrl_cw[1] * prev_ctrl  # t^R
+        # Extend.
+        #
+        # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+        (s, t) = self.extend(seed, nonce)
 
-        bit = node & 1
-        next_ctrl = t[bit]  # t'^i
-        (next_seed, w) = self.convert(s[bit],  binder)  # s^i, W^i
-        # Implementation note: Here we add the correction word to the
-        # output if `next_ctrl` is set. We avoid branching on the value of
-        # the control bit in order to reduce side channel leakage.
-        y = []
-        mask = self.field(next_ctrl.as_unsigned())
-        for i in range(len(w)):
-            y.append(w[i] + w_cw[i] * mask)
+        # Correct.
+        #
+        # Implementation note: avoid branching on the value of control bits, as
+        # its value may be leaked by a side channel.
+        if ctrl == Field2(1):
+            s[keep] = xor(s[keep], seed_cw)
+            t[keep] = t[keep] + ctrl_cw[keep]
 
-        # pi' = H(x^{<= i} || s^i)
-        pi_prime = self.next_cs_proof(node, current_level, next_seed)
+        # Convert and correct the payload.
+        #
+        # Implementation note: the conditional addition should be
+        # replaced with a constant-time select in practice in order to
+        # reduce leakage via timing side channels.
+        (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i, W^i
+        next_ctrl = t[keep]  # [MST24]: t'^i
+        if next_ctrl == Field2(1):
+            w = vec_add(w, w_cw)
 
-        # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * cs_proof))
-        if next_ctrl.as_unsigned() == 1:
-            h2 = xor(pi_proof, xor(pi_prime, cs_proof))
+        # [MST24]: pi' = H(x^{<= i} || s^i)
+        pi_prime = self.node_proof(next_seed, node, i)
+
+        # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * proof_cw))
+        #
+        # Implementation note: avoid branching on the control bit here.
+        if next_ctrl == Field2(1):
+            h2 = xor(proof, xor(pi_prime, proof_cw))
         else:
-            h2 = xor(pi_proof, pi_prime)
-        pi_proof = xor(pi_proof, pi_proof_adjustment(h2))
+            h2 = xor(proof, pi_prime)
+        proof = xor(proof, pi_proof_adjustment(h2))
 
-        return (next_seed, next_ctrl, y, pi_proof)
+        return (next_seed, next_ctrl, w, proof)
 
-    def verify(self, proof_0, proof_1):
-        '''Check proofs'''
-        return proof_0 == proof_1
+    def verify(self, proof0: bytes, proof1: bytes) -> bool:
+        return proof0 == proof1
 
-    def extend(self, seed, binder):
+    def extend(self,
+               seed: bytes,
+               nonce: bytes,
+               ) -> tuple[list[bytes], Ctrl]:
         '''
-        Extend seed to (seed_L, t_L, seed_R, t_R)
+        Extend a seed into the seed and control bits for its left and
+        right children in the VIDPF tree.
         '''
-        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 0), binder)
-        new_seed = [
-            xof.next(XofFixedKeyAes128.SEED_SIZE),
-            xof.next(XofFixedKeyAes128.SEED_SIZE),
+        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 0), nonce)
+        s = [
+            bytearray(xof.next(self.KEY_SIZE)),
+            bytearray(xof.next(self.KEY_SIZE)),
         ]
-        bit = xof.next(1)[0]
-        ctrl = [Field2(bit & 1), Field2((bit >> 1) & 1)]
-        return (new_seed, ctrl)
+        # Use the least significant bits as the control bit correction,
+        # and then zero it out. This gives effectively 127 bits of
+        # security, but reduces the number of AES calls needed by 1/3.
+        t = [Field2(s[0][0] & 1), Field2(s[1][0] & 1)]
+        s[0][0] &= 0xFE
+        s[1][0] &= 0xFE
+        return ([bytes(s[0]), bytes(s[1])], t)
 
-    def convert(self, seed, binder):
+    def convert(self,
+                seed: bytes,
+                nonce: bytes,
+                ) -> tuple[bytes, list[F]]:
         '''
-        Converting seed to a pseudorandom element of G.
+        Convert a selected seed into a payload and the seed for the next
+        level.
         '''
-        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), binder)
+        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), nonce)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
-        return (next_seed, xof.next_vec(self.field, 1+self.VALUE_LEN))
+        payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
+        return (next_seed, payload)
 
-    def next_cs_proof(self, node, level, seed):
-        binder = to_le_bytes(self.BITS, 2) \
-            + to_le_bytes(node, (self.BITS + 7) // 8) \
-            + to_le_bytes(level, 2)
-        xof = XofTurboShake128(seed, b'vidpf cs proof', binder)
+    def node_proof(self,
+                   seed: bytes,
+                   node: int,
+                   level: int,
+                   ) -> bytes:
+        '''
+        Compute the proof for this node.
+        '''
+        binder = \
+            to_le_bytes(self.BITS, 2) + \
+            to_le_bytes(node, (self.BITS + 7) // 8) + \
+            to_le_bytes(level, 2)
+        xof = XofTurboShake128(seed, b'vidpf proof step', binder)
         return xof.next(PROOF_SIZE)
 
-    def encode_public_share(self, public_share):
+    def encode_public_share(self, correction_words: list[CorrectionWord]):
         # TODO(cjpatton) Align with Poplar1 public share in draft-irtf-cfrg-vdaf-12
-        (correction_words, cs_proofs) = public_share
         encoded = bytes()
         control_bits = list(itertools.chain.from_iterable(
             cw[1] for cw in correction_words
         ))
         encoded += pack_bits(control_bits)
-        for lvl in range(self.BITS):
-            (seed_cw, ctrl_cw, w_cw) = correction_words[lvl]
+        for (seed_cw, _ctrl_cw, w_cw, proof_cw) in correction_words:
             encoded += seed_cw
             encoded += self.field.encode_vec(w_cw)
-            encoded += cs_proofs[lvl]
+            encoded += proof_cw
         return encoded
-
-
-def correct(k_0, k_1, ctrl):
-    ''' return k_0 if ctrl == 0 else xor(k_0, k_1) '''
-    if isinstance(k_0, bytes):
-        return xor(k_0, ctrl.conditional_select(k_1))
-    if isinstance(k_0, list):  # list of ints or ring elements
-        for i in range(len(k_0)):
-            k_0[i] += ctrl * k_1[i]
-        return k_0
-    # int or ring element
-    return k_0 + ctrl * k_1
 
 
 def pi_proof_adjustment(h2):
@@ -289,11 +381,11 @@ def pi_proof_adjustment(h2):
     return xof.next(PROOF_SIZE)
 
 
-def eval_proof(pi_proof, counter, path) -> bytes:
+def eval_proof(proof: bytes, counter: bytes, path: bytes) -> bytes:
     xof = XofTurboShake128(
         zeros(XofTurboShake128.SEED_SIZE),
         b'vidpf eval proof',
-        pi_proof + counter + path,
+        proof + counter + path,
     )
     return xof.next(PROOF_SIZE)
 
