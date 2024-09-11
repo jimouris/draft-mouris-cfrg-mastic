@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
         self.assertEqual(vidpf.BITS, 2)
         self.assertEqual(vidpf.VALUE_LEN, 1)
 
-        binder = b'some nonce'
+        nonce = gen_rand(vidpf.NONCE_SIZE)
         # alpha values from different users
         measurements = [0b10, 0b00, 0b11, 0b01, 0b11]
         beta = [vidpf.field(2)]
@@ -23,19 +23,18 @@ class Test(unittest.TestCase):
         out = [Field128.zeros(vidpf.VALUE_LEN + 1)] * len(prefixes)
         for measurement in measurements:
             rand = gen_rand(vidpf.RAND_SIZE)
-            (init_seed, (correction_words, cs_proofs)) = vidpf.gen(
-                measurement, beta, binder, rand)
+            (correction_words, keys) = vidpf.gen(
+                measurement, beta, nonce, rand)
 
             proofs = []
             for agg_id in range(2):
                 (_beta_share, out_share, proof) = vidpf.eval(
                     agg_id,
                     correction_words,
-                    cs_proofs,
-                    init_seed[agg_id],
+                    keys[agg_id],
                     level,
                     prefixes,
-                    binder,
+                    nonce,
                 )
                 proofs.append(proof)
 
@@ -67,19 +66,18 @@ class Test(unittest.TestCase):
         out = [Field128.zeros(vidpf.VALUE_LEN + 1)] * len(prefixes)
         for measurement in measurements:
             rand = gen_rand(vidpf.RAND_SIZE)
-            (init_seed, (correction_words, cs_proofs)) = vidpf.gen(
-                measurement, beta, binder, rand)
+            (correction_words, keys) = vidpf.gen(
+                measurement, beta, nonce, rand)
 
             proofs = []
             for agg_id in range(2):
                 (_beta_share, out_share, proof) = vidpf.eval(
                     agg_id,
                     correction_words,
-                    cs_proofs,
-                    init_seed[agg_id],
+                    keys[agg_id],
                     level,
                     prefixes,
-                    binder,
+                    nonce,
                 )
                 proofs.append(proof)
 
