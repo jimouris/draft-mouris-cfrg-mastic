@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 5 September 2024                                        Nillion
+Expires: 15 March 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                            4 March 2024
+                                                       11 September 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 September 2024.
+   This Internet-Draft will expire on 15 March 2025.
 
 Copyright Notice
 
@@ -939,9 +939,9 @@ Table of Contents
               DOI 10.17487/RFC9110, June 2022,
               <https://www.rfc-editor.org/rfc/rfc9110>.
 
-   [SHS]      Dang, Q., "Secure Hash Standard", National Institute of
-              Standards and Technology, DOI 10.6028/nist.fips.180-4,
-              July 2015, <https://doi.org/10.6028/nist.fips.180-4>.
+   [SHS]      "Secure hash standard", National Institute of Standards
+              and Technology (U.S.), DOI 10.6028/nist.fips.180-4, 2015,
+              <https://doi.org/10.6028/nist.fips.180-4>.
 
    [W3C23]    W3C Working Group, "Network Error Logging", 2023,
               <https://www.w3.org/TR/network-error-logging>.
