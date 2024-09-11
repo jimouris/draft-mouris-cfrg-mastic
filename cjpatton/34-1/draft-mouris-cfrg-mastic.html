@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The Mastic VDAF</title>
+<meta content="Hannah Davis" name="author">
+<meta content="Dimitris Mouris" name="author">
+<meta content="Christopher Patton" name="author">
+<meta content="Pratik Sarkar" name="author">
+<meta content="Nektarios G. Tsoutsos" name="author">
+<meta content="
+       This document describes Mastic, a two-party VDAF for the following aggregation
+task: each client holds a string, and the collector wishes to count how many of
+these strings begin with a given prefix. Such a VDAF can be used to solve the
+private heavy hitters problem, where the goal is to compute the subset of the
+strings that occur most frequently without learning which client holds which
+string. This document also describes different modes of operation for Mastic
+that support additional use cases and admit various performance and security
+trade-offs. 
+    " name="description">
+<meta content="xml2rfc 3.23.0" name="generator">
+<meta content="Internet-Draft" name="keyword">
+<meta content="draft-mouris-cfrg-mastic-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.23.0
+    Python 3.12.3
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.0
+    intervaltree 3.1.0
+    Jinja2 3.1.4
+    lxml 4.9.4
+    platformdirs 4.2.2
+    pycountry 22.3.5
+    PyYAML 6.0.1
+    requests 2.32.3
+    setuptools 70.3.0
+    wcwidth 0.2.13
+-->
+<link href="draft-mouris-cfrg-mastic.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cabin Condensed", sans-serif;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+}
+:is(ol, ul) :is(ol, ul) {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  line-height: 1;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+}
+dl.olPercent {
+  --indent: 5ch;
+}
+dl > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+dl.olPercent > dt {
+  min-width: calc(var(--indent) - 2ch);
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:first-child, .break:first-child + *) {
+  margin-top: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:last-child) {
+  margin-bottom: 0;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    overflow-x: auto;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+}
+a.pilcrow[href] { color: var(--pilcrow-weak); }
+a.pilcrow[href]:hover { text-decoration: none; }
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+}
+#identifiers dt {
+  width: var(--identifier-width);
+  min-width: var(--identifier-width);
+  clear: left;
+  float: left;
+  text-align: right;
+  margin-right: 1ch;
+}
+#identifiers dd {
+  margin: 0;
+  margin-left: calc(1em + var(--identifier-width)) !important;
+  min-width: 5em;
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+#toc nav ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+#toc nav li {
+  line-height: 1.3em;
+  margin: 2px 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+#toc a.xref {
+  white-space: normal;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 10ch;
+  margin-right: 1.5ch;
+}
+.references dt:target::before {
+  content: "⇒";
+  width: 15px;
+  margin: 0 10px 0 -25px;
+}
+.references dd {
+  margin-left: 12ch !important;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc.active {
+      opacity: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 8px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active nav {
+    display: block;
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin-top: 2px;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #toc nav > ul  {
+    margin-bottom: 2em;
+  }
+  #toc ul {
+    margin: 0 0 0 4px;
+    font-size: var(--small-font-size);
+  }
+  #toc ul :is(p, li) {
+    margin: 2px 0;
+    line-height: 22px;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+  .toplink {
+    display: none;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Changes introduced to fix issues found during implementation */
+
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin: 8px 0.5em 0;
+}
+
+/* Provide styling for table cell text alignment */
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 20em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">Mastic</td>
+<td class="right">September 2024</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Davis, et al.</td>
+<td class="center">Expires 15 March 2025</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Crypto Forum</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-mouris-cfrg-mastic-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2024-09-11" class="published">11 September 2024</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2025-03-15">15 March 2025</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">H. Davis</div>
+<div class="org">Seagate</div>
+</div>
+<div class="author">
+      <div class="author-name">D. Mouris</div>
+<div class="org">Nillion</div>
+</div>
+<div class="author">
+      <div class="author-name">C. Patton</div>
+<div class="org">Cloudflare</div>
+</div>
+<div class="author">
+      <div class="author-name">P. Sarkar</div>
+<div class="org">Supra Research</div>
+</div>
+<div class="author">
+      <div class="author-name">N. G. Tsoutsos</div>
+<div class="org">University of Delaware</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The Mastic VDAF</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document describes Mastic, a two-party VDAF for the following aggregation
+task: each client holds a string, and the collector wishes to count how many of
+these strings begin with a given prefix. Such a VDAF can be used to solve the
+private heavy hitters problem, where the goal is to compute the subset of the
+strings that occur most frequently without learning which client holds which
+string. This document also describes different modes of operation for Mastic
+that support additional use cases and admit various performance and security
+trade-offs.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mouris-cfrg-mastic/">https://datatracker.ietf.org/doc/draft-mouris-cfrg-mastic/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Crypto Forum Research Group mailing list (<span><a href="mailto:cfrg@ietf.org">mailto:cfrg@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/search/?email_list=cfrg">https://mailarchive.ietf.org/arch/search/?email_list=cfrg</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/cfrg/">https://www.ietf.org/mailman/listinfo/cfrg/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/jimouris/draft-mouris-cfrg-mastic">https://github.com/jimouris/draft-mouris-cfrg-mastic</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 15 March 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2024 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-motivating-applications" class="internal xref">Motivating Applications</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1.2.1">
+                    <p id="section-toc.1-1.1.2.1.2.1.1" class="keepWithNext"><a href="#section-1.1.1" class="auto internal xref">1.1.1</a>.  <a href="#name-network-error-logging" class="internal xref">Network Error Logging</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1.2.2">
+                    <p id="section-toc.1-1.1.2.1.2.2.1" class="keepWithNext"><a href="#section-1.1.2" class="auto internal xref">1.1.2</a>.  <a href="#name-attribute-based-browser-tel" class="internal xref">Attribute-Based Browser Telemetry</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-preliminaries" class="internal xref">Preliminaries</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-finite-fields" class="internal xref">Finite fields</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-xof" class="internal xref">XOF</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-flp" class="internal xref">FLP</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-ordering-function-order" class="internal xref">Ordering function <code>order</code></a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5">
+                <p id="section-toc.1-1.3.2.5.1"><a href="#section-3.5" class="auto internal xref">3.5</a>.  <a href="#name-verifiable-idpf-vidpf" class="internal xref">Verifiable IDPF (VIDPF)</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-definition-of-mastic" class="internal xref">Definition of <code>Mastic</code></a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-sharding" class="internal xref">Sharding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-preparation" class="internal xref">Preparation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-validity-of-aggregation-par" class="internal xref">Validity of Aggregation Parameters</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-aggregation" class="internal xref">Aggregation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.5">
+                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-unsharding" class="internal xref">Unsharding</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-modes-of-operation-for-mast" class="internal xref">Modes of Operation for <code>Mastic</code></a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-weighted-heavy-hitters" class="internal xref">Weighted Heavy-Hitters</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1.2.1">
+                    <p id="section-toc.1-1.5.2.1.2.1.1"><a href="#section-5.1.1" class="auto internal xref">5.1.1</a>.  <a href="#name-different-thresholds" class="internal xref">Different Thresholds</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-attribute-based-metrics" class="internal xref">Attribute-based Metrics</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-plain-heavy-hitters-with-vi" class="internal xref">Plain Heavy-Hitters with VIDPF-Proof Aggregation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-robustness-against-a-malici" class="internal xref">Robustness Against a Malicious Aggregator</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-definition-of-vidpf" class="internal xref">Definition of <code>Vidpf</code></a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-1-1.1">
+          <p id="section-1-1.1.1">TO BE REMOVED BY RFC EDITOR: The source for this draft and the reference code
+can be found at https://github.com/jimouris/draft-mouris-cfrg-mastic.<a href="#section-1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-2">The "private heavy hitters" problem is to recover the most popular measurements
+generated by clients without learning the measurements themselves. For
+example, a browser vendor might want to know which websites are visited most
+frequently without learning which clients visited which websites.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">For string measurements, this problem can be solved by combining a binary
+search with a subroutine solving the "private prefix histogram" subproblem. The
+goal of this subproblem is to compute a histogram over the fixed-length
+prefixes of client measurement strings without revealing the prefixes. The
+subproblem can be solved using a Verifiable Distributed Aggregation Function,
+or VDAF <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>. In particular, the Poplar1 VDAF
+described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> describes how to distribute this
+computation amongst a small set of aggregation servers such that, as long as
+one server is honest, no individual measurement is observed in the clear. At
+the same time, Poplar1 allows the servers to detect and remove any invalid
+measurements that would otherwise corrupt the computation of the histogram.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">This document describes Mastic <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>, a VDAF that can be used as a drop-in
+replacement for Poplar1, while offering improved performance and communication
+cost. Based on the PLASMA protocol <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>, the scheme's design also improves
+communication complexity, requiring just one round for report preparation
+compared to Poplar1's two rounds. Mastic is specified in <a href="#vdaf" class="auto internal xref">Section 4</a>.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">Mastic is also highly extensible. Like Poplar1, Mastic's core functionality is
+to compute prefix histograms. Mastic allows this basic counter data type to be
+generalized to support a wide variety of secure aggregation tasks. In
+particular, Mastic supports any data type that can be expressed as a type for
+the Prio3 VDAF <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. For example, the counter could be
+replaced with a bounded weight (say, representing how much time was sepnt on a
+website) such that the heaviest "weight" measurements are recovered. We
+describe this mode of operation in <a href="#weighted-heavy-hitters" class="auto internal xref">Section 5.1</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">This generalization also allows Mastic to support another important use case. A
+desirable feature for a secure aggregation systems is the ability to "drill
+down" on the data by splitting up the aggregate based on specific properties of
+the clients. For example, a browser vendor may wish to partition aggregates by
+version (different versions of the browser may have different performance
+profiles) or geographic location. We will call these properties "attributes".
+[CP: See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489 for the
+discussion that originally motivated this idea.]<a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-7">This requires representing the information in such a way that that measurements
+submitted by clients with the same attribute are aggregated together. Prio3 can
+be adapted for this purpose, but the communication cost would be linear in the
+number of possible distinct attributes, which quickly becomes prohibitive if
+the number of attributes is large or subject to change over time. For example,
+attributes might encode the client's user agent (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-10.1.5" class="relref">Section 10.1.5</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>), which has many possible values that tend to change over time.<a href="#section-1-7" class="pilcrow">¶</a></p>
+<p id="section-1-8">Mastic encodes the attribute and measurement such that, for an arbitrary
+sequence of attributes, the reports can be "queried" to reveal the aggregate
+for each attribute without learning the attribute or measurement of any client.
+We describe this mode of operation in <a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>.<a href="#section-1-8" class="pilcrow">¶</a></p>
+<p id="section-1-9">Finally, we describe two modes of operation for Mastic that admit useful
+performance and security trade-offs.<a href="#section-1-9" class="pilcrow">¶</a></p>
+<p id="section-1-10">First, we describe an optimization for plain (i.e., non-weighted) heavy hitters
+that, in the best case, reduces the communication cost of preparation from
+linear in the number of reports to constant, leading to a dramatic improvement
+in performance compared to Poplar1. This best-case behavior is observed when
+all clients behave honestly: if a fraction of the clients submit invalid
+reports, then additional rounds of communication are required in order to
+isolate the invalid reports and remove them. We describe this idea in detail in
+<a href="#plain-heavy-hitters-with-proof-aggregation" class="auto internal xref">Section 5.3</a>.<a href="#section-1-10" class="pilcrow">¶</a></p>
+<p id="section-1-11">Second, in <a href="#malicious-security-with-three-aggregators" class="auto internal xref">Section 6</a> we describe an
+enhancement that allows Mastic to achieve robustness in the presence of a
+malicious Aggregator. Rather than two aggregation servers as in the previous
+modes, this mode of operation involves three Aggregators, where every pair of
+Aggregators communicate over a different channel. Using a third Aggregator, we
+can lift the security of Mastic from the semi-honest setting to malicious
+security. While more complex to implement than 2-party Mastic, this mode allows
+achieves "full security", where both privacy and robustness hold in the honest
+majority setting.<a href="#section-1-11" class="pilcrow">¶</a></p>
+<div id="motivating-applications">
+<section id="section-1.1">
+        <h3 id="name-motivating-applications">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-motivating-applications" class="section-name selfRef">Motivating Applications</a>
+        </h3>
+<p id="section-1.1-1">Mastic has two modes of operation, i.e., Weighted Heavy-Hitters
+<a href="#weighted-heavy-hitters" class="auto internal xref">Section 5.1</a> and Attribute-Based Metrics
+<a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>. We describe one applications of interest for each
+mode.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<div id="NEL">
+<section id="section-1.1.1">
+          <h4 id="name-network-error-logging">
+<a href="#section-1.1.1" class="section-number selfRef">1.1.1. </a><a href="#name-network-error-logging" class="section-name selfRef">Network Error Logging</a>
+          </h4>
+<p id="section-1.1.1-1">Network Error Logging (NEL) is a mechanism used by web browsers to report errors
+that occur while attempting to establish a connection to a server <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>. Some
+of these errors are visible to the server, but not all: failures in DNS, TCP,
+TLS, and HTTP can occur without the server having any visibility into the issue.
+A small amount of connection errors is expected, even under normal operating
+conditions; but a sudden, substantial increase in errors may be an indication of
+an outage, or a configuration issue impacting millions of users. Without a
+reporting mechanism like NEL, these events would only manifest in the server's
+telemetry as a drop in overall traffic.<a href="#section-1.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-2">NEL is particularly important for content delivery networks that handle HTTP
+traffic for a large number of websites (typically millions). A content delivery
+network acts as a reverse proxy between clients and origin servers that provides
+a layer of caching and security services, such as DDoS protection.<a href="#section-1.1.1-2" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-3">Reports are comprised of the URL the client attempted to navigate to (e.g.,
+"https://example.com"), the type of error that occurred, and metadata related to
+the attempt, such as the time that elapsed between when the connection attempt
+began and the error was observed (e.g., Section 7 of <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>). Clients may
+also report successful connection attempts to give the server a sense of the
+error rate. The exact client behavior is determined by the reporting policy
+specified by the server (see Section 5.1 of <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>).<a href="#section-1.1.1-3" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-4">NEL data is privacy-sensitive for two reasons. First, it exposes information
+that the server would not otherwise have access to, which can be abused to probe
+the client's network configuration as described in Section 9 of <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>.
+Second, for operational reasons, the reporting endpoint may be organizationally
+separated from the server (i.e., run on different cloud infrastructures),
+leading to an increased risk of the client's browsing history being exposed
+(e.g., in a data breach).<a href="#section-1.1.1-4" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-5">MPC helps mitigate these risks by revealing to the endpoint only the information
+it needs to fulfill its service level objectives. This means, of course, we must
+be satisfied with limited functionality. Fortunately, Mastic allows us to
+preserve the most important functionality of NEL while minimizing privacy loss.<a href="#section-1.1.1-5" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-6">Mastic can be applied to a simplified version of NEL where each client reports
+a tuple <code>(dom, err)</code> consisting of a domain name dom (e.g., "example.com") and
+a value err that represents an error (e.g., "dns.unreachable") or an indication
+that no error occurred (e.g., "ok"). Notably, this can be easily extended in
+Mastic to represent more elaborate metrics. e.g., where each weight includes
+the time it took each browser to report the error (and the aggregate is the
+average error reporting time), user agent (browser type and version), etc.
+However, our main goal is to understand 1) the distribution of errors and 2)
+which domains are impacted.<a href="#section-1.1.1-6" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-7">We expect there to be a large number of distinct domain names (millions in the
+case of content delivery networks) and only a small number of error variants
+(the NEL spec <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span> defines 30 variants). The following Mastic parameters
+are suitable for this application.<a href="#section-1.1.1-7" class="pilcrow">¶</a></p>
+<p id="section-1.1.1-8">Each input would encode the domain <code>dom</code> encoded with a number of bits
+sufficient to uniquely represent most of the domains; and each weight would
+represent the error variant <code>dom</code>. To compute the distribution of errors, we
+would encode each error variant as a distinct bucket of a histogram so that
+<code>[1, 0, 0, ...]</code> represents "ok", <code>[0, 1, 0, ...]</code> represents
+"dns.unreachable", and so on. (See ection 6 of <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>.), This is similar to
+Prio3Histogram (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.)<a href="#section-1.1.1-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="attribute-based-telemetry">
+<section id="section-1.1.2">
+          <h4 id="name-attribute-based-browser-tel">
+<a href="#section-1.1.2" class="section-number selfRef">1.1.2. </a><a href="#name-attribute-based-browser-tel" class="section-name selfRef">Attribute-Based Browser Telemetry</a>
+          </h4>
+<p id="section-1.1.2-1">Web browsers collect telemetry generated by users as they navigate the web to
+gain insights into trends that guide product decisions. In many cases, Prio3
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) can be used to privately aggregate this telemetry.
+However, this comes at the cost of flexibility.<a href="#section-1.1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.1.2-2">For example, Prio3 can be used to collect page load metrics from Browser for a
+list of known popular sites (e.g., "example.com"). The purpose of these metrics
+is to detect if changes to these sites cause regressions that might be
+correlated with an increased average load time or error rate. A subtle, but
+important requirement for this system is the ability to break down the metrics
+by client attributes. Suppose for example that we want to aggregate by 1) the
+software version, and 2) the information about the client's location.<a href="#section-1.1.2-2" class="pilcrow">¶</a></p>
+<p id="section-1.1.2-3">Mastic provides a simple solution to this problem. For the sake of presentation,
+we consider a simplified use case (the same approach can be applied to any
+aggregation task for which Prio3 (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is suitable). Each
+client reports a tuple <code>(ver, loc, site, time)</code> where: <code>ver</code> is a string
+representing the client's software version (e.g., "Browser/122.0"); <code>loc</code> is a
+string encoding its country code (e.g., "GR", "US", "IN", etc.); <code>site</code> is one
+of a fixed set of sites (e.g., "example.com", "example.org", etc.); and <code>time</code>
+is the load time of the site in seconds. The version and location are included
+in the Mastic input; the site and load time are encoded by the corresponding
+weight. Notably, this is just one example of what Mastic can do; the same idea
+can be applied to other types of metrics.<a href="#section-1.1.2-3" class="pilcrow">¶</a></p>
+<p id="section-1.1.2-4">Compared to the private NEL application in <a href="#NEL" class="auto internal xref">Section 1.1.1</a>, the number of possible
+inputs here is relatively small: there are less than 200 country codes and a
+handful of browser versions in wide use at any given time. This means the
+aggregators can enumerate a set of inputs of interest and evaluate them
+immediately. Consider the following parameters for Mastic, in its
+attribute-based metrics mode of operation <a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>:<a href="#section-1.1.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.1.2-5.1">
+              <p id="section-1.1.2-5.1.1">Attributes: Two-letter country codes can easily be encoded in 2 bytes.
+Likewise, the number of distinct browser versions is easily less than 216, so
+2 bytes are sufficient. Therefore, each attribute can be encoded with just
+<code>32</code> bits.<a href="#section-1.1.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-1.1.2-5.2">
+              <p id="section-1.1.2-5.2.1">Values: Similar to private NEL, each weight is a <code>0</code>-vector except for a
+single <code>1</code> representing a bucket in a histogram. We represent <code>(site, time)</code>
+as a histogram bucket as follows. First, we quantize time (in seconds) into
+one of four buckets: <code>[0, 0.1)</code>, <code>[0.1, 1)</code>, <code>[1, 5)</code>, and <code>[5, inf)</code>. Let <code>0
+&lt; t &lt;= 4</code> denote the time bucket for <code>time</code>. Next, suppose we wish to track
+metrics for <code>25</code> sites. Let <code>0 &lt; s &lt;= 25</code> denote the index of <code>site</code> in this
+list. Then the index of 1 is simply <code>t * s</code>.<a href="#section-1.1.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the following terms as defined in <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>:
+"Aggregator",
+"Client",
+"Collector",
+"aggregate result",
+"aggregate share",
+"aggregation parameter",
+"batch",
+"input share",
+"measurement",
+"order",
+"output share",
+"prep message",
+"prep share", and
+"report".<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3">In Mastic, a Client's VDAF measurement comprises two components, which we
+denote <code>alpha</code> and <code>beta</code>. The function that each component serves depends on
+the use case: for weighted (<a href="#weighted-heavy-hitters" class="auto internal xref">Section 5.1</a>) and plain
+(<a href="#plain-heavy-hitters-with-proof-aggregation" class="auto internal xref">Section 5.3</a>) heavy-hitters, we shall refer
+to <code>alpha</code> as the "payload" and <code>beta</code> as the payload's "weight"; for
+attribute-based-metrics (<a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>), we shall refer to
+<code>alpha</code> as the "attribute" and to <code>beta</code> as the "payload". When doing so is
+unambiguous, we may also refer to the payload as the "measurement".<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">The DPF tree always has as a root the "empty string", which in turn has strings
+"0" and "1" as the left and right children, respectively.<a href="#section-2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="preliminaries">
+<section id="section-3">
+      <h2 id="name-preliminaries">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-preliminaries" class="section-name selfRef">Preliminaries</a>
+      </h2>
+<p id="section-3-1">Mastic makes use of three primitives described in the base VDAF specification
+<span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>: finite fields, eXtendable Output Functions (XOFs), and Fully Linear
+Proofs (FLPs). It also makes use of a fourth primitive, which extends the
+security properties of Incremental Distributed Point Functions (IDPFs), also
+described in the base specification. All four primitives are described below.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="field">
+<section id="section-3.1">
+        <h3 id="name-finite-fields">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-finite-fields" class="section-name selfRef">Finite fields</a>
+        </h3>
+<p id="section-3.1-1">An implementation of the <code>Field</code> interface in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> is
+required. This object implements arithmetic in a prime field with a modulus
+suitable for use with the Number Theoretic Transform (called "FFT-friendly" in
+<span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="xof">
+<section id="section-3.2">
+        <h3 id="name-xof">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-xof" class="section-name selfRef">XOF</a>
+        </h3>
+<p id="section-3.2-1">An implementation of the <code>Xof</code> interface in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> is
+required. This object implements an XOF that takes a short seed and some
+auxiliary data as input and outputs a string of any length required for the
+application.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="flp">
+<section id="section-3.3">
+        <h3 id="name-flp">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-flp" class="section-name selfRef">FLP</a>
+        </h3>
+<p id="section-3.3-1">An implementation of the <code>Flp</code> interface in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> is
+required. This object implements a zero-knowledge proof system used to verify
+that the measurement conforms to the data type required by the application: for
+weighted heavy hitters (<a href="#weighted-heavy-hitters" class="auto internal xref">Section 5.1</a>), FLPs are used to check the
+weight; in attribute-based-metrics (<a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>), they are used
+to check the measurement itself.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.3-2">The Client generates a proof and sends secret shares of this proof to each
+Aggregator. Verification is split into two phases. In the first phase, each
+Aggregator "queries" its share of the value and proof to obtain its "verifier
+share". In the second phase, the Aggregators sum up the verifier shares and use
+the sum to decide if the input is valid.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="order">
+<section id="section-3.4">
+        <h3 id="name-ordering-function-order">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-ordering-function-order" class="section-name selfRef">Ordering function <code>order</code></a>
+        </h3>
+<p id="section-3.4-1">The function <code>order(list[Vidpf.Field]) -&gt; Integer</code> defines a total ordering of
+sums of weights. For plain heavy hitters, <code>order</code> is the identity function.<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="vidpf">
+<section id="section-3.5">
+        <h3 id="name-verifiable-idpf-vidpf">
+<a href="#section-3.5" class="section-number selfRef">3.5. </a><a href="#name-verifiable-idpf-vidpf" class="section-name selfRef">Verifiable IDPF (VIDPF)</a>
+        </h3>
+<p id="section-3.5-1">Function secret sharing <span>[<a href="#GI14" class="cite xref">GI14</a>]</span> allows secret sharing of the output of a
+function <code>f()</code> into additive shares, where each function share is represented by
+a separate key. These keys enable the Aggregators to efficiently generate an
+additive share of the function’s output <code>f(x)</code> for a given input <code>x</code>.
+Distributed Point Functions (DPF) are a particular case of function secret
+sharing where <code>f()</code> is a "point function" for which <code>f(x) = beta</code> if <code>x</code> equals
+<code>alpha</code> and <code>0</code> otherwise for some <code>alpha</code>, <code>beta</code>. The computation is
+distributed in such a way that no one party knows either the point or what it
+evaluates to.<a href="#section-3.5-1" class="pilcrow">¶</a></p>
+<p id="section-3.5-2">An IDPF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8.1" class="relref">Section 8.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) generalizes DPF by secret-sharing an
+"incremental point function", i.e., the "point" in DPF is now a path on a full
+binary tree from the root to one of the leaves. Here we take <code>alpha</code> to be a bit
+string of fixed length, and we have that <code>f(x) = beta</code> if <code>x</code> is a prefix of
+<code>alpha</code> and <code>0</code> otherwise.<a href="#section-3.5-2" class="pilcrow">¶</a></p>
+<p id="section-3.5-3">An IDPF has two main operations. The first is the key-generation algorithm,
+which is run by the Client. It takes as input <code>alpha</code> and <code>beta</code> and returns
+two values: a list of "key shares", one for each Aggregator; and the "public
+share", to be distributed to both Aggregators. The second is the key-evaluation
+algorithm, run by each Aggregator. It takes as input a candidate prefix string
+<code>x</code>, the public share, and the Aggregator's key share and returns the
+Aggregator's share of <code>f(x)</code>.<a href="#section-3.5-3" class="pilcrow">¶</a></p>
+<p id="section-3.5-4">Shares of the IDPF outputs can be aggregated together across multiple reports.
+This is used in Poplar1 (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) to solve the private prefix
+histogram problem. IDPFs are private in the sense that each Aggregator learns
+nothing about the underlying inputs beyond the value of this sum. However,
+IDPFs on their own do not provide robustness. For example, it is possible for a
+malicious Client to fool the Aggregators into accepting malformed counter
+(i.e., a value other than <code>0</code> or <code>1</code>). It is also possible for a Client to
+"vote twice" by constructing key shares for which <code>f(x) = f(x') = beta</code>, where
+<code>x</code> and <code>x'</code> are distinct, equal-length candidate prefixes.<a href="#section-3.5-4" class="pilcrow">¶</a></p>
+<p id="section-3.5-5">To mitigate these issues, IDPF must be composed with some interactive mechanism
+for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
+<span>[<a href="#MST24" class="cite xref">MST24</a>]</span> for this purpose, which endows IDPF with the following properties:<a href="#section-3.5-5" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.5-6">
+<li id="section-3.5-6.1">
+            <p id="section-3.5-6.1.1">One-hot Verifiability: There is at most one prefix of each length whose
+value under f is non-zero. In particular, the output shares at each level
+are additive shares of a one-hot vector.<a href="#section-3.5-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-3.5-6.2">
+            <p id="section-3.5-6.2.1">Path Verifiability: The One-hot Verifiability property alone is not
+sufficient to guarantee that the keys are well-formed. The Aggregators still
+need to verify that: a) the non-zero output values are across a single path
+in the tree, and b) the value of the root node is consistently propagated
+down the VIDPF tree. For example, if the root value is <code>beta</code>, then there is
+only a single path from root to the leaves with non-zero values, and all
+such values equal <code>beta</code>.<a href="#section-3.5-6.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-3.5-7">Below we describe the syntax of VIDPF; in <a href="#vidpf-construction" class="auto internal xref">Section 7</a> we specify the
+concrete construction of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>.<a href="#section-3.5-7" class="pilcrow">¶</a></p>
+<p id="section-3.5-8">A concrete <code>Vidpf</code> defines the types and constants enumerated in
+<a href="#vidpf-param" class="auto internal xref">Table 1</a>. In addition, it implements the following methods:<a href="#section-3.5-8" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.5-9.1">
+            <p id="section-3.5-9.1.1"><code>Vidpf.gen(alpha: Unsigned, beta: list[Vidpf.Field], binder: bytes, rand:
+bytes) -&gt; tuple[PublicShare, list[bytes]]</code> is the randomized key generation
+algorithm. (<code>rand</code> denotes the random bytes consumed by the algorithm.) Its
+inputs are the VIDPF index <code>alpha</code> (defined the same way as "IDPF index" in
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), the output value <code>beta</code>, and a binder string.  The
+value of <code>alpha</code> <span class="bcp14">MUST</span> be in range <code>[0, 2^Vidpf.BITS)</code>; and <code>len(rand)</code> <span class="bcp14">MUST</span>
+be <code>Vidpf.RAND_SIZE</code>. The outputs are the public share and the list of key
+shares, one for each Aggregator. The length of each key share <span class="bcp14">MUST</span> be
+<code>Vidpf.KEY_SIZE</code>.<a href="#section-3.5-9.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.5-9.2">
+            <p id="section-3.5-9.2.1"><code>Vidpf.eval(agg_id: Unsigned, public_share: Vidpf.PublicShare, key_share:
+bytes, level: Unsigned, prefixes: tuple[Unsigned, ...], binder: bytes) -&gt;
+tuple[list[Vidpf.Field], bytes]</code> is the deterministic key evaluation
+algorithm. It takes as input the Aggregator ID (which <span class="bcp14">MUST</span> be in range <code>[0,
+Vidpf.SHARES)</code>, the public share, the Aggregator's key share, the VIDPF level
+(defined the same way as "IDPF level" in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), the list of
+prefixes to evaluate, and a binder string. Its outputs are the VIDPF output
+share and the VIDPF proof.<a href="#section-3.5-9.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.5-10">The verifiability properties are guaranteed as long as each Aggregator computes
+the same VIDPF proof. Note that One-hot Verifiability and Path Verifiability
+are not sufficient to ensure robustness of Mastic; we will also need to ensure
+that the <code>beta</code> chosen by the Client is "in range". We will rely on FLPs
+(<a href="#flp" class="auto internal xref">Section 3.3</a>) for this purpose. (<span>[<a href="#MST24" class="cite xref">MST24</a>]</span> describe a simple <code>range(2)</code> check, but
+we would like more sophisticated range checks for Mastic.)<a href="#section-3.5-10" class="pilcrow">¶</a></p>
+<p id="section-3.5-11">Note that <code>Vidpf</code> is less general than <code>Idpf</code> as defined <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>
+in that <code>beta</code> value is the same for each level of the tree. This constraint is
+necessary for Path Verifiability.<a href="#section-3.5-11" class="pilcrow">¶</a></p>
+<span id="name-constants-and-types-defined"></span><div id="vidpf-param">
+<table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-constants-and-types-defined" class="selfRef">Constants and types defined by a concrete VIDPF.</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Parameter</th>
+              <th class="text-left" rowspan="1" colspan="1">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SHARES</td>
+              <td class="text-left" rowspan="1" colspan="1">Number of VIDPF keys output by VIDPF-key generator</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">BITS</td>
+              <td class="text-left" rowspan="1" colspan="1">Length in bits of each input string</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">VALUE_LEN</td>
+              <td class="text-left" rowspan="1" colspan="1">Number of field elements of each output value</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">RAND_SIZE</td>
+              <td class="text-left" rowspan="1" colspan="1">Size of the random string consumed by the VIDPF-key generator. Equal to twice the XOF's seed size.</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">KEY_SIZE</td>
+              <td class="text-left" rowspan="1" colspan="1">Size in bytes of each VIDPF key</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Field</td>
+              <td class="text-left" rowspan="1" colspan="1">Implementation of <code>Field</code> (<a href="#field" class="auto internal xref">Section 3.1</a>) used for each value</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">PublicShare</td>
+              <td class="text-left" rowspan="1" colspan="1">Type of the VIDPF public share</td>
+            </tr>
+          </tbody>
+        </table>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="vdaf">
+<section id="section-4">
+      <h2 id="name-definition-of-mastic">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-definition-of-mastic" class="section-name selfRef">Definition of <code>Mastic</code></a>
+      </h2>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4-1.1">
+          <p id="section-4-1.1.1">NOTE We are pretty confident about the overall structure of the VDAF, but
+there are some details to work out and security analysis to do. In the
+meantime, check out the current reference implementation at
+https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.<a href="#section-4-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-4-2">This section describes Mastic, a VDAF suitable for a plethora of aggregation
+functions including sum, mean, histograms, heavy hitters, weighted
+heavy-hitters (see <a href="#weighted-heavy-hitters" class="auto internal xref">Section 5.1</a>), attribute-based metrics (see
+<a href="#attribute-based-metrics" class="auto internal xref">Section 5.2</a>), linear regression and more. Mastic allows
+computing functions <em>à la</em> Prio3 VDAF <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">The core component of Mastic is a VIDPF as defined in <a href="#vidpf" class="auto internal xref">Section 3.5</a>. VIDPFs
+inherently have the "one-hot verifiability" property, meaning that in each
+level of the tree there exists at most one non-zero value. To guarantee that
+the Client's input is well-formed, Mastic first verifies that the Client
+measurement is valid at the root level using an FLP, and then, it ensures
+that this valid measurement is propagated correctly down the tree using the
+one-hot verifiability and the path verifiability properties. Note that Mastic
+allows the measurement to be of any type that can be verified by an arithmetic
+circuit, not just a counter. For instance, the measurement can be a tuple of
+values, a string, a secret number within a public range, etc.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">As described in <a href="#conventions" class="auto internal xref">Section 2</a>, each Client input consists of two components,
+which we denote <code>alpha</code> and <code>beta</code>. At a high level, the Client generates VIDPF
+keys that encodes <code>alpha</code> and <code>beta</code> and an FLP for the validity of <code>beta</code>.
+Then the Client sends one VIDPF key to each Aggregator and also publishes the
+VIDPF public share.
+FLPs for certain validity functions, including most range proofs, rely on the
+establishment of shared random coins (<code>joint randomness</code>) between the Client and
+all Aggregators.
+When it is necessary for the Client to generate joint randomness, it includes
+generator seeds in its shares for each Aggregator, and the Aggregators confirm
+that they have derived the same joint randomness during the FLP verification process.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">The Aggregators agree on an initial set of <code>level</code>-bit strings, where <code>level &lt;
+ BITS</code>. We refer to these strings as "candidate prefixes". They evaluate their
+ VIDPF key shares at each prefix in this set, to obtain an additive share of
+ the VIDPF output.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-6">Mastic uses a combination of techniques to certify the validity of this output.<a href="#section-4-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4-7">
+<li id="section-4-7.1">
+          <p id="section-4-7.1.1">First, the Aggregators exchange VIDPF proofs. If they are equal, then
+this implies One-hot Verifiability and Path Verifiability as described in
+<a href="#vidpf" class="auto internal xref">Section 3.5</a>. One-hotness ensures that the VIDPF output contains <code>beta</code> at
+most once (and every other output is <code>0</code>). Path Verifiability implies
+that, if the previous level contained a non-zero value, then it is the
+same value as the current level.<a href="#section-4-7.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-4-7.2">
+          <p id="section-4-7.2.1">Second, the Aggregators interactively verify the FLP (<a href="#flp" class="auto internal xref">Section 3.3</a>) to assert
+that <code>beta</code> is valid. We instantiate the FLP with <code>FlpGeneric</code> from
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>, which defines validity via an arithmetic
+circuit (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) evaluated over (shares of) <code>beta</code>:
+if the output of the circuit is <code>0</code>, then the value is said to be "valid";
+otherwise it is "invalid".<a href="#section-4-7.2.1" class="pilcrow">¶</a></p>
+<p id="section-4-7.2.2">
+If none of the candidate prefixes are a prefix of <code>alpha</code>, then the VIDPF
+output shares will not contain any shares of <code>beta</code>. Moreover, VIDPF
+as specified in <a href="#vidpf-construction" class="auto internal xref">Section 7</a> does not as specified permit
+evaluation at the root of the VIDPF tree. Instead, each Aggregator
+computes a share of <code>beta</code> by evaluating the VIDPF tree at prefixes <code>0</code>
+and <code>1</code> and <code>level == 0</code> and adding them up. One-hot Verifiability and
+Path Verifiability imply that the sum is equal to the Aggregator's share
+of <code>beta</code>.<a href="#section-4-7.2.2" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4-7.2.3.1">
+              <p id="section-4-7.2.3.1.1">CP: An alternative way to spell this is to say that VIDPF evaluation
+outputs a share of <code>beta</code>, which is what our current API does in the
+reference code.<a href="#section-4-7.2.3.1.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</li>
+      </ol>
+<p id="section-4-8">The aggregate result is obtained by summing up the encoded measurement shares
+for each prefix and computing some function of the sum. The aggregation
+parameter contains the level and the set of candidate prefixes.<a href="#section-4-8" class="pilcrow">¶</a></p>
+<p id="section-4-9">The Aggregators send their aggregate shares to the Collector, who unshards them
+to recover the results for each candidate prefix.<a href="#section-4-9" class="pilcrow">¶</a></p>
+<div id="sharding">
+<section id="section-4.1">
+        <h3 id="name-sharding">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-sharding" class="section-name selfRef">Sharding</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.1-1.1">
+            <p id="section-4.1-1.1.1">NOTE to be specified in full detail.<a href="#section-4.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="preparation">
+<section id="section-4.2">
+        <h3 id="name-preparation">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-preparation" class="section-name selfRef">Preparation</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.2-1.1">
+            <p id="section-4.2-1.1.1">NOTE to be specified in full detail.<a href="#section-4.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="validity-of-aggregation-parameters">
+<section id="section-4.3">
+        <h3 id="name-validity-of-aggregation-par">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-validity-of-aggregation-par" class="section-name selfRef">Validity of Aggregation Parameters</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.3-1.1">
+            <p id="section-4.3-1.1.1">NOTE to be specified in full detail.<a href="#section-4.3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="aggregation">
+<section id="section-4.4">
+        <h3 id="name-aggregation">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-aggregation" class="section-name selfRef">Aggregation</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.4-1.1">
+            <p id="section-4.4-1.1.1">NOTE to be specified in full detail.<a href="#section-4.4-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="unsharding">
+<section id="section-4.5">
+        <h3 id="name-unsharding">
+<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-unsharding" class="section-name selfRef">Unsharding</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.5-1.1">
+            <p id="section-4.5-1.1.1">NOTE to be specified in full detail.<a href="#section-4.5-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="modes-of-operation-for-mastic">
+<section id="section-5">
+      <h2 id="name-modes-of-operation-for-mast">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-modes-of-operation-for-mast" class="section-name selfRef">Modes of Operation for <code>Mastic</code></a>
+      </h2>
+<div id="weighted-heavy-hitters">
+<section id="section-5.1">
+        <h3 id="name-weighted-heavy-hitters">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-weighted-heavy-hitters" class="section-name selfRef">Weighted Heavy-Hitters</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.1-1.1">
+            <p id="section-5.1-1.1.1">See <a href="#NEL" class="auto internal xref">Section 1.1.1</a> for a motivating application and
+<code>example_weighted_heavy_hitters_mode()</code> in the reference implementation for an
+end-to-end example.<a href="#section-5.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-2">The primary use case for Mastic is a variant of the heavy-hitters problem, in
+which the prefix counts are replaced with a notion of weight that is specific to
+some application. For example, when measuring the performance of an ad campaign,
+it is useful to learn not only which ads led to purchases, but how much money
+was spent.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">To support this use case, we view the Client's <code>alpha</code> value as its measurement
+and the <code>beta</code> value as the measurement's "weight". The range of valid values
+for <code>beta</code> are therefore determined by the FLP with which Mastic is
+instantiated. Concretely, validity of <code>beta</code> is expressed by a validity circuit
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
+described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>, except that the threshold represents a
+minimum weight rather than a minimum count. In addition:<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.1-5">
+<li id="section-5.1-5.1">
+            <p id="section-5.1-5.1.1">The Aggregators <span class="bcp14">MUST</span> perform the range check (i.e., verify the FLP) at the
+first round of aggregation and remove any invalid reports before proceeding.<a href="#section-5.1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.1-5.2">
+            <p id="section-5.1-5.2.1">The level at which the reports are Aggregated <span class="bcp14">MUST</span> be strictly increasing.<a href="#section-5.1-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<div id="different-thresholds">
+<section id="section-5.1.1">
+          <h4 id="name-different-thresholds">
+<a href="#section-5.1.1" class="section-number selfRef">5.1.1. </a><a href="#name-different-thresholds" class="section-name selfRef">Different Thresholds</a>
+          </h4>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.1.1-1.1">
+              <p id="section-5.1.1-1.1.1">For an end-to-end example, see
+<code>example_weighted_heavy_hitters_mode_with_different_thresholds()</code> in the
+reference implementation.<a href="#section-5.1.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-5.1.1-2">So far, we have assumed that there is a single threshold for determining which
+prefixes are "heavy". However, we can easily extend this to have different
+thresholds for different prefixes. There exist use-cases where prefixes starting
+with "000" may be significantly more popular than prefixes starting with "111".
+Setting a low threshold may result in an overwhelmingly big set of heavy hitters
+starting with "000", while setting a high threshold might prune anything
+starting with "111". Consider the following examples:<a href="#section-5.1.1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.1.1-3">
+<li id="section-5.1.1-3.1">
+              <p id="section-5.1.1-3.1.1">Popular URLs: <code>a.example.com</code> receives a massive amount of traffic whereas
+<code>b.example.com</code> may have lower traffic. To identify heavy-hitting search
+queries on <code>a.example.com</code>, the Aggregators should set a high threshold,
+while queries with different domain prefixes may require lower thresholds to
+be considered popular.<a href="#section-5.1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-5.1.1-3.2">
+              <p id="section-5.1.1-3.2.1">E-commerce: Grocery items are essential and have a high volume of sales. In
+contrast, electronics, though popular, usually come with a higher price
+compared to groceries. Meanwhile, luxury items command significantly higher
+prices but generally experience lower sales volumes. To identify
+heavy-hitting grocery items on an e-commerce website, Aggregators could use
+different threshold for each of these categories. These thresholds are set to
+ensure that only the top-selling grocery items qualify as heavy hitters while
+electronics and luxury items are also considered heavy hitters on their own
+categories.<a href="#section-5.1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-5.1.1-4">To tackle this, Mastic can allow different prefixes having different thresholds.
+When a specific prefix does not have an associated threshold, we first search if
+any of its prefixes has a specified threshold, otherwise we use a default
+threshold. For example, if the Aggregators have set the thresholds to be
+<code>{"000": 10, "111": 2, "default": 5}</code> and the search for prefix "01", then
+threshold 5 should be used. However, if the Aggregators search for prefix
+"11101", then threshold 2 should be used.<a href="#section-5.1.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="attribute-based-metrics">
+<section id="section-5.2">
+        <h3 id="name-attribute-based-metrics">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-attribute-based-metrics" class="section-name selfRef">Attribute-based Metrics</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.2-1.1">
+            <p id="section-5.2-1.1.1">See <a href="#attribute-based-telemetry" class="auto internal xref">Section 1.1.2</a> for a motivating application and
+<code>example_attribute_based_metrics_mode()</code> in the reference implementation for
+an end-to-end example.<a href="#section-5.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.2-2">In this mode of operation, we take the <code>beta</code> value to be the Client's
+measurement and <code>alpha</code> to be an arbitrary "attribute". For a given sequence of
+attributes, the goal of the Collector is to aggregate the measurements that
+share the same attribute. This provides functionality similar to Prio3
+<span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>, except that the aggregate is partitioned by Clients who share some
+property. For example, the attribute might encode the Client's user agent
+<span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2-3">Mastic requires each <code>alpha</code> to have the same length (<code>Vidpf.BITS</code>). Thus, it
+is necessary for each application to choose a scheme for encoding attributes as
+fixed-length strings. The following scheme is <span class="bcp14">RECOMMENDED</span>. Choose a
+cryptographically secure hash function, such as SHA256
+<span>[<a href="#SHS" class="cite xref">SHS</a>]</span>, compute the hash of the Client's input
+string, and interpret each bit of the hash as a bit of the VIDPF index. [CP:
+Are we comfortable recommending truncating the hash? Collisions aren't so bad
+since the Client can just lie about <code>alpha</code> anyway. The main thing is to pick a
+value for <code>BITS</code> that is large enough to avoid accidental collisions.]<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2-4">The Aggregators <span class="bcp14">MAY</span> aggregate a report any number times, but:<a href="#section-5.2-4" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.2-5">
+<li id="section-5.2-5.1">
+            <p id="section-5.2-5.1.1">They <span class="bcp14">MUST</span> perform the range check (i.e., verify the FLP) the first time the
+reports are aggregated and remove any invalid reports before aggregating
+again.<a href="#section-5.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-5.2-5.2">
+            <p id="section-5.2-5.2.1">The aggregation parameter <span class="bcp14">MUST</span> specify the last level of the VIDPF tree
+(i.e., <code>level</code> <span class="bcp14">MUST</span> be <code>Vidpf.BITS-1</code>).<a href="#section-5.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.2-6.1">
+            <p id="section-5.2-6.1.1">OPEN ISSUE Figure out if these requirements are strict enough. We may need to
+tighten aggregation parameter validity if we find out that aggregating at the
+same level more than once is not safe.<a href="#section-5.2-6.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="plain-heavy-hitters-with-proof-aggregation">
+<section id="section-5.3">
+        <h3 id="name-plain-heavy-hitters-with-vi">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-plain-heavy-hitters-with-vi" class="section-name selfRef">Plain Heavy-Hitters with VIDPF-Proof Aggregation</a>
+        </h3>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.3-1.1">
+            <p id="section-5.3-1.1.1">NOTE to be specified in full detail. Proof aggregation is not yet implemented
+by the reference code.<a href="#section-5.3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.3-2">The total communication cost of using Mastic (or Poplar1 <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>) for heavy
+hitters is <code>O(num_measurements * Vidpf.BITS)</code> bits exchanged between the
+Aggregators, where <code>num_measurements</code> is the number of reports being
+aggregated. For plain heavy-hitters, this can be reduced to <code>O(Vidpf.BITS)</code> in
+the best case.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<p id="section-5.3-3">The idea is to take advantage of the feature of VIDPF evaluation whereby the
+Aggregators compute identical VIDPF proofs if and only if the report is valid.
+This allows the proofs themselves to be aggregated: if each report in a batch of
+reports is valid, then the hash of their proofs will be equal as well; on the
+other hand, if one report is invalid, then the hash of the proofs will not be
+equal.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">To facilitate isolation of the invalid report(s), the proof strings are arranged
+into a Merkle tree. During aggregation, the Aggregators interactively traverse
+the tree to detect the subtree(s) containing invalid reports and remove them
+from the batch.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.3-5.1">
+            <p id="section-5.3-5.1.1">OPEN ISSUE Decide if we should spell this out in greater detail. This feature
+is not compatible with <span>[<a href="#DAP" class="cite xref">DAP</a>]</span>; if we wanted to
+extend DAP to support this, then we'd need to specify the wire format of the
+messages exchanged between the Aggregators.<a href="#section-5.3-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.3-6">In the worst case, isolating invalid reports requires <code>O(num_measurements *
+Vidpf.BITS)</code> bits of communication and many <code>Vidpf.BITS</code> rounds of communication
+between the Aggregators. However, this behavior would only be observed under
+attack conditions in which the vast majority of Clients are malicious.<a href="#section-5.3-6" class="pilcrow">¶</a></p>
+<p id="section-5.3-7">In the simple case where the <code>beta</code> value is a constant (e.g., 1) we can replace
+the FLP check with a simpler check. FLPs are not compatible with proof
+aggregation the way VIDPFs are. In order to perform the range check without
+FLPs, we use an extension of VIDPF described by <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. The high-level idea
+here is that the Aggregators can evaluate the empty string and verify that they
+have shares of the constant <code>beta</code>. Next, as described in <a href="#vdaf" class="auto internal xref">Section 4</a>, we use the
+"one-hot verifiability" and "path verifiability" checks to verify that each
+level is non-zero at only a single point and that the same constant <code>beta</code> is
+propagated down the tree correctly. Note that this trick is not suitable for
+weighted heavy-hitters, since it expects that each <code>beta</code> value is constant
+(e.g., 1).<a href="#section-5.3-7" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-5.3-8.1">
+            <p id="section-5.3-8.1.1">OPEN ISSUE Proof aggregation could work with plain Mastic, but we would need
+to check the FLPs at the first round of aggregation, leading to best-case
+communication cost would be <code>O(num_measurements + Vidpf.BITS)</code>. This would be
+OK, but we would still want to support a mode for plain heavy-hitters that is
+as good as we can get.<a href="#section-5.3-8.1.1" class="pilcrow">¶</a></p>
+<p id="section-5.3-8.1.2">One idea is to always do the PLASMA <code>0</code>/<code>1</code> check alongside the FLP. This
+would be useful for another reason: Usually FLP decoding requires
+<code>num_measurements</code> as a parameter. We currently don't support this because we
+currently don't have a pure counter as part of the VIDPF output.<a href="#section-5.3-8.1.2" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="malicious-security-with-three-aggregators">
+<section id="section-6">
+      <h2 id="name-robustness-against-a-malici">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-robustness-against-a-malici" class="section-name selfRef">Robustness Against a Malicious Aggregator</a>
+      </h2>
+<p id="section-6-1">Next, we describe an enhancement that allows Mastic to achieve robustness in the
+presence of a malicious Aggregator. The two-party Mastic (as well as Poplar1) is
+susceptible to additive attacks by a malicious Aggregator. In more detail, if
+one of the Aggregators starts acting maliciously, they can arbitrarily add to
+the aggregation result (simply by adding to their own aggregation shares)
+without the honest Aggregator noticing.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">We can solve this problem in Mastic by using a technique from <span>[<a href="#MST24" class="cite xref">MST24</a>]</span> that
+lifts the two-party semi-honest secure PLASMA to the three-party maliciously secure
+setting. Rather than having two Aggregators as in the previous setting, this
+flavor involves three Aggregators, where every pair of Aggregators communicate
+over a different channel. In essence, each pair of Aggregators will run one
+session of the VDAF with unique randomness but on the same Client measurement.
+The following changes are necessary:<a href="#section-6-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6-3">
+<li id="section-6-3.1">
+          <p id="section-6-3.1.1">The Client needs to generate three pairs of VIDPF keys all corresponding to
+the same <code>alpha</code> and <code>beta</code> values. We represent the keys based on the
+session as follows:<a href="#section-6-3.1.1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6-3.1.2">
+<li id="section-6-3.1.2.1">
+              <p id="section-6-3.1.2.1.1">Session 0 (between Aggregators 0 and 1): <code>key_01, key_10</code><a href="#section-6-3.1.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6-3.1.2.2">
+              <p id="section-6-3.1.2.2.1">Session 1 (between Aggregators 1 and 2): <code>key_12, key_21</code><a href="#section-6-3.1.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6-3.1.2.3">
+              <p id="section-6-3.1.2.3.1">Session 2 (between Aggregators 2 and 0): <code>key_20, key_02</code><a href="#section-6-3.1.2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-6-3.1.3">
+Each pair of Aggregators cannot check that the Client input is consistent
+across two sessions without the involvement of the third Aggregator. To
+address this, we let two Aggregators (i.e., Aggregators 0 and 1) to run all
+three sessions so that they can check that the Client input is consistent
+across three sessions. The third Aggregator (i.e., Aggregator 2) is involved
+as an attestator in two of the sessions. The check involves field addition
+and subtraction and then hash comparisons.<a href="#section-6-3.1.3" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-6-3.2">
+          <p id="section-6-3.2.1">The Client sends the following keys to the Aggregators:<a href="#section-6-3.2.1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6-3.2.2">
+<li id="section-6-3.2.2.1">
+              <p id="section-6-3.2.2.1.1">Aggregator 0 receives: <code>key_01</code>, <code>key_02</code>, and <code>key_21</code><a href="#section-6-3.2.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6-3.2.2.2">
+              <p id="section-6-3.2.2.2.1">Aggregator 1 receives: <code>key_10</code>, <code>key_12</code>, and <code>key_20</code><a href="#section-6-3.2.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6-3.2.2.3">
+              <p id="section-6-3.2.2.3.1">Aggregator 2 receives: <code>key_21</code> and <code>key_20</code><a href="#section-6-3.2.2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+</li>
+        <li id="section-6-3.3">
+          <p id="section-6-3.3.1">The Aggregators need to verify that the Client's input is consistent across
+the different sessions (i.e., that all the keys correspond to the same
+<code>alpha</code> and <code>beta</code> values). Aggregators 0 and 1 check that:<a href="#section-6-3.3.1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6-3.3.2">
+<li id="section-6-3.3.2.1">
+              <p id="section-6-3.3.2.1.1">Their output shares of Session 0 minus their output shares of Session 1
+ are shares of zero<a href="#section-6-3.3.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-6-3.3.2.2">
+              <p id="section-6-3.3.2.2.1">Their output shares of Session 1 minus their output shares of Session 2
+are shares of zero.<a href="#section-6-3.3.2.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-6-3.3.3">
+The subtraction is a local operation and verifying that two Aggregators possess
+a sharing of zero requires exchanging one hash.<a href="#section-6-3.3.3" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-6-4">Using a third Aggregator, we can lift the security of Mastic from the
+semi-honest setting to malicious security. While more complex to implement than
+2-party Mastic, this mode allows achieves both privacy and robustness against a
+malicious Aggregator.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-6-5.1">
+          <p id="section-6-5.1.1">NOTE to be specified in full detail.<a href="#section-6-5.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="vidpf-construction">
+<section id="section-7">
+      <h2 id="name-definition-of-vidpf">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-definition-of-vidpf" class="section-name selfRef">Definition of <code>Vidpf</code></a>
+      </h2>
+<p id="section-7-1">The construction of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span> builds on techniques from <span>[<a href="#CP22" class="cite xref">CP22</a>]</span> to lift an IDPF
+to a VIDPF with the properties described in <a href="#vidpf" class="auto internal xref">Section 3.5</a>. Instead of a 2-round
+"secure sketch" MPC like that of Poplar1, the scheme relies on hashing.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">TODO(jimouris) Add an overview.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-7-3.1">
+          <p id="section-7-3.1.1">NOTE To be specified. The design is based on VIDPF from <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>.
+https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc for the
+reference implementation.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-8">
+      <h2 id="name-security-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-8-1">A security analysis of Mastic is provided in <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>.<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-9">
+      <h2 id="name-iana-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-9-1.1">
+          <p id="section-9-1.1.1">NOTE to be specified.<a href="#section-9-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="VDAF">[VDAF]</dt>
+      <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Cook, D.</span>, <span class="refAuthor">Patton, C.</span>, and <span class="refAuthor">P. Schoppmann</span>, <span class="refTitle">"Verifiable Distributed Aggregation Functions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-irtf-cfrg-vdaf-08</span>, <time datetime="2023-11-20" class="refDate">20 November 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08">https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-08</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="BBCGGI21">[BBCGGI21]</dt>
+        <dd>
+<span class="refAuthor">Boneh, D.</span>, <span class="refAuthor">Boyle, E.</span>, <span class="refAuthor">Corrigan-Gibbs, H.</span>, <span class="refAuthor">Gilboa, N.</span>, and <span class="refAuthor">Y. Ishai</span>, <span class="refTitle">"Lightweight Techniques for Private Heavy Hitters"</span>, <span class="seriesInfo">IEEE S&amp;P 2021 </span>, <time datetime="2021" class="refDate">2021</time>, <span>&lt;<a href="https://ia.cr/2021/017">https://ia.cr/2021/017</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CP22">[CP22]</dt>
+        <dd>
+<span class="refAuthor">Leo de Castro</span> and <span class="refAuthor">Antigoni Polychroniadou</span>, <span class="refTitle">"Lightweight, Maliciously Secure Verifiable Function Secret Sharing"</span>, <span class="seriesInfo">EUROCRYPT 2022 </span>, <time datetime="2022" class="refDate">2022</time>, <span>&lt;<a href="https://iacr.org/cryptodb/data/paper.php?pubkey=31935">https://iacr.org/cryptodb/data/paper.php?pubkey=31935</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="DAP">[DAP]</dt>
+        <dd>
+<span class="refAuthor">Geoghegan, T.</span>, <span class="refAuthor">Patton, C.</span>, <span class="refAuthor">Rescorla, E.</span>, and <span class="refAuthor">C. A. Wood</span>, <span class="refTitle">"Distributed Aggregation Protocol for Privacy Preserving Measurement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-ppm-dap-07</span>, <time datetime="2023-09-14" class="refDate">14 September 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07">https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="GI14">[GI14]</dt>
+        <dd>
+<span class="refAuthor">Gilboa, N.</span> and <span class="refAuthor">Y. Ishai</span>, <span class="refTitle">"Distributed Point Functions and Their Applications"</span>, <span class="seriesInfo">EUROCRYPT 2014 </span>, <time datetime="2014" class="refDate">2014</time>, <span>&lt;<a href="https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35">https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MPDST24">[MPDST24]</dt>
+        <dd>
+<span class="refAuthor">Dimitris Mouris</span>, <span class="refAuthor">Christopher Patton</span>, <span class="refAuthor">Hannah Davis</span>, <span class="refAuthor">Pratik Sarkar</span>, and <span class="refAuthor">Nektarios Georgios Tsoutsos</span>, <span class="refTitle">"Mastic: Private Weighted Heavy-Hitters and Attribute-Based Metrics"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://ia.cr/2024/221">https://ia.cr/2024/221</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MST24">[MST24]</dt>
+        <dd>
+<span class="refAuthor">Dimitris Mouris</span>, <span class="refAuthor">Pratik Sarkar</span>, and <span class="refAuthor">Nektarios Georgios Tsoutsos</span>, <span class="refTitle">"PLASMA: Private, Lightweight Aggregated Statistics against Malicious Adversaries"</span>, <span class="seriesInfo">PETS 2024 </span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://ia.cr/2023/080">https://ia.cr/2023/080</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9110">[RFC9110]</dt>
+        <dd>
+<span class="refAuthor">Fielding, R., Ed.</span>, <span class="refAuthor">Nottingham, M., Ed.</span>, and <span class="refAuthor">J. Reschke, Ed.</span>, <span class="refTitle">"HTTP Semantics"</span>, <span class="seriesInfo">STD 97</span>, <span class="seriesInfo">RFC 9110</span>, <span class="seriesInfo">DOI 10.17487/RFC9110</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9110">https://www.rfc-editor.org/rfc/rfc9110</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SHS">[SHS]</dt>
+        <dd>
+<span class="refTitle">"Secure hash standard"</span>, <span class="refContent">National Institute of Standards and Technology (U.S.)</span>, <span class="seriesInfo">DOI 10.6028/nist.fips.180-4</span>, <time datetime="2015" class="refDate">2015</time>, <span>&lt;<a href="https://doi.org/10.6028/nist.fips.180-4">https://doi.org/10.6028/nist.fips.180-4</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="W3C23">[W3C23]</dt>
+      <dd>
+<span class="refAuthor">W3C Working Group</span>, <span class="refTitle">"Network Error Logging"</span>, <time datetime="2023" class="refDate">2023</time>, <span>&lt;<a href="https://www.w3.org/TR/network-error-logging">https://www.w3.org/TR/network-error-logging</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-A">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="appendix-A-1.1">
+          <p id="appendix-A-1.1.1">NOTE to be specified.<a href="#appendix-A-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-B">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Hannah Davis</span></div>
+<div dir="auto" class="left"><span class="org">Seagate</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:hannah.e.davis@seagate.com" class="email">hannah.e.davis@seagate.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Dimitris Mouris</span></div>
+<div dir="auto" class="left"><span class="org">Nillion</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:dimitris@nillion.com" class="email">dimitris@nillion.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Christopher Patton</span></div>
+<div dir="auto" class="left"><span class="org">Cloudflare</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:chrispatton+ietf@gmail.com" class="email">chrispatton+ietf@gmail.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Pratik Sarkar</span></div>
+<div dir="auto" class="left"><span class="org">Supra Research</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:pratik93@bu.edu" class="email">pratik93@bu.edu</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Nektarios G. Tsoutsos</span></div>
+<div dir="auto" class="left"><span class="org">University of Delaware</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:tsoutsos@udel.edu" class="email">tsoutsos@udel.edu</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
