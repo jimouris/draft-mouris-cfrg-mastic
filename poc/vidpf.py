@@ -139,17 +139,17 @@ class Vidpf(Generic[F]):
             (s0, t0) = self.extend(seed[0], nonce)
             (s1, t1) = self.extend(seed[1], nonce)
 
-            # Compute the seed and control bit of this level's correction
-            # word. Our goal is to maintain the following invariant,
-            # after correction:
+            # Compute the correction words for this level's seed and
+            # control bit. Our goal is to maintain the following
+            # invariant, after correction:
             #
-            # * If evaluation is on path, then the seed should be
-            #   pseudorandom and the control bit should be `bit`. The
-            #   seed is the sum of the shares of the seeds we're
-            #  "losing" from the extended seed.
+            # * If evaluation is on path, then each aggregator's will
+            #   compute a different seed and their control bits will be
+            #   secret shares of one.
             #
-            # * If evaluation is off path, then the seed should be the
-            #   all zero string and the control should be `1-bit`.
+            # * If evaluation is off path, then the aggregators will
+            #   compute the same seed and their control bits will be
+            #   shares of zero.
             #
             # Implementation note: the index `lose` is `alpha`-dependent.
             seed_cw = xor(s0[lose], s1[lose])
@@ -175,15 +175,19 @@ class Vidpf(Generic[F]):
             ctrl[0] = t0[keep]  # [MST24]: t0'
             ctrl[1] = t1[keep]  # [MST24]: t1'
 
-            # Compute the payload of this level's correction word.
+            # Compute the correction word for this level's payload.
             #
             # Implementation note: `ctrl` is `alpha`-dependent.
             w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
             if ctrl[1] == Field2(1):
                 w_cw = vec_neg(w_cw)
 
-            # Compute the proof for this level's correction word. This is
-            # used to correct the node proof during evaluation.
+            # Compute the correction word for this level's node proof. If
+            # evaluation is on path, then exactly one of the aggregatos
+            # will correct their node proof, causing them to compute the
+            # same node value. If evaluation is off path, then both will
+            # correct or neither will; and since they compute the same
+            # seed, they will again compute the same value.
             proof_cw = xor(
                 self.node_proof(seed[0], node, i),
                 self.node_proof(seed[1], node, i),
@@ -329,19 +333,19 @@ class Vidpf(Generic[F]):
         if next_ctrl == Field2(1):
             w = vec_add(w, w_cw)
 
-        # [MST24]: pi' = H(x^{<= i} || s^i)
-        pi_prime = self.node_proof(next_seed, node, i)
-
-        # \pi = \pi xor H(\pi \xor (proof_prime \xor next_ctrl * proof_cw))
+        # Compute and correct the node proof and update the path proof.
+        #
+        # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
+        #          \pi = \tilde \pi \xor
+        #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
         #
         # Implementation note: avoid branching on the control bit here.
+        node_proof = self.node_proof(next_seed, node, i)
         if next_ctrl == Field2(1):
-            h2 = xor(proof, xor(pi_prime, proof_cw))
-        else:
-            h2 = xor(proof, pi_prime)
-        proof = xor(proof, pi_proof_adjustment(h2))
+            node_proof = xor(node_proof, proof_cw)
+        next_proof = xor(proof, adjusted_proof(xor(proof, node_proof)))
 
-        return PrefixTreeEntry(next_seed, next_ctrl, w, proof)
+        return PrefixTreeEntry(next_seed, next_ctrl, w, next_proof)
 
     def verify(self, proof0: bytes, proof1: bytes) -> bool:
         return proof0 == proof1
@@ -408,22 +412,25 @@ class Vidpf(Generic[F]):
             encoded += proof_cw
         return encoded
 
+    def is_prefix(self, x: int, y: int, level: int) -> bool:
+        """
+        Returns `True` iff `x` is the prefix of `y` at level `level`.
 
-def pi_proof_adjustment(h2):
-    xof = XofTurboShake128(
-        zeros(XofTurboShake128.SEED_SIZE),
-        b'vidpf proof adjustment',
-        h2,
-    )
+        Pre-conditions:
+
+            - `level` in `range(self.BITS)`
+        """
+        return y >> (self.BITS - 1 - level) == x
+
+
+def adjusted_proof(proof: bytes) -> bytes:
+    xof = XofTurboShake128(proof, b'vidpf proof adjustment', b'')
     return xof.next(PROOF_SIZE)
 
 
 def eval_proof(proof: bytes, counter: bytes, path: bytes) -> bytes:
-    xof = XofTurboShake128(
-        zeros(XofTurboShake128.SEED_SIZE),
-        b'vidpf eval proof',
-        proof + counter + path,
-    )
+    binder = counter + path
+    xof = XofTurboShake128(proof, b'vidpf eval proof', binder)
     return xof.next(PROOF_SIZE)
 
 

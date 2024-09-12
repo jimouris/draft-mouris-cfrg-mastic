@@ -4,10 +4,70 @@ from random import randrange
 from vdaf_poc.common import gen_rand, vec_add
 from vdaf_poc.field import Field2, Field128
 
-from vidpf import Vidpf
+from vidpf import PROOF_INIT, Vidpf
 
 
 class Test(unittest.TestCase):
+
+    def test_eval_invariants(self):
+        vidpf = Vidpf(Field128, 5, 1)
+        nonce = gen_rand(vidpf.NONCE_SIZE)
+        rand = gen_rand(vidpf.RAND_SIZE)
+        alpha = randrange(2 ** vidpf.BITS)
+        (pub, keys) = vidpf.gen(alpha, [Field128(1)], nonce, rand)
+
+        # On path
+        seed = keys
+        ctrl = [Field2(0), Field2(1)]
+        proof = [PROOF_INIT, PROOF_INIT]
+        for i in range(vidpf.BITS):
+            node = (alpha >> (vidpf.BITS - i - 1))
+
+            entry0 = vidpf.eval_next(
+                seed[0], ctrl[0], pub[i], i, node, proof[0], nonce)
+            entry1 = vidpf.eval_next(
+                seed[1], ctrl[1], pub[i], i, node, proof[1], nonce)
+            seed = [entry0.seed, entry1.seed]
+            ctrl = [entry0.ctrl, entry1.ctrl]
+            proof = [entry0.proof, entry1.proof]
+
+            # Each aggregator should end up with a different seed.
+            self.assertTrue(seed[0] != seed[1])
+
+            # The control bits should be secret shares of one, i.e., the
+            # control bit should be set for one and only one of the
+            # aggregators.
+            self.assertEqual(ctrl[0] + ctrl[1], Field2(1))
+
+            # One of the aggregators corrects the node proof, which means both
+            # should compute the same node proof.
+            self.assertEqual(proof[0], proof[1])
+
+        # Off path
+        seed = keys
+        ctrl = [Field2(0), Field2(1)]
+        proof = [PROOF_INIT, PROOF_INIT]
+        for i in range(vidpf.BITS):
+            node = (alpha >> (vidpf.BITS - i - 1))
+            node ^= 1  # ensure we're always off path
+
+            entry0 = vidpf.eval_next(
+                seed[0], ctrl[0], pub[i], i, node, proof[0], nonce)
+            entry1 = vidpf.eval_next(
+                seed[1], ctrl[1], pub[i], i, node, proof[1], nonce)
+            seed = [entry0.seed, entry1.seed]
+            ctrl = [entry0.ctrl, entry1.ctrl]
+            proof = [entry0.proof, entry1.proof]
+
+            # The aggregators should compute the same seed.
+            self.assertEqual(seed[0], seed[1])
+
+            # The control bits should be secret shares of zero, i.e., either
+            # both have the bit set or neither does.
+            self.assertEqual(ctrl[0] + ctrl[1], Field2(0))
+
+            # Either both aggregators correct their node proof or neither does.
+            self.assertEqual(proof[0], proof[1])
 
     def test(self):
         vidpf = Vidpf(Field128, 2, 1)
@@ -209,36 +269,52 @@ class Test(unittest.TestCase):
                 proofs.append(proof)
             self.assertFalse(vidpf.verify(proofs[0], proofs[1]))
 
-    # TODO Figure out we expect the proof to be malleable or if there's a bug
-    # in our code. This test demonstrates that we can tweak the proof of a
-    # correction word without being detected.
-    @unittest.skip("this test is known to fail")
     def test_malformed_correction_word_proof(self):
         vidpf = Vidpf(Field128, 5, 1)
         nonce = gen_rand(vidpf.NONCE_SIZE)
         rand = gen_rand(vidpf.RAND_SIZE)
-        (public_share, keys) = vidpf.gen(0, [Field128(1)], nonce, rand)
+        alpha = randrange(2 ** vidpf.BITS)
+        (pub, keys) = vidpf.gen(alpha, [Field128(1)], nonce, rand)
 
         # Tweak the proof of some correction word.
         malformed_level = randrange(vidpf.BITS)
-        (seed_cw, ctrl_cw, w_cw, proof_cw) = public_share[malformed_level]
+        (seed_cw, ctrl_cw, w_cw, proof_cw) = pub[malformed_level]
         malformed = bytearray(proof_cw)
         malformed[0] ^= 1
-        public_share[malformed_level] = (seed_cw, ctrl_cw, w_cw, malformed)
+        pub[malformed_level] = (seed_cw, ctrl_cw, w_cw, malformed)
 
         # The tweak doesn't impact the computation until we reach the level
         # with the malformed correction word.
         for level in range(malformed_level, vidpf.BITS):
-            prefixes = tuple(range(2**level))
-            proofs = []
-            for agg_id in range(2):
-                (_beta_share, _out_share, proof) = vidpf.eval(
-                    agg_id,
-                    public_share,
-                    keys[agg_id],
-                    level,
-                    prefixes,
-                    nonce,
+            prefixes = tuple(range(2 ** level))
+            for prefix in prefixes:
+                valid = vidpf.verify(
+                    vidpf.eval(0, pub, keys[0], level, [prefix], nonce)[2],
+                    vidpf.eval(1, pub, keys[1], level, [prefix], nonce)[2],
                 )
-                proofs.append(proof)
-            self.assertFalse(vidpf.verify(proofs[0], proofs[1]))
+
+                # If the prefix is on path, then we expect the proofs to be
+                # different. This is because exactly one of the aggregators
+                # corrects the node proof: if correction word is not malformed,
+                # then the corrected node proof will equal the node proof
+                # computed by its co-aggregator; but since the correction word
+                # is malformed, they will always compute different node proofs.
+                #
+                # If the prefix has no prefix in common with `alpha`, then we
+                # expect the proofs to be equal. Both aggregators will correct
+                # the node proof or neither will, and since they compute the
+                # same seed, we expect them to compute the same node proof.
+                #
+                # However if the prefix does have a prefix in common with
+                # `alpha`, then the proof we start with might not match, in
+                # which case the proof for the off-path segment will also not
+                # match.
+                #
+                # NOTE This points to an attack on privacy. If the attacker
+                # controls the public share consumed by the honest aggregator,
+                # whether the proofs match will tell it if a given prefix is on
+                # or off path. It is therefore crucial to ensure that the
+                # honest client and honest aggregator agree on the public
+                # share.
+                if vidpf.is_prefix(prefix, alpha, level):
+                    self.assertFalse(valid)
