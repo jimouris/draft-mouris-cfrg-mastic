@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-10T00:44:27.559380+00:00",
+  "timestamp": "2024-09-12T00:44:05.794064+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -460,16 +460,18 @@
     {
       "number": 34,
       "id": "I_kwDOJmRsfc50zj7m",
-      "title": "Harmonize VIDPF with changes to IDPF in draft-irtf-cfrg-vdaf-08",
+      "title": "Harmonize VIDPF with changes to IDPF in draft-irtf-cfrg-vdaf-12",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/34",
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "cjpatton"
+      ],
       "labels": [],
       "body": "We would like these to be aligned as possible. We're still optimizing IDPF here and there, e.g., https://github.com/cfrg/draft-irtf-cfrg-vdaf/pull/303. We should decide if we're OK with these optimizations.",
       "createdAt": "2023-10-24T16:46:18Z",
-      "updatedAt": "2024-01-12T17:36:40Z",
+      "updatedAt": "2024-09-11T16:23:34Z",
       "closedAt": null,
       "comments": [
         {
@@ -5335,6 +5337,278 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 63,
+      "id": "PR_kwDOJmRsfc57E68i",
+      "title": "Update actions to match the VDAF draft",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/63",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The GitHub actions for the VDAF draft include various improvements, including running unit tests, type checking, and linting. Update our actions to match theirs make the changes necessary to pass the checks.\r\n\r\n* Remove submodule for draft-irtf-cfrg-vdaf; we can now install this from pip directly.\r\n\r\n* Move the tests into their own directory and invoke them with the unittest module. This revealed a few issues:\r\n\r\n  * The VIDPF tests needed some adjusting: we had modified the code so that the output share includes the counter, but never updated the tests to account for this. This was not being checked by the current GitHub actions.\r\n\r\n  * `Vdaf` no longer has a class method called `domain_separation_tag()`. Implement this here, using the Mastic draft version instead of the VDAF draft version.\r\n\r\n  * `FlpGeneric` was renamed to `FlpBBCGGI19` and its attribute `Field` was renamed to `field`. Relatedly, the circuit constructor takes in a field as input.\r\n\r\n* Enforce type hints and fix misalignments with the `Vdaf` API. The main change is that we've dropped the class factory pattern in favor of more conventional Python OOP. Likewise for `Vidpf`.\r\n\r\n* Remove `do_range_check: bool` from the prep state and let this be determined by whether `corrected_joint_rand_seed: Optional[bytes]` is set.\r\n\r\n    * Note: enforcing types revealed a few awkward bits of control flow,\r\n      including this.",
+      "createdAt": "2024-09-10T23:35:25Z",
+      "updatedAt": "2024-09-11T20:14:25Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "0eac487749b601aacb3fa0c0cd990a62f065ded0",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/update-ci",
+      "headRefOid": "b01f4f2251af22301ca23a0146bc83c8bf894098",
+      "closedAt": "2024-09-11T20:14:25Z",
+      "mergedAt": "2024-09-11T20:14:25Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "296698483fc89c3bd140cbc8a833afecae9b94d8"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6I9418",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "Nice, thanks for doing this. Everything looks way cleaner now.\r\n\r\nI just have some minor and consistency comments.",
+          "createdAt": "2024-09-11T16:47:58Z",
+          "updatedAt": "2024-09-11T17:01:54Z",
+          "comments": [
+            {
+              "originalPosition": 289,
+              "body": "Should this be:\r\n```suggestion\r\n    def is_valid(self,\r\n                 agg_param: MasticAggParam,\r\n                 previous_agg_params: list[MasticAggParam],\r\n    ) -> bool:\r\n```\r\nfor consistency?",
+              "createdAt": "2024-09-11T16:47:58Z",
+              "updatedAt": "2024-09-11T17:02:08Z"
+            },
+            {
+              "originalPosition": 307,
+              "body": "same here",
+              "createdAt": "2024-09-11T16:52:54Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 387,
+              "body": "don't we nee the `do_range_check` anymore?",
+              "createdAt": "2024-09-11T16:54:51Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 443,
+              "body": "```suggestion\r\n                  prep_msg: MasticPrepMessage,\r\n       ) -> list[F]:\r\n```",
+              "createdAt": "2024-09-11T16:55:44Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 467,
+              "body": "```suggestion\r\n                  out_shares: list[list[F]],\r\n         ) -> list[F]:\r\n```",
+              "createdAt": "2024-09-11T16:56:10Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 481,
+              "body": "```suggestion\r\n                _num_measurements: int,\r\n      ) -> list[AggResult]:\r\n```",
+              "createdAt": "2024-09-11T16:57:11Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 543,
+              "body": "```suggestion\r\n                        nonce: bytes,\r\n        ) -> bytes:\r\n```",
+              "createdAt": "2024-09-11T16:57:33Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 585,
+              "body": "```suggestion\r\n            self, \r\n            input_share: MasticInputShare,\r\n      ) -> bytes:\r\n```",
+              "createdAt": "2024-09-11T16:58:19Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 601,
+              "body": "```suggestion\r\n            self,\r\n            public_share: MasticPublicShare,\r\n     ) -> bytes:\r\n```",
+              "createdAt": "2024-09-11T16:58:31Z",
+              "updatedAt": "2024-09-11T17:01:54Z"
+            },
+            {
+              "originalPosition": 622,
+              "body": "same",
+              "createdAt": "2024-09-11T16:58:42Z",
+              "updatedAt": "2024-09-11T17:01:55Z"
+            },
+            {
+              "originalPosition": 629,
+              "body": "same",
+              "createdAt": "2024-09-11T16:58:44Z",
+              "updatedAt": "2024-09-11T17:01:55Z"
+            },
+            {
+              "originalPosition": 797,
+              "body": "we had `Sum(2)` and now it became `Sum(.., 3)`. Was the +1 implied before or a typo here?",
+              "createdAt": "2024-09-11T16:59:41Z",
+              "updatedAt": "2024-09-11T17:01:55Z"
+            },
+            {
+              "originalPosition": 836,
+              "body": "for example, here it is the same (no +1)",
+              "createdAt": "2024-09-11T16:59:56Z",
+              "updatedAt": "2024-09-11T17:01:55Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I-N2U",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-11T17:12:16Z",
+          "updatedAt": "2024-09-11T17:16:16Z",
+          "comments": [
+            {
+              "originalPosition": 387,
+              "body": "I don't think it's necessary and it made type checking a little more complex. `correction_joint_rand_seed` has type `Optional[bytes]`: if it's not `None`, then we'll do the range check; otherwise we don't.",
+              "createdAt": "2024-09-11T17:12:16Z",
+              "updatedAt": "2024-09-11T17:16:16Z"
+            },
+            {
+              "originalPosition": 797,
+              "body": "The parameterize of `Sum` has changed: instead of taking a number of bits, it takes the maximum measurement, which no longer needs to be a power of 2.",
+              "createdAt": "2024-09-11T17:14:36Z",
+              "updatedAt": "2024-09-11T17:16:16Z"
+            },
+            {
+              "originalPosition": 836,
+              "body": "Here we're changing the maximum measurement from $2^8 - 1$ to $8$, but the test doesn't care, so I just left it as-is.",
+              "createdAt": "2024-09-11T17:15:58Z",
+              "updatedAt": "2024-09-11T17:16:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I-U6l",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-11T17:19:48Z",
+          "updatedAt": "2024-09-11T17:19:48Z",
+          "comments": [
+            {
+              "originalPosition": 307,
+              "body": "I applied your suggested formatting changes, but then CI complained about some of them (`autopep8`). I updated the formatting to make CI happy.\r\n\r\nI'm not sure if your linting is optimal, but to be honest I'm not too worried about it right now. Feel free to shoot a PR with tweaks if you find something that looks nicer but still complies with CI.",
+              "createdAt": "2024-09-11T17:19:48Z",
+              "updatedAt": "2024-09-11T17:19:48Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I-VHH",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-11T17:20:01Z",
+          "updatedAt": "2024-09-11T17:20:01Z",
+          "comments": [
+            {
+              "originalPosition": 307,
+              "body": "Of course, tweaking CI is an option as well.",
+              "createdAt": "2024-09-11T17:20:01Z",
+              "updatedAt": "2024-09-11T17:20:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I-i0N",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-11T17:37:06Z",
+          "updatedAt": "2024-09-11T17:37:06Z",
+          "comments": [
+            {
+              "originalPosition": 307,
+              "body": "I think it needs a comma at the end of 243 and then it'll probably work",
+              "createdAt": "2024-09-11T17:37:06Z",
+              "updatedAt": "2024-09-11T17:37:06Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I-jcd",
+          "commit": {
+            "abbreviatedOid": "49180a0"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-11T17:37:56Z",
+          "updatedAt": "2024-09-11T17:37:56Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6I_wsJ",
+          "commit": {
+            "abbreviatedOid": "2602c8c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-11T19:19:22Z",
+          "updatedAt": "2024-09-11T19:19:22Z",
+          "comments": [
+            {
+              "originalPosition": 307,
+              "body": "Done.",
+              "createdAt": "2024-09-11T19:19:22Z",
+              "updatedAt": "2024-09-11T19:19:22Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 64,
+      "id": "PR_kwDOJmRsfc57O77W",
+      "title": "Harmonize VIDPF with upstream",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/64",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #51.\r\nPartially addresses #34 (there are changes coming in -12).\r\n\r\nApply various improvements for IDPF in the base draft to VIDPF and simplify things a bit.\r\n\r\n* Merge \"cs proofs\" into correction words\r\n\r\n* Harmonize variable names across key generation and evaluation\r\n\r\n* Align `Vidpf` API closer to `Idpf` API in the base draft:\r\n\r\n    * Rename \"binder\" to \"nonce\" and require to have fixed length\r\n\r\n    * Reorder the public share and keys\r\n\r\n* Use the same method for extending a seed as for the IDPF in the base draft (borrow control bits from the seeds in order to avoid an additional AES call).\r\n\r\n* Discourage branching on secret values, including control bits and `alpha` on the client side.",
+      "createdAt": "2024-09-12T00:39:25Z",
+      "updatedAt": "2024-09-12T00:42:37Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "296698483fc89c3bd140cbc8a833afecae9b94d8",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/34-1",
+      "headRefOid": "e6f8ac62fd16f0f44a163473dbbffcac28a48b7e",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
