@@ -1,7 +1,7 @@
 """Verifiable Distributed Point Function (VIDPF)"""
 
 import itertools
-from typing import Generic, Sequence, TypeAlias, TypeVar
+from typing import Generic, Self, Sequence, TypeAlias, TypeVar
 
 from vdaf_poc.common import (format_dst, to_le_bytes, vec_add, vec_neg,
                              vec_sub, xor, zeros)
@@ -27,14 +27,46 @@ CorrectionWord: TypeAlias = tuple[
     bytes,    # node proof
 ]
 
-PrefixTreeIndex: TypeAlias = tuple[int, int]  # node, level
 
-PrefixTreeEntry: TypeAlias = tuple[
-    bytes,    # selected seed at this node
-    Field2,   # selected control bit at this node
-    list[F],  # payload at this node
-    bytes,    # proof for the walk so far
-]
+class PrefixTreeIndex:
+    node: int
+    level: int
+
+    def __init__(self, node: int, level: int):
+        self.node = node
+        self.level = level
+
+    def sibling(self) -> Self:
+        return self.__class__(self.node ^ 1, self.level)
+
+    def left_child(self) -> Self:
+        return self.__class__(self.node << 1, self.level+1)
+
+    def right_child(self) -> Self:
+        return self.left_child().sibling()
+
+    def __hash__(self):
+        return hash((self.node, self.level))
+
+    def __eq__(self, other):
+        return self.node == other.node and self.level == other.level
+
+
+class PrefixTreeEntry(Generic[F]):
+    seed: bytes   # selected seed
+    ctrl: Field2  # selected control bit
+    w: list[F]    # payload
+    proof: bytes  # proof for this walk so far
+
+    def __init__(self,
+                 seed: bytes,
+                 ctrl: Field2,
+                 w: list[F],
+                 proof: bytes):
+        self.seed = seed
+        self.ctrl = ctrl
+        self.w = w
+        self.proof = proof
 
 
 class Vidpf(Generic[F]):
@@ -200,25 +232,29 @@ class Vidpf(Generic[F]):
             ctrl = Field2(agg_id)
             for i in range(level+1):
                 node = prefix >> (level - i)
-                for s in [0, 1]:
-                    # Compute the value for the node `node` and its sibling
-                    # `node ^ s`. The sibling is used to compute the path
-                    # and counter for the evaluation proof.
-                    if not prefix_tree_share.get((node ^ s, i)):
-                        prefix_tree_share[(node ^ s, i)] = self.eval_next(
+                idx = PrefixTreeIndex(node, i)
+                for inner_idx in [idx, idx.sibling()]:
+                    # Compute the value for the node and its sibling. The
+                    # sibling is used to compute the path and counter for the
+                    # evaluation proof.
+                    if not prefix_tree_share.get(inner_idx):
+                        prefix_tree_share[inner_idx] = self.eval_next(
                             seed,
                             ctrl,
                             public_share[i],
                             i,
-                            node ^ s,
+                            inner_idx.node,
                             proof,
                             nonce,
                         )
-                (seed, ctrl, w, proof) = prefix_tree_share[(node, i)]
+                entry = prefix_tree_share[idx]
+                seed = entry.seed
+                ctrl = entry.ctrl
+                proof = entry.proof
 
         # Compute the aggregator's share of `beta`.
-        w0 = prefix_tree_share[(0, 0)][2]
-        w1 = prefix_tree_share[(1, 0)][2]
+        w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w
+        w1 = prefix_tree_share[PrefixTreeIndex(1, 0)].w
         beta_share = vec_add(w0, w1)[1:]
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
@@ -236,15 +272,16 @@ class Vidpf(Generic[F]):
         for prefix in prefixes:
             for i in range(level):
                 node = prefix >> (level - i)
-                w = prefix_tree_share[(node,             i)][2]
-                w0 = prefix_tree_share[(node << 1,       i+1)][2]
-                w1 = prefix_tree_share[((node << 1) | 1, i+1)][2]
+                idx = PrefixTreeIndex(node, i)
+                w = prefix_tree_share[idx].w
+                w0 = prefix_tree_share[idx.left_child()].w
+                w1 = prefix_tree_share[idx.right_child()].w
                 path += self.field.encode_vec(vec_sub(w, vec_add(w0, w1)))
 
         # Compute the aggregator's output share.
         out_share = []
         for prefix in prefixes:
-            w = prefix_tree_share[(prefix, level)][2]
+            w = prefix_tree_share[PrefixTreeIndex(prefix, level)].w
             out_share.append(w if agg_id == 0 else vec_neg(w))
 
         # Compute the evaluation proof. If both aggregators compute the
@@ -261,7 +298,7 @@ class Vidpf(Generic[F]):
                   node: int,
                   proof: bytes,
                   nonce: bytes,
-                  ) -> tuple[bytes, Field2, list[F], bytes]:
+                  ) -> PrefixTreeEntry:
         """
         Extend a node in the tree, select and correct one of its
         children, then convert it into a payload and the next seed.
@@ -304,7 +341,7 @@ class Vidpf(Generic[F]):
             h2 = xor(proof, pi_prime)
         proof = xor(proof, pi_proof_adjustment(h2))
 
-        return (next_seed, next_ctrl, w, proof)
+        return PrefixTreeEntry(next_seed, next_ctrl, w, proof)
 
     def verify(self, proof0: bytes, proof1: bytes) -> bool:
         return proof0 == proof1
