@@ -2,7 +2,7 @@ import unittest
 from random import randrange
 
 from vdaf_poc.common import gen_rand, vec_add
-from vdaf_poc.field import Field2, Field128
+from vdaf_poc.field import Field128
 
 from vidpf import PROOF_INIT, PrefixTreeEntry, PrefixTreeIndex, Vidpf
 
@@ -18,8 +18,8 @@ class Test(unittest.TestCase):
 
         # On path
         node = [
-            PrefixTreeEntry.root(keys[0], Field2(0)),
-            PrefixTreeEntry.root(keys[1], Field2(1)),
+            PrefixTreeEntry.root(keys[0], False),
+            PrefixTreeEntry.root(keys[1], True),
         ]
         proof = [PROOF_INIT, PROOF_INIT]
         for i in range(vidpf.BITS):
@@ -35,7 +35,7 @@ class Test(unittest.TestCase):
             # The control bits should be secret shares of one, i.e., the
             # control bit should be set for one and only one of the
             # aggregators.
-            self.assertEqual(node[0].ctrl + node[1].ctrl, Field2(1))
+            self.assertTrue(node[0].ctrl != node[1].ctrl)
 
             # One of the aggregators corrects the node proof, which means both
             # should compute the same node proof.
@@ -43,8 +43,8 @@ class Test(unittest.TestCase):
 
         # Off path
         node = [
-            PrefixTreeEntry.root(keys[0], Field2(0)),
-            PrefixTreeEntry.root(keys[1], Field2(1)),
+            PrefixTreeEntry.root(keys[0], False),
+            PrefixTreeEntry.root(keys[1], True),
         ]
         proof = [PROOF_INIT, PROOF_INIT]
         for i in range(vidpf.BITS):
@@ -61,7 +61,7 @@ class Test(unittest.TestCase):
 
             # The control bits should be secret shares of zero, i.e., either
             # both have the bit set or neither does.
-            self.assertEqual(node[0].ctrl + node[1].ctrl, Field2(0))
+            self.assertTrue(node[0].ctrl == node[1].ctrl)
 
             # Either both aggregators correct their node proof or neither does.
             self.assertEqual(proof[0], proof[1])
@@ -251,7 +251,8 @@ class Test(unittest.TestCase):
         malformed_level = randrange(vidpf.BITS)
         (seed_cw, ctrl_cw, w_cw, proof_cw) = public_share[malformed_level]
         malformed = ctrl_cw.copy()
-        malformed[randrange(2)] += Field2(1)
+        malformed_index = randrange(2)
+        malformed[malformed_index] = not malformed[malformed_index]
         public_share[malformed_level] = (seed_cw, malformed, w_cw, proof_cw)
 
         # The tweak doesn't impact the computation until we reach the level

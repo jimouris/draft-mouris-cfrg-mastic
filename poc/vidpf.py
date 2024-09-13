@@ -5,7 +5,7 @@ from typing import Generic, Self, Sequence, TypeAlias, TypeVar
 
 from vdaf_poc.common import (format_dst, to_le_bytes, vec_add, vec_neg,
                              vec_sub, xor, zeros)
-from vdaf_poc.field import Field2, NttField
+from vdaf_poc.field import NttField
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 F = TypeVar("F", bound=NttField)
@@ -17,8 +17,7 @@ PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
                               b"vidpf proof init",
                               b'').next(PROOF_SIZE)
 
-# TODO Consider using `bool` instead of `Field2` to improve readability.
-Ctrl: TypeAlias = list[Field2]
+Ctrl: TypeAlias = list[bool]
 
 CorrectionWord: TypeAlias = tuple[
     bytes,    # seed
@@ -53,20 +52,20 @@ class PrefixTreeIndex:
 
 
 class PrefixTreeEntry(Generic[F]):
-    seed: bytes   # selected seed
-    ctrl: Field2  # selected control bit
-    w: list[F]    # payload
+    seed: bytes  # selected seed
+    ctrl: bool   # selected control bit
+    w: list[F]   # payload
 
     def __init__(self,
                  seed: bytes,
-                 ctrl: Field2,
+                 ctrl: bool,
                  w: list[F]):
         self.seed = seed
         self.ctrl = ctrl
         self.w = w
 
     @classmethod
-    def root(cls, seed: bytes, ctrl: Field2):
+    def root(cls, seed: bytes, ctrl: bool):
         # The payload won't be used, so don't bother setting it.
         return cls(seed, ctrl, [])
 
@@ -120,11 +119,11 @@ class Vidpf(Generic[F]):
 
         # [MST24, Fig. 15]: s0^0, s1^0, t0^0, t1^0
         seed = keys.copy()
-        ctrl = [Field2(0), Field2(1)]
+        ctrl = [False, True]
         correction_words = []
         for i in range(self.BITS):
             idx = PrefixTreeIndex(alpha >> (self.BITS - i - 1), i)
-            bit = idx.node & 1
+            bit = bool(idx.node & 1)
 
             # [MST24]: if x = 0 then keep <- L, lose <- R
             #
@@ -156,20 +155,20 @@ class Vidpf(Generic[F]):
             # Implementation note: the index `lose` is `alpha`-dependent.
             seed_cw = xor(s0[lose], s1[lose])
             ctrl_cw = [
-                t0[0] + t1[0] + Field2(1-bit),  # [MST24]: t_c^L
-                t0[1] + t1[1] + Field2(bit),    # [MST24]: t_c^R
+                t0[0] ^ t1[0] ^ (not bit),  # [MST24]: t_c^L
+                t0[1] ^ t1[1] ^ bit,        # [MST24]: t_c^R
             ]
 
             # Correct.
             #
             # Implementation note: the index `keep` is `alpha`-dependent,
             # as is `ctrl`.
-            if ctrl[0] == Field2(1):
+            if ctrl[0]:
                 s0[keep] = xor(s0[keep], seed_cw)
-                t0[keep] = t0[keep] + ctrl_cw[keep]
-            if ctrl[1] == Field2(1):
+                t0[keep] ^= ctrl_cw[keep]
+            if ctrl[1]:
                 s1[keep] = xor(s1[keep], seed_cw)
-                t1[keep] = t1[keep] + ctrl_cw[keep]
+                t1[keep] ^= ctrl_cw[keep]
 
             # Convert.
             (seed[0], w0) = self.convert(s0[keep], nonce)
@@ -181,7 +180,7 @@ class Vidpf(Generic[F]):
             #
             # Implementation note: `ctrl` is `alpha`-dependent.
             w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
-            if ctrl[1] == Field2(1):
+            if ctrl[1]:
                 w_cw = vec_neg(w_cw)
 
             # Compute the correction word for this level's node proof. If
@@ -229,7 +228,7 @@ class Vidpf(Generic[F]):
         # Implementation note: we can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
         prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
-        root = PrefixTreeEntry.root(key, Field2(agg_id))
+        root = PrefixTreeEntry.root(key, bool(agg_id))
         proof = PROOF_INIT
         for i in range(level+1):
             for prefix in prefixes:
@@ -318,9 +317,9 @@ class Vidpf(Generic[F]):
         #
         # Implementation note: avoid branching on the value of control bits, as
         # its value may be leaked by a side channel.
-        if node.ctrl == Field2(1):
+        if node.ctrl:
             s[keep] = xor(s[keep], seed_cw)
-            t[keep] = t[keep] + ctrl_cw[keep]
+            t[keep] ^= ctrl_cw[keep]
 
         # Convert and correct the payload.
         #
@@ -329,7 +328,7 @@ class Vidpf(Generic[F]):
         # reduce leakage via timing side channels.
         (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i, W^i
         next_ctrl = t[keep]  # [MST24]: t'^i
-        if next_ctrl == Field2(1):
+        if next_ctrl:
             w = vec_add(w, w_cw)
 
         # Compute and correct the node proof and update the path proof.
@@ -340,7 +339,7 @@ class Vidpf(Generic[F]):
         #
         # Implementation note: avoid branching on the control bit here.
         node_proof = self.node_proof(next_seed, idx)
-        if next_ctrl == Field2(1):
+        if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
         proof = xor(proof, adjusted_proof(xor(proof, node_proof)))
 
@@ -365,7 +364,7 @@ class Vidpf(Generic[F]):
         # Use the least significant bits as the control bit correction,
         # and then zero it out. This gives effectively 127 bits of
         # security, but reduces the number of AES calls needed by 1/3.
-        t = [Field2(s[0][0] & 1), Field2(s[1][0] & 1)]
+        t = [bool(s[0][0] & 1), bool(s[1][0] & 1)]
         s[0][0] &= 0xFE
         s[1][0] &= 0xFE
         return ([bytes(s[0]), bytes(s[1])], t)
@@ -436,5 +435,5 @@ def pack_bits(bits):
     byte_len = (len(bits) + 7) // 8
     packed = [int(0)] * byte_len
     for i, bit in enumerate(bits):
-        packed[i // 8] |= bit.as_unsigned() << (i % 8)
+        packed[i // 8] |= int(bit) << (i % 8)
     return bytes(packed)
