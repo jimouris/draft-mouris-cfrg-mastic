@@ -4,7 +4,7 @@ from random import randrange
 from vdaf_poc.common import gen_rand, vec_add
 from vdaf_poc.field import Field2, Field128
 
-from vidpf import PROOF_INIT, Vidpf
+from vidpf import PROOF_INIT, PrefixTreeEntry, PrefixTreeIndex, Vidpf
 
 
 class Test(unittest.TestCase):
@@ -17,54 +17,51 @@ class Test(unittest.TestCase):
         (pub, keys) = vidpf.gen(alpha, [Field128(1)], nonce, rand)
 
         # On path
-        seed = keys
-        ctrl = [Field2(0), Field2(1)]
+        node = [
+            PrefixTreeEntry.root(keys[0], Field2(0)),
+            PrefixTreeEntry.root(keys[1], Field2(1)),
+        ]
         proof = [PROOF_INIT, PROOF_INIT]
         for i in range(vidpf.BITS):
-            node = (alpha >> (vidpf.BITS - i - 1))
-
-            entry0 = vidpf.eval_next(
-                seed[0], ctrl[0], pub[i], i, node, proof[0], nonce)
-            entry1 = vidpf.eval_next(
-                seed[1], ctrl[1], pub[i], i, node, proof[1], nonce)
-            seed = [entry0.seed, entry1.seed]
-            ctrl = [entry0.ctrl, entry1.ctrl]
-            proof = [entry0.proof, entry1.proof]
+            idx = PrefixTreeIndex(alpha >> (vidpf.BITS - i - 1), i)
+            (node[0], proof[0]) = vidpf.eval_next(
+                node[0], proof[0], pub[i], nonce, idx)
+            (node[1], proof[1]) = vidpf.eval_next(
+                node[1], proof[1], pub[i], nonce, idx)
 
             # Each aggregator should end up with a different seed.
-            self.assertTrue(seed[0] != seed[1])
+            self.assertTrue(node[0].seed != node[1].seed)
 
             # The control bits should be secret shares of one, i.e., the
             # control bit should be set for one and only one of the
             # aggregators.
-            self.assertEqual(ctrl[0] + ctrl[1], Field2(1))
+            self.assertEqual(node[0].ctrl + node[1].ctrl, Field2(1))
 
             # One of the aggregators corrects the node proof, which means both
             # should compute the same node proof.
             self.assertEqual(proof[0], proof[1])
 
         # Off path
-        seed = keys
-        ctrl = [Field2(0), Field2(1)]
+        node = [
+            PrefixTreeEntry.root(keys[0], Field2(0)),
+            PrefixTreeEntry.root(keys[1], Field2(1)),
+        ]
         proof = [PROOF_INIT, PROOF_INIT]
         for i in range(vidpf.BITS):
-            node = (alpha >> (vidpf.BITS - i - 1))
-            node ^= 1  # ensure we're always off path
-
-            entry0 = vidpf.eval_next(
-                seed[0], ctrl[0], pub[i], i, node, proof[0], nonce)
-            entry1 = vidpf.eval_next(
-                seed[1], ctrl[1], pub[i], i, node, proof[1], nonce)
-            seed = [entry0.seed, entry1.seed]
-            ctrl = [entry0.ctrl, entry1.ctrl]
-            proof = [entry0.proof, entry1.proof]
+            # We want an off-path index. The sibling of the on-path prefix is
+            # an off-path prefix.
+            idx = PrefixTreeIndex(alpha >> (vidpf.BITS - i - 1), i).sibling()
+            (node[0], proof[0]) = vidpf.eval_next(
+                node[0], proof[0], pub[i], nonce, idx)
+            (node[1], proof[1]) = vidpf.eval_next(
+                node[1], proof[1], pub[i], nonce, idx)
 
             # The aggregators should compute the same seed.
-            self.assertEqual(seed[0], seed[1])
+            self.assertEqual(node[0].seed, node[1].seed)
 
             # The control bits should be secret shares of zero, i.e., either
             # both have the bit set or neither does.
-            self.assertEqual(ctrl[0] + ctrl[1], Field2(0))
+            self.assertEqual(node[0].ctrl + node[1].ctrl, Field2(0))
 
             # Either both aggregators correct their node proof or neither does.
             self.assertEqual(proof[0], proof[1])
