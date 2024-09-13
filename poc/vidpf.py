@@ -6,6 +6,7 @@ from typing import Generic, Self, Sequence, TypeAlias, TypeVar
 from vdaf_poc.common import (format_dst, to_le_bytes, vec_add, vec_neg,
                              vec_sub, xor, zeros)
 from vdaf_poc.field import NttField
+from vdaf_poc.idpf_bbcggi21 import pack_bits
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 F = TypeVar("F", bound=NttField)
@@ -13,9 +14,9 @@ F = TypeVar("F", bound=NttField)
 PROOF_SIZE = 32
 
 # Walk proof for an empty tree.
-PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                              b"vidpf proof init",
-                              b'').next(PROOF_SIZE)
+PATH_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
+                                   b"vidpf path proof init",
+                                   b'').next(PROOF_SIZE)
 
 Ctrl: TypeAlias = list[bool]
 
@@ -210,7 +211,7 @@ class Vidpf(Generic[F]):
         The VIDPF key evaluation algorithm.
 
         Return the aggregator's share of `beta`, its output share for
-        each prefix, and its proof.
+        each prefix, and its evaluation proof.
         """
         if agg_id not in range(2):
             raise ValueError("invalid aggregator ID")
@@ -221,15 +222,13 @@ class Vidpf(Generic[F]):
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        # Evaluate our share of the prefix tree. Along the way, compute
-        # the walk proof. (TODO Define "walk proof" and probably call it
-        # something else.)
+        # Evaluate our share of the prefix tree and compute the path proof.
         #
         # Implementation note: we can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
         prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
         root = PrefixTreeEntry.root(key, bool(agg_id))
-        proof = PROOF_INIT
+        path_proof = PATH_PROOF_INIT
         for i in range(level+1):
             for prefix in prefixes:
                 if prefix not in range(2 ** (level+1)):
@@ -245,16 +244,16 @@ class Vidpf(Generic[F]):
                 node = prefix_tree_share.setdefault(idx, root)
                 for child_idx in [idx.left_child(), idx.right_child()]:
                     # Compute the entry for `prefix` and its sibling. The
-                    # sibling is used to compute the path and counter for the
-                    # evaluation proof.
+                    # sibling is used for the counter and payload checks.
                     if not prefix_tree_share.get(child_idx):
-                        (prefix_tree_share[child_idx], proof) = self.eval_next(
+                        (child, path_proof) = self.eval_next(
                             node,
-                            proof,
+                            path_proof,
                             public_share[i],
                             nonce,
                             child_idx,
                         )
+                        prefix_tree_share[child_idx] = child
 
         # Compute the aggregator's share of `beta`.
         w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w
@@ -263,23 +262,26 @@ class Vidpf(Generic[F]):
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
 
-        # Check that the first element of the payload is equal to 1.
+        # Counter check: check that the first element of the payload is equal
+        # to 1.
         #
         # Each aggregator holds an additive share of the counter, so we
         # aggregator 1 negate its share and add 1 so that they both
         # compute the same value for `counter`.
-        counter = self.field.encode_vec([w0[0] + w1[0] + self.field(agg_id)])
+        counter_check = self.field.encode_vec(
+            [w0[0] + w1[0] + self.field(agg_id)])
 
-        # Path check: For each node, check that the payload is equal to
+        # Payload check: for each node, check that the payload is equal to
         # the sum of its children.
-        path = b''
+        payload_check = b''
         for prefix in prefixes:
             for i in range(level):
                 idx = PrefixTreeIndex(prefix >> (level - i), i)
                 w = prefix_tree_share[idx].w
                 w0 = prefix_tree_share[idx.left_child()].w
                 w1 = prefix_tree_share[idx.right_child()].w
-                path += self.field.encode_vec(vec_sub(w, vec_add(w0, w1)))
+                payload_check += self.field.encode_vec(
+                    vec_sub(w, vec_add(w0, w1)))
 
         # Compute the aggregator's output share.
         out_share = []
@@ -288,15 +290,15 @@ class Vidpf(Generic[F]):
             w = prefix_tree_share[idx].w
             out_share.append(w if agg_id == 0 else vec_neg(w))
 
-        # Compute the evaluation proof. If both aggregators compute the
-        # same value, then they agree on the walk proof, path and
-        # counter.
-        proof = eval_proof(proof, counter, path)
+        # Compute the evaluation proof. If both aggregators compute the same
+        # value, then they agree on the path proof, the counter, and the
+        # payload.
+        proof = eval_proof(path_proof, counter_check, payload_check)
         return (beta_share, out_share, proof)
 
     def eval_next(self,
                   node: PrefixTreeEntry,
-                  proof: bytes,
+                  path_proof: bytes,
                   correction_word: CorrectionWord,
                   nonce: bytes,
                   idx: PrefixTreeIndex,
@@ -341,9 +343,10 @@ class Vidpf(Generic[F]):
         node_proof = self.node_proof(next_seed, idx)
         if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
-        proof = xor(proof, adjusted_proof(xor(proof, node_proof)))
+        path_proof = xor(path_proof,
+                         adjusted_proof(xor(path_proof, node_proof)))
 
-        return (PrefixTreeEntry(next_seed, next_ctrl, w), proof)
+        return (PrefixTreeEntry(next_seed, next_ctrl, w), path_proof)
 
     def verify(self, proof0: bytes, proof1: bytes) -> bool:
         return proof0 == proof1
@@ -384,8 +387,7 @@ class Vidpf(Generic[F]):
 
     def node_proof(self,
                    seed: bytes,
-                   idx: PrefixTreeIndex,
-                   ) -> bytes:
+                   idx: PrefixTreeIndex) -> bytes:
         '''
         Compute the proof for this node.
         '''
@@ -393,20 +395,26 @@ class Vidpf(Generic[F]):
             to_le_bytes(self.BITS, 2) + \
             to_le_bytes(idx.node, (self.BITS + 7) // 8) + \
             to_le_bytes(idx.level, 2)
-        xof = XofTurboShake128(seed, b'vidpf proof step', binder)
+        xof = XofTurboShake128(seed, b'vidpf path proof step', binder)
         return xof.next(PROOF_SIZE)
 
-    def encode_public_share(self, correction_words: list[CorrectionWord]):
-        # TODO(cjpatton) Align with Poplar1 public share in draft-irtf-cfrg-vdaf-12
+    def encode_public_share(
+            self,
+            public_share: list[CorrectionWord]) -> bytes:
+        from vdaf_poc.field import Field2
+        (seeds, ctrl, payloads, proofs) = zip(*public_share)
         encoded = bytes()
-        control_bits = list(itertools.chain.from_iterable(
-            cw[1] for cw in correction_words
-        ))
-        encoded += pack_bits(control_bits)
-        for (seed_cw, _ctrl_cw, w_cw, proof_cw) in correction_words:
-            encoded += seed_cw
-            encoded += self.field.encode_vec(w_cw)
-            encoded += proof_cw
+        encoded += pack_bits(list(
+            # `pack_bits()` expects a `list[Field2]`, so we need to
+            # convert from `bool` to `Field2` here.
+            map(lambda bit: Field2(int(bit)),
+                itertools.chain.from_iterable(ctrl))))
+        for seed in seeds:
+            encoded += seed
+        for payload in payloads:
+            encoded += self.field.encode_vec(payload)
+        for proof in proofs:
+            encoded += proof
         return encoded
 
     def is_prefix(self, x: int, y: int, level: int) -> bool:
@@ -421,19 +429,13 @@ class Vidpf(Generic[F]):
 
 
 def adjusted_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(proof, b'vidpf proof adjustment', b'')
+    xof = XofTurboShake128(proof, b'vidpf path proof adjustment', b'')
     return xof.next(PROOF_SIZE)
 
 
-def eval_proof(proof: bytes, counter: bytes, path: bytes) -> bytes:
-    binder = counter + path
-    xof = XofTurboShake128(proof, b'vidpf eval proof', binder)
+def eval_proof(path_proof: bytes,
+               counter_check: bytes,
+               payload_check: bytes) -> bytes:
+    binder = counter_check + payload_check
+    xof = XofTurboShake128(path_proof, b'vidpf eval proof', binder)
     return xof.next(PROOF_SIZE)
-
-
-def pack_bits(bits):
-    byte_len = (len(bits) + 7) // 8
-    packed = [int(0)] * byte_len
-    for i, bit in enumerate(bits):
-        packed[i // 8] |= int(bit) << (i % 8)
-    return bytes(packed)
