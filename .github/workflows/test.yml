@@ -44,4 +44,4 @@ jobs:
 
     - name: Run examples
       working-directory: poc
-      run: sage -python mastic.py
+      run: sage -python examples.py
