@@ -2,7 +2,7 @@
 
 from typing import Optional, Sequence, TypeAlias, TypeVar, cast
 
-from vdaf_poc.common import (byte, concat, front, to_be_bytes, vec_add,
+from vdaf_poc.common import (byte, concat, front, to_le_bytes, vec_add,
                              vec_sub, zeros)
 from vdaf_poc.field import NttField
 from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
@@ -34,8 +34,6 @@ USAGE_JOINT_RAND_PART = 4
 # Domain separation: FLP joint randomness
 USAGE_JOINT_RANDOMNESS = 5
 
-# Mastic version
-VERSION = 0
 
 MasticAggParam: TypeAlias = tuple[
     int,            # level
@@ -71,9 +69,6 @@ MasticPrepMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
 
 
 class Mastic(
-        # TODO Figure out why unit tests fail if this code is uncommented.
-        #
-        # Generic[Measurement, AggResult, F],
         Vdaf[
             tuple[int, Measurement],  # Measurement
             MasticAggParam,
@@ -87,8 +82,13 @@ class Mastic(
             MasticPrepMessage,
         ]):
 
+    # NOTE We'd like to make this generic, but this appears to be blocked
+    # by a bug. We would add `Generic[Measurement, AggResult, X, F]` as
+    # one of the super classes of `Mastic`, but this causes a runtime
+    # error.
+    xof = XofTurboShake128
+
     ID: int = 0xFFFFFFFF
-    # TODO Use a generic XOF rather than a specific one.
     VERIFY_KEY_SIZE = XofTurboShake128.SEED_SIZE
     NONCE_SIZE = 16
     SHARES = 2
@@ -103,10 +103,10 @@ class Mastic(
         self.RAND_SIZE = self.vidpf.RAND_SIZE
         if self.flp.JOINT_RAND_LEN > 0:
             # flp_prove_rand_seed, flp_leader_seed, flp_helper_seed
-            self.RAND_SIZE += 3 * XofTurboShake128.SEED_SIZE
+            self.RAND_SIZE += 3 * self.xof.SEED_SIZE
         else:
             # flp_prove_rand_seed, flp_helper_seed
-            self.RAND_SIZE += 2 * XofTurboShake128.SEED_SIZE
+            self.RAND_SIZE += 2 * self.xof.SEED_SIZE
 
     def shard(self,
               measurement: tuple[int, Measurement],
@@ -125,8 +125,8 @@ class Mastic(
             rand: bytes,
     ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
         (vidpf_gen_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
-        (flp_prove_rand_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
-        (flp_helper_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
         beta = self.flp.encode(meas)
@@ -136,14 +136,7 @@ class Mastic(
             self.vidpf.gen(alpha, beta, nonce, vidpf_gen_rand)
 
         # Generate FLP proof shares.
-        flp_prove_rand = XofTurboShake128.expand_into_vec(self.field,
-                                                          flp_prove_rand_seed,
-                                                          self.domain_separation_tag(
-                                                              USAGE_PROVE_RAND),
-                                                          b'',
-                                                          self.flp.PROVE_RAND_LEN,
-                                                          )
-
+        flp_prove_rand = self.prove_rand(flp_prove_rand_seed)
         flp_proof = self.flp.prove(beta, flp_prove_rand, [])
         flp_leader_proof_share = vec_sub(
             flp_proof,
@@ -167,9 +160,9 @@ class Mastic(
         flp_public_share: Optional[list[bytes]]
 
         (vidpf_gen_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
-        (flp_prove_rand_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
-        (flp_leader_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
-        (flp_helper_seed, rand) = front(XofTurboShake128.SEED_SIZE, rand)
+        (flp_prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
+        (flp_leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
+        (flp_helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
 
         (alpha, meas) = measurement
         beta = self.flp.encode(meas)
@@ -189,14 +182,7 @@ class Mastic(
         flp_public_share = joint_rand_parts
 
         # Generate FLP proof shares.
-        flp_prove_rand = XofTurboShake128.expand_into_vec(self.field,
-                                                          flp_prove_rand_seed,
-                                                          self.domain_separation_tag(
-                                                              USAGE_PROVE_RAND),
-                                                          b'',
-                                                          self.flp.PROVE_RAND_LEN,
-                                                          )
-
+        flp_prove_rand = self.prove_rand(flp_prove_rand_seed)
         flp_proof = self.flp.prove(beta, flp_prove_rand, joint_rand)
         flp_leader_proof_share = vec_sub(
             flp_proof,
@@ -261,14 +247,7 @@ class Mastic(
         corrected_joint_rand_seed = None
         flp_prep_share = None
         if do_range_check:
-            flp_query_rand = XofTurboShake128.expand_into_vec(
-                self.field,
-                verify_key,
-                self.domain_separation_tag(USAGE_QUERY_RAND),
-                nonce,  # TODO(cjpatton) Consider binding to agg param
-                self.flp.QUERY_RAND_LEN,
-            )
-
+            flp_query_rand = self.query_rand(verify_key, nonce, level)
             joint_rand_part = None
             joint_rand = []
             if self.flp.JOINT_RAND_LEN > 0:
@@ -404,12 +383,21 @@ class Mastic(
         return (vidpf_init_seed, flp_proof_share, flp_seed)
 
     def helper_proof_share(self, flp_seed: bytes) -> list[F]:
-        return XofTurboShake128.expand_into_vec(
+        return self.xof.expand_into_vec(
             self.field,
             flp_seed,
             self.domain_separation_tag(USAGE_PROOF_SHARE),
             b'',
             self.flp.PROOF_LEN,
+        )
+
+    def prove_rand(self, seed: bytes) -> list[F]:
+        return self.xof.expand_into_vec(
+            self.field,
+            seed,
+            self.domain_separation_tag(USAGE_PROVE_RAND),
+            b'',
+            self.flp.PROVE_RAND_LEN,
         )
 
     def joint_rand_part(self,
@@ -419,7 +407,7 @@ class Mastic(
                         vidpf_public_share: list[CorrectionWord],
                         nonce: bytes,
                         ) -> bytes:
-        return XofTurboShake128.derive_seed(
+        return self.xof.derive_seed(
             flp_seed,
             self.domain_separation_tag(USAGE_JOINT_RAND_PART),
             byte(agg_id) + nonce + vidpf_key +
@@ -428,20 +416,32 @@ class Mastic(
 
     def joint_rand_seed(self, joint_rand_parts: list[bytes]) -> bytes:
         """Derive the joint randomness seed from its parts."""
-        return XofTurboShake128.derive_seed(
-            zeros(XofTurboShake128.SEED_SIZE),
+        return self.xof.derive_seed(
+            zeros(self.xof.SEED_SIZE),
             self.domain_separation_tag(USAGE_JOINT_RAND_SEED),
             concat(joint_rand_parts),
         )
 
     def joint_rand(self, joint_rand_seed: bytes) -> list[F]:
         """Derive the joint randomness from its seed."""
-        return XofTurboShake128.expand_into_vec(
+        return self.xof.expand_into_vec(
             self.field,
             joint_rand_seed,
             self.domain_separation_tag(USAGE_JOINT_RANDOMNESS),
             b'',
             self.flp.JOINT_RAND_LEN,
+        )
+
+    def query_rand(self,
+                   verify_key: bytes,
+                   nonce: bytes,
+                   level: int) -> list[F]:
+        return self.xof.expand_into_vec(
+            self.field,
+            verify_key,
+            self.domain_separation_tag(USAGE_QUERY_RAND),
+            nonce + to_le_bytes(level, 2),
+            self.flp.QUERY_RAND_LEN,
         )
 
     def test_vec_encode_input_share(
@@ -470,22 +470,12 @@ class Mastic(
         return encoded
 
     def test_vec_encode_agg_share(self, agg_share: list[F]) -> bytes:
-        # TODO(cjpatton) Decide on a serialization format for Mastic.
-        return b'dummy agg share'
+        raise NotImplementedError("pick an encoding of agg share")
 
     def test_vec_encode_prep_share(
             self, prep_share: MasticPrepShare) -> bytes:
-        # TODO(cjpatton) Decide on a serialization format for Mastic.
-        return b'dummy prep share'
+        raise NotImplementedError("pick an encoding of prep share")
 
     def test_vec_encode_prep_msg(
             self, prep_message: MasticPrepMessage) -> bytes:
-        # TODO(cjpatton) Decide on a serialization format for Mastic.
-        return b'dummy prep message'
-
-    def domain_separation_tag(self, usage) -> bytes:
-        return concat([
-            to_be_bytes(VERSION, 1),
-            to_be_bytes(self.ID, 4),
-            to_be_bytes(usage, 2),
-        ])
+        raise NotImplementedError("pick an encoding of prep msg")
