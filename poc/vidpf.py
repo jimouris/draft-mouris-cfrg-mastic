@@ -229,27 +229,33 @@ class Vidpf(Generic[F]):
         # Implementation note: we can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
         prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
+        root = PrefixTreeEntry.root(key, Field2(agg_id))
         proof = PROOF_INIT
-        for prefix in prefixes:
-            if prefix not in range(2 ** (level+1)):
-                raise ValueError("prefix too long")
+        for i in range(level+1):
+            for prefix in prefixes:
+                if prefix not in range(2 ** (level+1)):
+                    raise ValueError("prefix too long")
 
-            node = PrefixTreeEntry.root(key, Field2(agg_id))
-            for i in range(level+1):
-                idx = PrefixTreeIndex(prefix >> (level - i), i)
-                for inner_idx in [idx, idx.sibling()]:
-                    # Compute the value for the node and its sibling. The
+                # Compute the entry for `prefix`. To do so, we first need to
+                # look up the parent node.
+                #
+                # The index of the current prefix `prefix` is
+                # `PrefixTreeIndex(prefix >> (level - i), i)`. Its parent
+                # is at level `i - 1`.
+                idx = PrefixTreeIndex(prefix >> (level - i + 1), i - 1)
+                node = prefix_tree_share.setdefault(idx, root)
+                for child_idx in [idx.left_child(), idx.right_child()]:
+                    # Compute the entry for `prefix` and its sibling. The
                     # sibling is used to compute the path and counter for the
                     # evaluation proof.
-                    if not prefix_tree_share.get(inner_idx):
-                        (prefix_tree_share[inner_idx], proof) = self.eval_next(
+                    if not prefix_tree_share.get(child_idx):
+                        (prefix_tree_share[child_idx], proof) = self.eval_next(
                             node,
                             proof,
                             public_share[i],
                             nonce,
-                            inner_idx,
+                            child_idx,
                         )
-                node = prefix_tree_share[idx]
 
         # Compute the aggregator's share of `beta`.
         w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w

@@ -149,6 +149,41 @@ class Test(unittest.TestCase):
             [Field128(0), Field128(0)],
         ])
 
+    def test_exhuastive(self):
+        """
+        Evaluate all possible prefixes and ensure the on-path prefixes (and
+        only those prefixes) evaluate to `beta`.
+        """
+        vidpf = Vidpf(Field128, 5, 1)
+        alpha = randrange(2**vidpf.BITS)
+        nonce = gen_rand(vidpf.NONCE_SIZE)
+        rand = gen_rand(vidpf.RAND_SIZE)
+        (pub, keys) = vidpf.gen(alpha, [Field128(13)], nonce, rand)
+
+        for level in range(vidpf.BITS):
+            prefixes = tuple(range(2**level))
+            out_shares = []
+            proofs = []
+            for agg_id in range(2):
+                (_beta_share, out_share, proof) = vidpf.eval(
+                    agg_id,
+                    pub,
+                    keys[agg_id],
+                    level,
+                    prefixes,
+                    nonce,
+                )
+                out_shares.append(out_share)
+                proofs.append(proof)
+            for prefix in prefixes:
+                out = vec_add(out_shares[0][prefix], out_shares[1][prefix])
+                if vidpf.is_prefix(prefix, alpha, level):
+                    expectedOut = [Field128(1), Field128(13)]
+                else:
+                    expectedOut = [Field128(0), Field128(0)]
+                self.assertEqual(out, expectedOut)
+            self.assertTrue(vidpf.verify(proofs[0], proofs[1]))
+
     def test_malformed_key(self):
         vidpf = Vidpf(Field128, 5, 1)
         nonce = gen_rand(vidpf.NONCE_SIZE)
