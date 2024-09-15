@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-12T00:44:05.794064+00:00",
+  "timestamp": "2024-09-15T00:51:02.275303+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -426,7 +426,7 @@
       "id": "I_kwDOJmRsfc50RAeA",
       "title": "Reduce encoding bytes for level if total number of levels is less than 256",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/23",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [
@@ -437,25 +437,41 @@
       ],
       "body": "We're currently using 2 bytes to encode the level:\r\n```python\r\nsha3.update(str(node).encode('ascii') + to_le_bytes(current_level, 2) + next_seed)\r\n```\r\n\r\nThis can be abstracted out as a parameter and also detect if the level is less than 256 we can use just a single byte.\r\n\r\n",
       "createdAt": "2023-10-18T20:40:31Z",
-      "updatedAt": "2023-10-18T20:40:31Z",
-      "closedAt": null,
-      "comments": []
+      "updatedAt": "2024-09-13T16:53:38Z",
+      "closedAt": "2024-09-13T16:53:38Z",
+      "comments": [
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "I am closing this as non-important.",
+          "createdAt": "2024-09-13T16:53:36Z",
+          "updatedAt": "2024-09-13T16:53:36Z"
+        }
+      ]
     },
     {
       "number": 24,
       "id": "I_kwDOJmRsfc50Z_ZV",
       "title": "mastic: Change agg_param format to support fast-start and/or simultaneous level computation?",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/24",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "hannahedavis",
       "authorAssociation": "NONE",
       "assignees": [],
       "labels": [],
       "body": "In a comment, @cjpatton raised the idea of a \"fast-start\" mode that allows aggregators to begin aggregating at an arbitrary level with an arbitrary set of starting prefixes. Currently Mastic does not support this feature because the FLP must be verified at level zero before any further output can be validated. Since aggregators do not necessarily store information about previous rounds except when validating aggregation parameters, one suggestion was to change the aggregation parameter to include information about which level was first evaluated. The downside of this is that the aggregation parameter format would become inconsistent with Poplar, and thus introduce changes at the DAP level. \r\n\r\nAnother suggestion, with the same downside, is to change the aggregation parameter format to a tuple of the current aggregation parameter types. Mastic could then support simultaneous aggregation of multiple different levels on the same reports. The validity condition on the new aggregation parameters would be the existing condition applied to the parameters' union. \r\n\r\nThe one solution that doesn't require aggregation parameters to change is to fix the starting level as a parameter of the VDAF scheme.  ",
       "createdAt": "2023-10-19T20:02:25Z",
-      "updatedAt": "2023-10-19T20:02:25Z",
-      "closedAt": null,
-      "comments": []
+      "updatedAt": "2024-09-13T19:34:49Z",
+      "closedAt": "2024-09-13T19:33:38Z",
+      "comments": [
+        {
+          "author": "hannahdaviscrypto",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Fast-start added to Mastic. The aggregation parameter now includes a boolean flag indicating whether the FLP should be verified, and a sequence of aggregation parameters is considered valid only if one of them includes an FLP verification. This does introduce inconsistencies with Poplar, but shouldn't require special handling at the DAP level outside of the current interface.",
+          "createdAt": "2024-09-13T19:33:38Z",
+          "updatedAt": "2024-09-13T19:34:49Z"
+        }
+      ]
     },
     {
       "number": 34,
@@ -471,7 +487,7 @@
       "labels": [],
       "body": "We would like these to be aligned as possible. We're still optimizing IDPF here and there, e.g., https://github.com/cfrg/draft-irtf-cfrg-vdaf/pull/303. We should decide if we're OK with these optimizations.",
       "createdAt": "2023-10-24T16:46:18Z",
-      "updatedAt": "2024-09-11T16:23:34Z",
+      "updatedAt": "2024-09-13T16:55:53Z",
       "closedAt": null,
       "comments": [
         {
@@ -487,6 +503,20 @@
           "body": "@armfazh this one is also assigned to you. Basically we took an optimization that reducees the number of AES calls per level from 3 to 2. This improved speed quite a bit, so we want this change for VIDPF as well.",
           "createdAt": "2024-01-12T17:36:39Z",
           "updatedAt": "2024-01-12T17:36:39Z"
+        },
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "@cjpatton close this one?",
+          "createdAt": "2024-09-13T16:52:02Z",
+          "updatedAt": "2024-09-13T16:52:02Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Not yet, -12 is still work in progress. @divergentdave is working on some changes to IDPF that we'll want to take in VIDPF: https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/main/poc/vdaf_poc/vdaf_poplar1.py#L191",
+          "createdAt": "2024-09-13T16:55:52Z",
+          "updatedAt": "2024-09-13T16:55:52Z"
         }
       ]
     },
@@ -643,11 +673,13 @@
       "state": "OPEN",
       "author": "divergentdave",
       "authorAssociation": "CONTRIBUTOR",
-      "assignees": [],
+      "assignees": [
+        "cjpatton"
+      ],
       "labels": [],
       "body": "Currently, path proof computation iterates over prefixes in the outer loop, and levels in the inner loop. Switching this would improve the data locality of implementations, while still committing to all the same data. In particular, the first few iterations of an outer level loop would often hash the same field vector in consecutive iterations of the inner loop. (because, for example, at level 0, it would process node 0 several times, and then process node 1 several times) The field vector arithmetic could even be conditionally reused across inner loop iterations for a further speedup.",
       "createdAt": "2023-12-07T20:59:08Z",
-      "updatedAt": "2024-01-12T17:33:42Z",
+      "updatedAt": "2024-09-12T19:43:45Z",
       "closedAt": null,
       "comments": [
         {
@@ -671,15 +703,15 @@
       "id": "I_kwDOJmRsfc55F8WC",
       "title": "Discourage branching on `next_ctrl`",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/51",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "divergentdave",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Currently, the proof of concept branches on `next_ctrl.as_unsigned()` when computing `pi_proof`. This should be changed to use `correct()` or `next_ctrl.conditional_select()`, and we should add an implementation note comment, advising to avoid sidechannels, as with other uses of `next_ctrl`.",
       "createdAt": "2023-12-07T22:01:40Z",
-      "updatedAt": "2024-01-12T17:34:46Z",
-      "closedAt": null,
+      "updatedAt": "2024-09-12T19:46:01Z",
+      "closedAt": "2024-09-12T19:46:01Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -5589,20 +5621,410 @@
       "id": "PR_kwDOJmRsfc57O77W",
       "title": "Harmonize VIDPF with upstream",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/64",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #51.\r\nPartially addresses #34 (there are changes coming in -12).\r\n\r\nApply various improvements for IDPF in the base draft to VIDPF and simplify things a bit.\r\n\r\n* Merge \"cs proofs\" into correction words\r\n\r\n* Harmonize variable names across key generation and evaluation\r\n\r\n* Align `Vidpf` API closer to `Idpf` API in the base draft:\r\n\r\n    * Rename \"binder\" to \"nonce\" and require to have fixed length\r\n\r\n    * Reorder the public share and keys\r\n\r\n* Use the same method for extending a seed as for the IDPF in the base draft (borrow control bits from the seeds in order to avoid an additional AES call).\r\n\r\n* Discourage branching on secret values, including control bits and `alpha` on the client side.",
       "createdAt": "2024-09-12T00:39:25Z",
-      "updatedAt": "2024-09-12T00:42:37Z",
+      "updatedAt": "2024-09-12T19:46:00Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "296698483fc89c3bd140cbc8a833afecae9b94d8",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/34-1",
-      "headRefOid": "e6f8ac62fd16f0f44a163473dbbffcac28a48b7e",
+      "headRefOid": "486b81cbfaafb2c7a64ebec3450f76928acce7d0",
+      "closedAt": "2024-09-12T19:46:00Z",
+      "mergedAt": "2024-09-12T19:46:00Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "3cdd7faa7d283c02ceb47bf5b6267921ca5fdb62"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6JGaG8",
+          "commit": {
+            "abbreviatedOid": "e6f8ac6"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-12T12:29:36Z",
+          "updatedAt": "2024-09-12T12:32:04Z",
+          "comments": [
+            {
+              "originalPosition": 419,
+              "body": "What we had before here avoided branching:\r\n```\r\ns[0] = xor(s[0], prev_ctrl.conditional_select(seed_cw))  # s^L\r\ns[1] = xor(s[1], prev_ctrl.conditional_select(seed_cw))  # s^R\r\nt[0] += ctrl_cw[0] * prev_ctrl  # t^L\r\nt[1] += ctrl_cw[1] * prev_ctrl  # t^R\r\n```\r\nWhat you added is cleaner but introduces branching. Is there any other benefit we get?",
+              "createdAt": "2024-09-12T12:29:36Z",
+              "updatedAt": "2024-09-12T12:32:04Z"
+            },
+            {
+              "originalPosition": 457,
+              "body": ",\\n",
+              "createdAt": "2024-09-12T12:30:43Z",
+              "updatedAt": "2024-09-12T12:32:04Z"
+            },
+            {
+              "originalPosition": 487,
+              "body": ",\\n",
+              "createdAt": "2024-09-12T12:30:54Z",
+              "updatedAt": "2024-09-12T12:32:04Z"
+            },
+            {
+              "originalPosition": 508,
+              "body": ",\\n",
+              "createdAt": "2024-09-12T12:31:12Z",
+              "updatedAt": "2024-09-12T12:32:04Z"
+            },
+            {
+              "originalPosition": 530,
+              "body": "```suggestion\r\n        for (seed_cw, _ctrl_cw, w_cw, proof) in correction_words:\r\n```\r\n?",
+              "createdAt": "2024-09-12T12:31:43Z",
+              "updatedAt": "2024-09-12T12:32:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JKn-B",
+          "commit": {
+            "abbreviatedOid": "e6f8ac6"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-12T19:40:01Z",
+          "updatedAt": "2024-09-12T19:40:01Z",
+          "comments": [
+            {
+              "originalPosition": 419,
+              "body": "Clearer is better I think: I'm trying to make this code as readable as possible. It's up to implementations to make things constant time.",
+              "createdAt": "2024-09-12T19:40:01Z",
+              "updatedAt": "2024-09-12T19:40:01Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 65,
+      "id": "PR_kwDOJmRsfc57W6wL",
+      "title": "Improve readability and add some unittests",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/65",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-09-12T21:32:55Z",
+      "updatedAt": "2024-09-13T16:24:41Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "3cdd7faa7d283c02ceb47bf5b6267921ca5fdb62",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/34-2",
+      "headRefOid": "373709535194b6ac5ec1941dc0be7b21d75e2357",
+      "closedAt": "2024-09-13T16:24:41Z",
+      "mergedAt": "2024-09-13T16:24:41Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "7d0a4116f8901d82ede37c084c7940c5eb2d153b"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6JLeJf",
+          "commit": {
+            "abbreviatedOid": "3737095"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-12T21:52:23Z",
+          "updatedAt": "2024-09-12T21:52:23Z",
+          "comments": [
+            {
+              "originalPosition": 135,
+              "body": "@jimouris any insights here?",
+              "createdAt": "2024-09-12T21:52:23Z",
+              "updatedAt": "2024-09-12T21:52:23Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JL-k8",
+          "commit": {
+            "abbreviatedOid": "3737095"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-13T00:24:15Z",
+          "updatedAt": "2024-09-13T00:24:15Z",
+          "comments": [
+            {
+              "originalPosition": 135,
+              "body": "Alrighty, I've widdled this down a bit, but there's still somewhat of a gap in my understanding: https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/66/files#r1757748172",
+              "createdAt": "2024-09-13T00:24:15Z",
+              "updatedAt": "2024-09-13T00:25:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JTR5u",
+          "commit": {
+            "abbreviatedOid": "3737095"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-13T16:17:52Z",
+          "updatedAt": "2024-09-13T16:19:08Z",
+          "comments": [
+            {
+              "originalPosition": 21,
+              "body": "Nice one",
+              "createdAt": "2024-09-13T16:17:52Z",
+              "updatedAt": "2024-09-13T16:19:08Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 66,
+      "id": "PR_kwDOJmRsfc57XeMu",
+      "title": "Harmonize proof computation with the rest of the code",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/66",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #65 (merge that first).\r\n\r\nWhat we previously referred to as `pi_prime` is now the \"node proof\". The node proof is corrected much like the seed, control bit, and payload.\r\n\r\nRename `pi_proof_adjustment()` to `adjusted_proof()`, getting rid of the last reference to \"pi\".\r\n\r\nFinally, replace the zero seed in `eval_proof()` and `adjusted_proof()` with the proof we want to \"hash forward\". As of draft-irtf-cfrg-vdaf-12, XofTurboShake128 can handle variable length seeds.",
+      "createdAt": "2024-09-13T00:16:18Z",
+      "updatedAt": "2024-09-13T16:31:50Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "7d0a4116f8901d82ede37c084c7940c5eb2d153b",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/34-3",
+      "headRefOid": "19be4b553cfa89958b1ab39977cbf5eb2fbb1dd0",
+      "closedAt": "2024-09-13T16:31:50Z",
+      "mergedAt": "2024-09-13T16:31:50Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "386827a56fad8be898bc6a13aac7b774891d4232"
+      },
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Rebased.",
+          "createdAt": "2024-09-13T16:25:50Z",
+          "updatedAt": "2024-09-13T16:25:50Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6JL-v5",
+          "commit": {
+            "abbreviatedOid": "fe401e1"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-13T00:25:23Z",
+          "updatedAt": "2024-09-13T00:25:24Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "@jimouris I haven't quite figured out where my analysis is going wrong.",
+              "createdAt": "2024-09-13T00:25:23Z",
+              "updatedAt": "2024-09-13T00:25:24Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JSc9-",
+          "commit": {
+            "abbreviatedOid": "fe401e1"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-13T14:39:04Z",
+          "updatedAt": "2024-09-13T14:39:04Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "I figured out what's going on :)",
+              "createdAt": "2024-09-13T14:39:04Z",
+              "updatedAt": "2024-09-13T14:39:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JTS2z",
+          "commit": {
+            "abbreviatedOid": "fe401e1"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-13T16:20:06Z",
+          "updatedAt": "2024-09-13T16:20:07Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "Was the test wrong?",
+              "createdAt": "2024-09-13T16:20:06Z",
+              "updatedAt": "2024-09-13T16:20:07Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JTVSD",
+          "commit": {
+            "abbreviatedOid": "fe401e1"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-13T16:26:05Z",
+          "updatedAt": "2024-09-13T16:26:05Z",
+          "comments": [
+            {
+              "originalPosition": 72,
+              "body": "See updated comment: there was a case that I missed.",
+              "createdAt": "2024-09-13T16:26:05Z",
+              "updatedAt": "2024-09-13T16:26:06Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JTXp3",
+          "commit": {
+            "abbreviatedOid": "19be4b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-13T16:30:21Z",
+          "updatedAt": "2024-09-13T16:30:21Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 67,
+      "id": "PR_kwDOJmRsfc57e4PL",
+      "title": "Change traversal order, more encapsulation",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/67",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #49.\r\n\r\nPlus, add more encapsulation so that it's easier to refactor.\r\n\r\ncc/ @divergentdave",
+      "createdAt": "2024-09-13T21:23:18Z",
+      "updatedAt": "2024-09-13T22:07:29Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "386827a56fad8be898bc6a13aac7b774891d4232",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/49",
+      "headRefOid": "e8b145daa00400c8d95836c1484ab92b1dec6f57",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 68,
+      "id": "PR_kwDOJmRsfc57fCLY",
+      "title": "Move Mastic examples to their own file and clean up imports",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/68",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #67.",
+      "createdAt": "2024-09-13T22:06:54Z",
+      "updatedAt": "2024-09-13T22:07:44Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "cjpatton/49",
+      "baseRefOid": "e8b145daa00400c8d95836c1484ab92b1dec6f57",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/cleanup-examples",
+      "headRefOid": "69a405321b46f38da3a953f84a4e478e9507c645",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 69,
+      "id": "PR_kwDOJmRsfc57fGUh",
+      "title": "Use `bool` for control bits instead of `Field2`",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/69",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #68.\r\n\r\nThis makes the code a bit clearer.",
+      "createdAt": "2024-09-13T22:22:46Z",
+      "updatedAt": "2024-09-13T22:29:21Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "cjpatton/cleanup-examples",
+      "baseRefOid": "69a405321b46f38da3a953f84a4e478e9507c645",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/cleanup-2-field2",
+      "headRefOid": "0bdf6ccc24da62d907693658fe1c5f553616a824",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 70,
+      "id": "PR_kwDOJmRsfc57fV3O",
+      "title": "Clean up TODOs",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/70",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #69.\r\nPartially addresses #34.\r\n\r\n* Harmonize code used for domain separation. At the moment, we overload `Vdaf.domain_separation_tag()` to use our own `VERSION`, but we invoke `format_tag()`, which uses the version from the VDAF draft. Eventually we'll want to use our own version for both; for the moment, the minimally invasive change is to just use upstream.\r\n\r\n* Add a NOTE about an apparent bug that's blocking us from making the XOF generic. This may be a `Vdaf` bug or a bug with `Generic` itself. While at it, deduplicate the code for deriving the prove randomness.\r\n\r\n* Modify query randomness derivation by binding to the level. We only generate query randomness once, so this may not be strictly necessary. But this does provide domain separation whenever the aggregation starts at different levels.\r\n\r\n    * Note: The TODO suggested binding to the aggregation parameter as\r\n      well, but this doesn't seem necessary as the FLP can only be used\r\n      once.\r\n\r\n* Align correction word encoding with the IDPF specification in the base draft. Note that the considerations are a little different because we don't have a concept of \"inner field\" versus \"leaf field\", but consistency is nice.\r\n\r\n* Rename the \"counter\" to the \"counter check\" and the \"path\" to the \"payload check\".\r\n\r\n* Refer to the \"VIDPF proof\" from {{MST24}} as the \"path proof\". This is to distinguish it from the \"evaluation proof\", which includes the path proof and the counter and payload checks.",
+      "createdAt": "2024-09-13T23:43:28Z",
+      "updatedAt": "2024-09-13T23:44:37Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "cjpatton/cleanup-2-field2",
+      "baseRefOid": "0bdf6ccc24da62d907693658fe1c5f553616a824",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/cleanup-3-generic-xof",
+      "headRefOid": "c6a035802e3b2445b21fde79925bcd0cb046340f",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
