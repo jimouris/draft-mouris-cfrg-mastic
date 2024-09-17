@@ -335,6 +335,17 @@ class Vidpf(Generic[F]):
 
         # Compute and correct the node proof and update the path proof.
         #
+        #             corrected node proof
+        #                 |
+        #                 |
+        #                 v
+        # current      +-----+     +------+     +-----+      updated
+        # path   --+-->| XOR |---->| Hash |---->| XOR |----> path
+        # proof    |   +-----+     +------+     +-----+      proof
+        #          |                               ^
+        #          |                               |
+        #          +-------------------------------+
+        #
         # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
         #          \pi = \tilde \pi \xor
         #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
