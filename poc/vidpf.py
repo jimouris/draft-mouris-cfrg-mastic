@@ -334,6 +334,20 @@ class Vidpf(Generic[F]):
             w = vec_add(w, w_cw)
 
         # Compute and correct the node proof and update the path proof.
+        # Each update resembles a step of Merkle-Damgard compression. The
+        # main difference is that we XOR each block (i.e., corrected node
+        # proof) with the previous hash (or IV) rather than compress.
+        #
+        #             corrected node proof
+        #                 |
+        #                 |
+        #                 v
+        # current      +-----+     +------+     +-----+      updated
+        # path   --+-->| XOR |---->| Hash |---->| XOR |----> path
+        # proof    |   +-----+     +------+     +-----+      proof
+        #          |                               ^
+        #          |                               |
+        #          +-------------------------------+
         #
         # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
         #          \pi = \tilde \pi \xor
@@ -344,7 +358,7 @@ class Vidpf(Generic[F]):
         if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
         path_proof = xor(path_proof,
-                         adjusted_proof(xor(path_proof, node_proof)))
+                         hash_proof(xor(path_proof, node_proof)))
 
         return (PrefixTreeEntry(next_seed, next_ctrl, w), path_proof)
 
@@ -428,8 +442,8 @@ class Vidpf(Generic[F]):
         return y >> (self.BITS - 1 - level) == x
 
 
-def adjusted_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(proof, b'vidpf path proof adjustment', b'')
+def hash_proof(proof: bytes) -> bytes:
+    xof = XofTurboShake128(proof, b'vidpf path proof hash', b'')
     return xof.next(PROOF_SIZE)
 
 
