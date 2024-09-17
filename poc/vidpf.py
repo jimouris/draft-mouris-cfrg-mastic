@@ -3,19 +3,22 @@
 import itertools
 from typing import Generic, Self, Sequence, TypeAlias, TypeVar
 
-from vdaf_poc.common import (format_dst, to_le_bytes, vec_add, vec_neg,
-                             vec_sub, xor, zeros)
+from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor, zeros
 from vdaf_poc.field import NttField
 from vdaf_poc.idpf_bbcggi21 import pack_bits
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
+from dst import (USAGE_CONVERT, USAGE_EVAL_PROOF, USAGE_EXTEND,
+                 USAGE_NODE_PROOF, USAGE_PATH_PROOF_HASH,
+                 USAGE_PATH_PROOF_INIT, dst)
+
 F = TypeVar("F", bound=NttField)
 
-PROOF_SIZE = 32
+PROOF_SIZE: int = 32
 
 # Walk proof for an empty tree.
 PATH_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                                   b"vidpf path proof init",
+                                   dst(USAGE_PATH_PROOF_INIT),
                                    b'').next(PROOF_SIZE)
 
 Ctrl: TypeAlias = list[bool]
@@ -373,7 +376,7 @@ class Vidpf(Generic[F]):
         Extend a seed into the seed and control bits for its left and
         right children in the VIDPF tree.
         '''
-        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 0), nonce)
+        xof = XofFixedKeyAes128(seed, dst(USAGE_EXTEND), nonce)
         s = [
             bytearray(xof.next(self.KEY_SIZE)),
             bytearray(xof.next(self.KEY_SIZE)),
@@ -394,7 +397,7 @@ class Vidpf(Generic[F]):
         Convert a selected seed into a payload and the seed for the next
         level.
         '''
-        xof = XofFixedKeyAes128(seed, format_dst(1, 0, 1), nonce)
+        xof = XofFixedKeyAes128(seed, dst(USAGE_CONVERT), nonce)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
         payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
         return (next_seed, payload)
@@ -409,7 +412,7 @@ class Vidpf(Generic[F]):
             to_le_bytes(self.BITS, 2) + \
             to_le_bytes(idx.node, (self.BITS + 7) // 8) + \
             to_le_bytes(idx.level, 2)
-        xof = XofTurboShake128(seed, b'vidpf path proof step', binder)
+        xof = XofTurboShake128(seed, dst(USAGE_NODE_PROOF), binder)
         return xof.next(PROOF_SIZE)
 
     def encode_public_share(
@@ -443,7 +446,7 @@ class Vidpf(Generic[F]):
 
 
 def hash_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(proof, b'vidpf path proof hash', b'')
+    xof = XofTurboShake128(proof, dst(USAGE_PATH_PROOF_HASH), b'')
     return xof.next(PROOF_SIZE)
 
 
@@ -451,5 +454,5 @@ def eval_proof(path_proof: bytes,
                counter_check: bytes,
                payload_check: bytes) -> bytes:
     binder = counter_check + payload_check
-    xof = XofTurboShake128(path_proof, b'vidpf eval proof', binder)
+    xof = XofTurboShake128(path_proof, dst(USAGE_EVAL_PROOF), binder)
     return xof.next(PROOF_SIZE)
