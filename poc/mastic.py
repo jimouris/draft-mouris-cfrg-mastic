@@ -9,31 +9,14 @@ from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
 from vdaf_poc.vdaf import Vdaf
 from vdaf_poc.xof import XofTurboShake128
 
+from dst import (USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
+                 USAGE_JOINT_RAND_SEED, USAGE_PROOF_SHARE, USAGE_PROVE_RAND,
+                 USAGE_QUERY_RAND, dst)
 from vidpf import CorrectionWord, Vidpf
 
 Measurement = TypeVar("Measurement")
 AggResult = TypeVar("AggResult")
 F = TypeVar("F", bound=NttField)
-
-
-# Domain separation: FLP prove randomness
-USAGE_PROVE_RAND = 0
-
-# Domain separation: FLP Helper proof share
-USAGE_PROOF_SHARE = 1
-
-# Domain separation: FLP query randomness
-USAGE_QUERY_RAND = 2
-
-# Domain separation: FLP joint randomness
-USAGE_JOINT_RAND_SEED = 3
-
-# Domain separation: FLP joint randomness parts
-USAGE_JOINT_RAND_PART = 4
-
-# Domain separation: FLP joint randomness
-USAGE_JOINT_RANDOMNESS = 5
-
 
 MasticAggParam: TypeAlias = tuple[
     int,            # level
@@ -386,7 +369,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             flp_seed,
-            self.domain_separation_tag(USAGE_PROOF_SHARE),
+            dst(USAGE_PROOF_SHARE),
             b'',
             self.flp.PROOF_LEN,
         )
@@ -395,7 +378,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            self.domain_separation_tag(USAGE_PROVE_RAND),
+            dst(USAGE_PROVE_RAND),
             b'',
             self.flp.PROVE_RAND_LEN,
         )
@@ -409,7 +392,7 @@ class Mastic(
                         ) -> bytes:
         return self.xof.derive_seed(
             flp_seed,
-            self.domain_separation_tag(USAGE_JOINT_RAND_PART),
+            dst(USAGE_JOINT_RAND_PART),
             byte(agg_id) + nonce + vidpf_key +
             self.vidpf.encode_public_share(vidpf_public_share),
         )
@@ -418,7 +401,7 @@ class Mastic(
         """Derive the joint randomness seed from its parts."""
         return self.xof.derive_seed(
             zeros(self.xof.SEED_SIZE),
-            self.domain_separation_tag(USAGE_JOINT_RAND_SEED),
+            dst(USAGE_JOINT_RAND_SEED),
             concat(joint_rand_parts),
         )
 
@@ -427,7 +410,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             joint_rand_seed,
-            self.domain_separation_tag(USAGE_JOINT_RANDOMNESS),
+            dst(USAGE_JOINT_RAND),
             b'',
             self.flp.JOINT_RAND_LEN,
         )
@@ -439,7 +422,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             verify_key,
-            self.domain_separation_tag(USAGE_QUERY_RAND),
+            dst(USAGE_QUERY_RAND),
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
