@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-15T00:51:02.275303+00:00",
+  "timestamp": "2024-09-17T00:36:57.821459+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -670,7 +670,7 @@
       "id": "I_kwDOJmRsfc55FpJ0",
       "title": "Swap loop order in computation of path proof",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/49",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "divergentdave",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [
@@ -679,8 +679,8 @@
       "labels": [],
       "body": "Currently, path proof computation iterates over prefixes in the outer loop, and levels in the inner loop. Switching this would improve the data locality of implementations, while still committing to all the same data. In particular, the first few iterations of an outer level loop would often hash the same field vector in consecutive iterations of the inner loop. (because, for example, at level 0, it would process node 0 several times, and then process node 1 several times) The field vector arithmetic could even be conditionally reused across inner loop iterations for a further speedup.",
       "createdAt": "2023-12-07T20:59:08Z",
-      "updatedAt": "2024-09-12T19:43:45Z",
-      "closedAt": null,
+      "updatedAt": "2024-09-16T22:49:39Z",
+      "closedAt": "2024-09-16T22:49:39Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -5933,78 +5933,266 @@
       "id": "PR_kwDOJmRsfc57e4PL",
       "title": "Change traversal order, more encapsulation",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/67",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #49.\r\n\r\nPlus, add more encapsulation so that it's easier to refactor.\r\n\r\ncc/ @divergentdave",
       "createdAt": "2024-09-13T21:23:18Z",
-      "updatedAt": "2024-09-13T22:07:29Z",
+      "updatedAt": "2024-09-16T22:49:38Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "386827a56fad8be898bc6a13aac7b774891d4232",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/49",
-      "headRefOid": "e8b145daa00400c8d95836c1484ab92b1dec6f57",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "0180bba191f9a88df518af07e801ef2a75af9344",
+      "closedAt": "2024-09-16T22:49:38Z",
+      "mergedAt": "2024-09-16T22:49:38Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "12c1c9975cb127013ccbcacd78cb085af169aac3"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6Jeaxg",
+          "commit": {
+            "abbreviatedOid": "e8b145d"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-16T12:06:13Z",
+          "updatedAt": "2024-09-16T12:09:42Z",
+          "comments": [
+            {
+              "originalPosition": 92,
+              "body": "Could you add a comment here on what the test does so it's easier for people to read it? It should be clear already but more comments would be good.",
+              "createdAt": "2024-09-16T12:06:13Z",
+              "updatedAt": "2024-09-16T12:09:42Z"
+            },
+            {
+              "originalPosition": 70,
+              "body": "I'm a bit confused with the `+ 1` and `i - 1`, could you explain it in a comment?",
+              "createdAt": "2024-09-16T12:09:04Z",
+              "updatedAt": "2024-09-16T12:09:42Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JkJ-B",
+          "commit": {
+            "abbreviatedOid": "e8b145d"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-16T22:43:39Z",
+          "updatedAt": "2024-09-16T22:43:39Z",
+          "comments": [
+            {
+              "originalPosition": 92,
+              "body": "Done.",
+              "createdAt": "2024-09-16T22:43:39Z",
+              "updatedAt": "2024-09-16T22:43:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JkKmi",
+          "commit": {
+            "abbreviatedOid": "e8b145d"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-16T22:46:49Z",
+          "updatedAt": "2024-09-16T22:46:49Z",
+          "comments": [
+            {
+              "originalPosition": 70,
+              "body": "Done.",
+              "createdAt": "2024-09-16T22:46:49Z",
+              "updatedAt": "2024-09-16T22:46:49Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 68,
       "id": "PR_kwDOJmRsfc57fCLY",
       "title": "Move Mastic examples to their own file and clean up imports",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/68",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #67.",
       "createdAt": "2024-09-13T22:06:54Z",
-      "updatedAt": "2024-09-13T22:07:44Z",
+      "updatedAt": "2024-09-16T22:58:34Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/49",
-      "baseRefOid": "e8b145daa00400c8d95836c1484ab92b1dec6f57",
+      "baseRefName": "main",
+      "baseRefOid": "12c1c9975cb127013ccbcacd78cb085af169aac3",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/cleanup-examples",
-      "headRefOid": "69a405321b46f38da3a953f84a4e478e9507c645",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
-      "comments": [],
-      "reviews": []
+      "headRefOid": "96cd5d0d06a8f786602a1a5355d505c1cde2de46",
+      "closedAt": "2024-09-16T22:58:28Z",
+      "mergedAt": "2024-09-16T22:58:28Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "4dea20f09b71c77fa45e1f4841445c9521e3ff7d"
+      },
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Rebased.",
+          "createdAt": "2024-09-16T22:50:36Z",
+          "updatedAt": "2024-09-16T22:50:36Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6Jec7r",
+          "commit": {
+            "abbreviatedOid": "69a4053"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-16T12:10:17Z",
+          "updatedAt": "2024-09-16T12:10:17Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 69,
       "id": "PR_kwDOJmRsfc57fGUh",
       "title": "Use `bool` for control bits instead of `Field2`",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/69",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #68.\r\n\r\nThis makes the code a bit clearer.",
       "createdAt": "2024-09-13T22:22:46Z",
-      "updatedAt": "2024-09-13T22:29:21Z",
+      "updatedAt": "2024-09-16T23:40:29Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/cleanup-examples",
-      "baseRefOid": "69a405321b46f38da3a953f84a4e478e9507c645",
+      "baseRefName": "main",
+      "baseRefOid": "4dea20f09b71c77fa45e1f4841445c9521e3ff7d",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/cleanup-2-field2",
-      "headRefOid": "0bdf6ccc24da62d907693658fe1c5f553616a824",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "c4a2a182c1784ac796d7df05d537ad1a8bbe4616",
+      "closedAt": "2024-09-16T23:05:30Z",
+      "mergedAt": "2024-09-16T23:05:30Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "fc2bbcd4781e7995d527f99e127b9d0c5c4587ee"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6JefPn",
+          "commit": {
+            "abbreviatedOid": "0bdf6cc"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-16T12:14:56Z",
+          "updatedAt": "2024-09-16T12:22:04Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "maybe `node[0].ctrl != node[1].ctrl` for clarity?",
+              "createdAt": "2024-09-16T12:14:57Z",
+              "updatedAt": "2024-09-16T12:22:04Z"
+            },
+            {
+              "originalPosition": 45,
+              "body": "assert `node[0].ctrl == node[1].ctrl`",
+              "createdAt": "2024-09-16T12:15:28Z",
+              "updatedAt": "2024-09-16T12:22:04Z"
+            },
+            {
+              "originalPosition": 54,
+              "body": "Can we use the Boolean `not` instead of XOR here?",
+              "createdAt": "2024-09-16T12:17:45Z",
+              "updatedAt": "2024-09-16T12:22:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JkNMt",
+          "commit": {
+            "abbreviatedOid": "0bdf6cc"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-16T23:00:20Z",
+          "updatedAt": "2024-09-16T23:00:20Z",
+          "comments": [
+            {
+              "originalPosition": 25,
+              "body": "Done.",
+              "createdAt": "2024-09-16T23:00:20Z",
+              "updatedAt": "2024-09-16T23:00:20Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JkNRr",
+          "commit": {
+            "abbreviatedOid": "0bdf6cc"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-16T23:00:46Z",
+          "updatedAt": "2024-09-16T23:00:46Z",
+          "comments": [
+            {
+              "originalPosition": 45,
+              "body": "Done.",
+              "createdAt": "2024-09-16T23:00:46Z",
+              "updatedAt": "2024-09-16T23:00:46Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6JkNiQ",
+          "commit": {
+            "abbreviatedOid": "0bdf6cc"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-16T23:02:02Z",
+          "updatedAt": "2024-09-16T23:02:02Z",
+          "comments": [
+            {
+              "originalPosition": 54,
+              "body": "Done.",
+              "createdAt": "2024-09-16T23:02:02Z",
+              "updatedAt": "2024-09-16T23:02:02Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 70,
@@ -6018,19 +6206,33 @@
       "labels": [],
       "body": "Stacked on #69.\r\nPartially addresses #34.\r\n\r\n* Harmonize code used for domain separation. At the moment, we overload `Vdaf.domain_separation_tag()` to use our own `VERSION`, but we invoke `format_tag()`, which uses the version from the VDAF draft. Eventually we'll want to use our own version for both; for the moment, the minimally invasive change is to just use upstream.\r\n\r\n* Add a NOTE about an apparent bug that's blocking us from making the XOF generic. This may be a `Vdaf` bug or a bug with `Generic` itself. While at it, deduplicate the code for deriving the prove randomness.\r\n\r\n* Modify query randomness derivation by binding to the level. We only generate query randomness once, so this may not be strictly necessary. But this does provide domain separation whenever the aggregation starts at different levels.\r\n\r\n    * Note: The TODO suggested binding to the aggregation parameter as\r\n      well, but this doesn't seem necessary as the FLP can only be used\r\n      once.\r\n\r\n* Align correction word encoding with the IDPF specification in the base draft. Note that the considerations are a little different because we don't have a concept of \"inner field\" versus \"leaf field\", but consistency is nice.\r\n\r\n* Rename the \"counter\" to the \"counter check\" and the \"path\" to the \"payload check\".\r\n\r\n* Refer to the \"VIDPF proof\" from {{MST24}} as the \"path proof\". This is to distinguish it from the \"evaluation proof\", which includes the path proof and the counter and payload checks.",
       "createdAt": "2024-09-13T23:43:28Z",
-      "updatedAt": "2024-09-13T23:44:37Z",
+      "updatedAt": "2024-09-16T23:44:36Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/cleanup-2-field2",
-      "baseRefOid": "0bdf6ccc24da62d907693658fe1c5f553616a824",
+      "baseRefName": "main",
+      "baseRefOid": "fc2bbcd4781e7995d527f99e127b9d0c5c4587ee",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/cleanup-3-generic-xof",
-      "headRefOid": "c6a035802e3b2445b21fde79925bcd0cb046340f",
+      "headRefOid": "07ff1931fbe2c3c4ef99027de3fd6ecf9d39afad",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6JkU_4",
+          "commit": {
+            "abbreviatedOid": "07ff193"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "looks good!",
+          "createdAt": "2024-09-16T23:44:36Z",
+          "updatedAt": "2024-09-16T23:44:36Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
