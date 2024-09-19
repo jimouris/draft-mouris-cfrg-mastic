@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-17T00:36:57.821459+00:00",
+  "timestamp": "2024-09-19T00:44:57.838615+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -487,7 +487,7 @@
       "labels": [],
       "body": "We would like these to be aligned as possible. We're still optimizing IDPF here and there, e.g., https://github.com/cfrg/draft-irtf-cfrg-vdaf/pull/303. We should decide if we're OK with these optimizations.",
       "createdAt": "2023-10-24T16:46:18Z",
-      "updatedAt": "2024-09-13T16:55:53Z",
+      "updatedAt": "2024-09-17T13:25:44Z",
       "closedAt": null,
       "comments": [
         {
@@ -514,9 +514,9 @@
         {
           "author": "cjpatton",
           "authorAssociation": "COLLABORATOR",
-          "body": "Not yet, -12 is still work in progress. @divergentdave is working on some changes to IDPF that we'll want to take in VIDPF: https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/main/poc/vdaf_poc/vdaf_poplar1.py#L191",
+          "body": "Not yet, -12 is still work in progress. @divergentdave is working on some changes to IDPF that we'll want to take in VIDPF: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/416",
           "createdAt": "2024-09-13T16:55:52Z",
-          "updatedAt": "2024-09-13T16:55:52Z"
+          "updatedAt": "2024-09-17T13:25:44Z"
         }
       ]
     },
@@ -814,6 +814,73 @@
       "createdAt": "2024-08-20T22:03:47Z",
       "updatedAt": "2024-08-27T18:51:44Z",
       "closedAt": "2024-08-27T18:51:44Z",
+      "comments": []
+    },
+    {
+      "number": 71,
+      "id": "I_kwDOJmRsfc6W3oJc",
+      "title": "Add draft versioning",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/71",
+      "state": "CLOSED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [
+        "cjpatton"
+      ],
+      "labels": [],
+      "body": "We're currently use `VERSION` from draft-irtf-cfrg-vdaf for domain separation. Eventually we'll need to control versioning here so that we can break compatibility across drafts.",
+      "createdAt": "2024-09-17T13:24:56Z",
+      "updatedAt": "2024-09-18T19:07:49Z",
+      "closedAt": "2024-09-18T19:07:49Z",
+      "comments": [
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "Is this just a matter of adding a constant on the code that indicates which draft version this is or something else?",
+          "createdAt": "2024-09-17T13:26:16Z",
+          "updatedAt": "2024-09-17T13:26:16Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Yes, as well as replacing calls to `format_dst()` with our own thing.",
+          "createdAt": "2024-09-17T13:29:42Z",
+          "updatedAt": "2024-09-17T13:29:42Z"
+        }
+      ]
+    },
+    {
+      "number": 72,
+      "id": "I_kwDOJmRsfc6W6FlL",
+      "title": "Generate test vectors",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/72",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [
+        "cjpatton"
+      ],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-09-17T18:21:47Z",
+      "updatedAt": "2024-09-17T19:02:12Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 73,
+      "id": "I_kwDOJmRsfc6W6NOm",
+      "title": "Choices for `PATH_PROOF_INIT`",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/73",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "`PATH_PROOF_INIT` is used as the initial path proof, which is updated with node proof computed by each call to `eval_next()`. It appears we're free to set this to any public value:\r\n* The original [de Castro and Polychroniadou paper](https://eprint.iacr.org/2021/580) sets this to the \"correction seed\" ($\\mathsf{cs}$ in Algorithm 3).\r\n* The PLASMA paper sets this to to \"0\" (the all zero string).\r\n* We currently set it to a salt.\r\n\r\nI had the thought that we could also derive this from the VDAF verification key so that it is pseudorandom from the point of view of the adversary (i.e., the malicious client). I wonder if this could provide some benefit in terms of security.\r\n\r\n",
+      "createdAt": "2024-09-17T18:40:53Z",
+      "updatedAt": "2024-09-18T19:08:35Z",
+      "closedAt": null,
       "comments": []
     }
   ],
@@ -6199,24 +6266,26 @@
       "id": "PR_kwDOJmRsfc57fV3O",
       "title": "Clean up TODOs",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/70",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #69.\r\nPartially addresses #34.\r\n\r\n* Harmonize code used for domain separation. At the moment, we overload `Vdaf.domain_separation_tag()` to use our own `VERSION`, but we invoke `format_tag()`, which uses the version from the VDAF draft. Eventually we'll want to use our own version for both; for the moment, the minimally invasive change is to just use upstream.\r\n\r\n* Add a NOTE about an apparent bug that's blocking us from making the XOF generic. This may be a `Vdaf` bug or a bug with `Generic` itself. While at it, deduplicate the code for deriving the prove randomness.\r\n\r\n* Modify query randomness derivation by binding to the level. We only generate query randomness once, so this may not be strictly necessary. But this does provide domain separation whenever the aggregation starts at different levels.\r\n\r\n    * Note: The TODO suggested binding to the aggregation parameter as\r\n      well, but this doesn't seem necessary as the FLP can only be used\r\n      once.\r\n\r\n* Align correction word encoding with the IDPF specification in the base draft. Note that the considerations are a little different because we don't have a concept of \"inner field\" versus \"leaf field\", but consistency is nice.\r\n\r\n* Rename the \"counter\" to the \"counter check\" and the \"path\" to the \"payload check\".\r\n\r\n* Refer to the \"VIDPF proof\" from {{MST24}} as the \"path proof\". This is to distinguish it from the \"evaluation proof\", which includes the path proof and the counter and payload checks.",
       "createdAt": "2024-09-13T23:43:28Z",
-      "updatedAt": "2024-09-16T23:44:36Z",
+      "updatedAt": "2024-09-17T13:24:24Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "fc2bbcd4781e7995d527f99e127b9d0c5c4587ee",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/cleanup-3-generic-xof",
       "headRefOid": "07ff1931fbe2c3c4ef99027de3fd6ecf9d39afad",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-09-17T13:22:45Z",
+      "mergedAt": "2024-09-17T13:22:44Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "0ecef036dfa80afe540e2cc2cc41bd7aa4afc48e"
+      },
       "comments": [],
       "reviews": [
         {
@@ -6231,6 +6300,75 @@
           "createdAt": "2024-09-16T23:44:36Z",
           "updatedAt": "2024-09-16T23:44:36Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 74,
+      "id": "PR_kwDOJmRsfc57zxN7",
+      "title": "Clean up domain separation",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/74",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #71.\r\n\r\nReplace `Vdaf.domain_separation_tag()` and `format_dst()` with a method `dst()` defined here and that uses the version of our document rather than draft-irtf-cfrg-vdaf.",
+      "createdAt": "2024-09-17T19:59:57Z",
+      "updatedAt": "2024-09-18T19:22:35Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "92cce7ac53f2d49ffe2b253eac2528a6a41a3713",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/dst",
+      "headRefOid": "df1ff9f694c4d179a495c871065fb621ca0c6d71",
+      "closedAt": "2024-09-18T19:07:48Z",
+      "mergedAt": "2024-09-18T19:07:48Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "dedc85a05f87a4e07ba5c4002cefe56a01fe8e0d"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6J4yZd",
+          "commit": {
+            "abbreviatedOid": "df1ff9f"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-18T17:43:01Z",
+          "updatedAt": "2024-09-18T17:45:28Z",
+          "comments": [
+            {
+              "originalPosition": 29,
+              "body": "I don't understand the comment above. Shouldn't this version match https://datatracker.ietf.org/doc/draft-mouris-cfrg-mastic? (i.e., `02`). ",
+              "createdAt": "2024-09-18T17:43:02Z",
+              "updatedAt": "2024-09-18T17:45:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6J5RIF",
+          "commit": {
+            "abbreviatedOid": "df1ff9f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-18T18:38:47Z",
+          "updatedAt": "2024-09-18T18:38:47Z",
+          "comments": [
+            {
+              "originalPosition": 29,
+              "body": "If/when this gets adopted, it'll be as a new draft, which would be called `draft-irtf-cfrg-mastic-00`.",
+              "createdAt": "2024-09-18T18:38:47Z",
+              "updatedAt": "2024-09-18T18:38:47Z"
+            }
+          ]
         }
       ]
     }
