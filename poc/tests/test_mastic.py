@@ -1,8 +1,8 @@
 import unittest
 
 from vdaf_poc.common import from_be_bytes
-from vdaf_poc.field import Field64
-from vdaf_poc.flp_bbcggi19 import Count, Sum
+from vdaf_poc.field import Field64, Field128
+from vdaf_poc.flp_bbcggi19 import Count, Sum, SumVec
 from vdaf_poc.test_utils import TestVdaf
 
 from mastic import Mastic
@@ -12,67 +12,60 @@ class TestValidAggParams(unittest.TestCase):
     def test(self):
         mastic = Mastic(4, Count(Field64))
 
-        assert mastic.is_valid(
+        self.assertTrue(mastic.is_valid(
             (0, (0,), True),
             [],
-        )
+        ))
 
-        assert mastic.is_valid(
+        self.assertTrue(mastic.is_valid(
             (2, (0b100,), True),
             [],
-        )
+        ))
 
         # Expect invalid because we never do the range check.
-        assert not mastic.is_valid(
+        self.assertFalse(mastic.is_valid(
             (0, (0,), False),
             [],
-        )
+        ))
 
-        assert mastic.is_valid(
+        self.assertTrue(mastic.is_valid(
             (1, (0b10,), False),
             [
                 (0, (0,), True),
             ],
-        )
+        ))
 
         # Expect invalid because we do the range check twice.
-        assert not mastic.is_valid(
+        self.assertFalse(mastic.is_valid(
             (1, (0b10,), True),
             [
                 (0, (0,), True),
             ],
-        )
+        ))
 
         # Expect invalid because we don't do the range check at the first level.
-        assert not mastic.is_valid(
+        self.assertFalse(mastic.is_valid(
             (1, (0b10,), True),
             [
                 (0, (0,), False),
             ],
-        )
+        ))
 
         # Expect invalid because we never do the range check.
-        assert not mastic.is_valid(
+        self.assertFalse(mastic.is_valid(
             (1, (0b10,), False),
             [
                 (0, (0,), False),
             ],
-        )
+        ))
 
         # Expect invalid because the level decreases.
-        assert not mastic.is_valid(
+        self.assertFalse(mastic.is_valid(
             (1, (0b10,), False),
             [
                 (2, (0b100,), True),
             ],
-        )
-
-        assert mastic.is_valid(
-            (2, (0b101,), False),
-            [
-                (2, (0b100,), True),
-            ],
-        )
+        ))
 
 
 class TestMastic(TestVdaf):
@@ -189,4 +182,18 @@ class TestMastic(TestVdaf):
                 (from_be_bytes(b'01234567890000000000000000000000'), 6),
             ],
             [0, 127],
+        )
+
+    def test_sum_vec(self):
+        self.run_vdaf_test(
+            Mastic(16, SumVec(Field128, 3, 1, 1)),
+            (14, (0b111100001111000,), True),
+            [
+                (0b1111000011110000, [0, 0, 1]),
+                (0b1111000011110001, [0, 1, 0]),
+                (0b0111000011110000, [0, 1, 1]),
+                (0b1111000011110010, [1, 0, 0]),
+                (0b1111000000000000, [1, 0, 1]),
+            ],
+            [[0, 1, 1]],
         )
