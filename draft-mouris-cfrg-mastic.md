@@ -160,8 +160,9 @@ down" on the data by splitting up the aggregate based on specific properties of
 the clients. For example, a browser vendor may wish to partition aggregates by
 version (different versions of the browser may have different performance
 profiles) or geographic location. We will call these properties "attributes".
-[CP: See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489 for the
-discussion that originally motivated this idea.]
+
+> CP: See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/issues/489 for the
+> discussion that originally motivated this idea.
 
 This requires representing the information in such a way that that measurements
 submitted by clients with the same attribute are aggregated together. Prio3 can
@@ -671,10 +672,11 @@ is necessary for each application to choose a scheme for encoding attributes as
 fixed-length strings. The following scheme is RECOMMENDED. Choose a
 cryptographically secure hash function, such as SHA256
 {{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
-string, and interpret each bit of the hash as a bit of the VIDPF index. [CP:
-Are we comfortable recommending truncating the hash? Collisions aren't so bad
-since the Client can just lie about `alpha` anyway. The main thing is to pick a
-value for `BITS` that is large enough to avoid accidental collisions.]
+string, and interpret each bit of the hash as a bit of the VIDPF index.
+
+> CP: Are we comfortable recommending truncating the hash? Collisions aren't so
+> bad since the Client can just lie about `alpha` anyway. The main thing is to
+> pick a value for `BITS` that is large enough to avoid accidental collisions.
 
 The Aggregators MAY aggregate a report any number times, but:
 
