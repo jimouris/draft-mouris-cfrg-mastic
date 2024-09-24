@@ -451,8 +451,6 @@ Table of Contents
 
       NOTE to be specified in full detail.
 
-      NOTE to be specified in full detail.
-
 5.  Definition of Vidpf
 
    The construction of [MST24] builds on techniques from [CP22] to lift
