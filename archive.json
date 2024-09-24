@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-22T00:51:16.378689+00:00",
+  "timestamp": "2024-09-24T00:46:44.746665+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -6384,7 +6384,7 @@
       "labels": [],
       "body": "* Fix some awkwardness in the control flow that was revealed when we added type enforcement (296698483fc89c3bd140cbc8a833afecae9b94d8). The main goal was to reduce the number of type assertions we needed.\r\n\r\n* Remove \"flp_\" and \"vidpf_\" prefixes from variable names wherever which primitive they're associated with is clear in context.\r\n\r\n* Avoid nesting the term \"public share\". In other words, Mastic's public is composed of VIDPF correction words and FLP joint rand parts; make these components explicit. This avoids confusing variable aliases, like `flp_public_share = joint_rand_parts`.\r\n\r\n* Make `is_valid()` stricter by preventing aggregating at the same level of the VIDPF tree more than once. We don't know if this is secure, and in any case, this behavior isn't covered by the current proof. Also, try and make the spec of `is_valid()` a little simpler.\r\n\r\n* Align the FLP joint randomness confirmation with @hannahdaviscrypto's implementation. Namely, the prep share includes the aggregator's joint randomness part, and `prep_shares_to_prep()` combines them into the true joint randomness seed. Then `prep_next()` just confirms that the true joint randomness seed matches the one it computed during `prep_init()`.\r\n\r\n* Add a unit test that exercises Mastic with joint randomness. We had been testing this, with the `Sum` circuit; but the `Sum` circuit no longer uses joint randomness in the latest version of the base draft.\r\n\r\n* Improve `is_valid()` unit tests by replacing `assert`s with `self.assertTrue()`s.",
       "createdAt": "2024-09-20T22:28:34Z",
-      "updatedAt": "2024-09-20T23:00:32Z",
+      "updatedAt": "2024-09-23T19:48:15Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "dedc85a05f87a4e07ba5c4002cefe56a01fe8e0d",
