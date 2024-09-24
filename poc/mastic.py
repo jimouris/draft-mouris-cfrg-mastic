@@ -171,15 +171,17 @@ class Mastic(
                  agg_param: MasticAggParam,
                  previous_agg_params: list[MasticAggParam],
                  ) -> bool:
+        (level, _prefixes, do_range_check) = agg_param
+
         # Check that the range check is done exactly once.
         range_checked = \
-            (agg_param[2] and len(previous_agg_params) == 0) or \
-            (not agg_param[2] and
+            (do_range_check and len(previous_agg_params) == 0) or \
+            (not do_range_check and
                 any(agg_param[2] for agg_param in previous_agg_params))
 
         # Check that the level is strictly increasing.
         level_increased = len(previous_agg_params) == 0 or \
-            agg_param[0] > previous_agg_params[-1][0]
+            level > previous_agg_params[-1][0]
 
         return range_checked and level_increased
 
