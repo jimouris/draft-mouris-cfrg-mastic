@@ -4,7 +4,7 @@ from random import randrange
 from vdaf_poc.common import gen_rand, vec_add
 from vdaf_poc.field import Field128
 
-from vidpf import PATH_PROOF_INIT, PrefixTreeEntry, PrefixTreeIndex, Vidpf
+from vidpf import ONEHOT_PROOF_INIT, PrefixTreeEntry, PrefixTreeIndex, Vidpf
 
 
 class Test(unittest.TestCase):
@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
             PrefixTreeEntry.root(keys[0], False),
             PrefixTreeEntry.root(keys[1], True),
         ]
-        proof = [PATH_PROOF_INIT, PATH_PROOF_INIT]
+        proof = [ONEHOT_PROOF_INIT, ONEHOT_PROOF_INIT]
         for i in range(vidpf.BITS):
             idx = PrefixTreeIndex(alpha >> (vidpf.BITS - i - 1), i)
             (node[0], proof[0]) = vidpf.eval_next(
@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
             PrefixTreeEntry.root(keys[0], False),
             PrefixTreeEntry.root(keys[1], True),
         ]
-        proof = [PATH_PROOF_INIT, PATH_PROOF_INIT]
+        proof = [ONEHOT_PROOF_INIT, ONEHOT_PROOF_INIT]
         for i in range(vidpf.BITS):
             # We want an off-path index. The sibling of the on-path prefix is
             # an off-path prefix.

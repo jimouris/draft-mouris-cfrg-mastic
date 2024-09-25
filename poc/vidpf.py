@@ -9,17 +9,17 @@ from vdaf_poc.idpf_bbcggi21 import pack_bits
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 from dst import (USAGE_CONVERT, USAGE_EVAL_PROOF, USAGE_EXTEND,
-                 USAGE_NODE_PROOF, USAGE_PATH_PROOF_HASH,
-                 USAGE_PATH_PROOF_INIT, dst)
+                 USAGE_NODE_PROOF, USAGE_ONEHOT_PROOF_HASH,
+                 USAGE_ONEHOT_PROOF_INIT, dst)
 
 F = TypeVar("F", bound=NttField)
 
 PROOF_SIZE: int = 32
 
 # Walk proof for an empty tree.
-PATH_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                                   dst(USAGE_PATH_PROOF_INIT),
-                                   b'').next(PROOF_SIZE)
+ONEHOT_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
+                                     dst(USAGE_ONEHOT_PROOF_INIT),
+                                     b'').next(PROOF_SIZE)
 
 Ctrl: TypeAlias = list[bool]
 
@@ -204,7 +204,7 @@ class Vidpf(Generic[F]):
 
     def eval(self,
              agg_id: int,
-             public_share: list[CorrectionWord],
+             correction_words: list[CorrectionWord],
              key: bytes,
              level: int,
              prefixes: Sequence[int],
@@ -218,27 +218,28 @@ class Vidpf(Generic[F]):
         """
         if agg_id not in range(2):
             raise ValueError("invalid aggregator ID")
-        if len(public_share) != self.BITS:
-            raise ValueError("corrections words list has incorrect length")
+        if len(correction_words) != self.BITS:
+            raise ValueError("corrections words has incorrect length")
         if level not in range(self.BITS):
             raise ValueError("level too deep")
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        # Evaluate our share of the prefix tree and compute the path proof.
+        # Evaluate our share of the prefix tree and compute the path
+        # proof.
         #
         # Implementation note: we can save computation by storing
         # `prefix_tree_share` across `eval()` calls for the same report.
         prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
         root = PrefixTreeEntry.root(key, bool(agg_id))
-        path_proof = PATH_PROOF_INIT
+        onehot_proof = ONEHOT_PROOF_INIT
         for i in range(level+1):
             for prefix in prefixes:
                 if prefix not in range(2 ** (level+1)):
                     raise ValueError("prefix too long")
 
-                # Compute the entry for `prefix`. To do so, we first need to
-                # look up the parent node.
+                # Compute the entry for `prefix`. To do so, we first need
+                # to look up the parent node.
                 #
                 # The index of the current prefix `prefix` is
                 # `PrefixTreeIndex(prefix >> (level - i), i)`. Its parent
@@ -249,10 +250,10 @@ class Vidpf(Generic[F]):
                     # Compute the entry for `prefix` and its sibling. The
                     # sibling is used for the counter and payload checks.
                     if not prefix_tree_share.get(child_idx):
-                        (child, path_proof) = self.eval_next(
+                        (child, onehot_proof) = self.eval_next(
                             node,
-                            path_proof,
-                            public_share[i],
+                            onehot_proof,
+                            correction_words[i],
                             nonce,
                             child_idx,
                         )
@@ -265,8 +266,8 @@ class Vidpf(Generic[F]):
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
 
-        # Counter check: check that the first element of the payload is equal
-        # to 1.
+        # Counter check: check that the first element of the payload is
+        # equal to 1.
         #
         # Each aggregator holds an additive share of the counter, so we
         # aggregator 1 negate its share and add 1 so that they both
@@ -274,8 +275,8 @@ class Vidpf(Generic[F]):
         counter_check = self.field.encode_vec(
             [w0[0] + w1[0] + self.field(agg_id)])
 
-        # Payload check: for each node, check that the payload is equal to
-        # the sum of its children.
+        # Payload check: for each node, check that the payload is equal
+        # to the sum of its children.
         payload_check = b''
         for prefix in prefixes:
             for i in range(level):
@@ -286,22 +287,22 @@ class Vidpf(Generic[F]):
                 payload_check += self.field.encode_vec(
                     vec_sub(w, vec_add(w0, w1)))
 
-        # Compute the aggregator's output share.
+        # Compute the Aggregator's output share.
         out_share = []
         for prefix in prefixes:
             idx = PrefixTreeIndex(prefix, level)
             w = prefix_tree_share[idx].w
             out_share.append(w if agg_id == 0 else vec_neg(w))
 
-        # Compute the evaluation proof. If both aggregators compute the same
-        # value, then they agree on the path proof, the counter, and the
-        # payload.
-        proof = eval_proof(path_proof, counter_check, payload_check)
+        # Compute the evaluation proof. If both aggregators compute the
+        # same value, then they agree on the onehot proof, the counter,
+        # and the payload.
+        proof = eval_proof(onehot_proof, counter_check, payload_check)
         return (beta_share, out_share, proof)
 
     def eval_next(self,
                   node: PrefixTreeEntry,
-                  path_proof: bytes,
+                  onehot_proof: bytes,
                   correction_word: CorrectionWord,
                   nonce: bytes,
                   idx: PrefixTreeIndex,
@@ -320,8 +321,8 @@ class Vidpf(Generic[F]):
 
         # Correct.
         #
-        # Implementation note: avoid branching on the value of control bits, as
-        # its value may be leaked by a side channel.
+        # Implementation note: avoid branching on the value of control
+        # bits, as its value may be leaked by a side channel.
         if node.ctrl:
             s[keep] = xor(s[keep], seed_cw)
             t[keep] ^= ctrl_cw[keep]
@@ -336,7 +337,7 @@ class Vidpf(Generic[F]):
         if next_ctrl:
             w = vec_add(w, w_cw)
 
-        # Compute and correct the node proof and update the path proof.
+        # Compute and correct the node proof and update the onehot proof.
         # Each update resembles a step of Merkle-Damgard compression. The
         # main difference is that we XOR each block (i.e., corrected node
         # proof) with the previous hash (or IV) rather than compress.
@@ -360,10 +361,10 @@ class Vidpf(Generic[F]):
         node_proof = self.node_proof(next_seed, idx)
         if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
-        path_proof = xor(path_proof,
-                         hash_proof(xor(path_proof, node_proof)))
+        onehot_proof = xor(onehot_proof,
+                           hash_proof(xor(onehot_proof, node_proof)))
 
-        return (PrefixTreeEntry(next_seed, next_ctrl, w), path_proof)
+        return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
 
     def verify(self, proof0: bytes, proof1: bytes) -> bool:
         return proof0 == proof1
@@ -446,13 +447,13 @@ class Vidpf(Generic[F]):
 
 
 def hash_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(proof, dst(USAGE_PATH_PROOF_HASH), b'')
+    xof = XofTurboShake128(proof, dst(USAGE_ONEHOT_PROOF_HASH), b'')
     return xof.next(PROOF_SIZE)
 
 
-def eval_proof(path_proof: bytes,
+def eval_proof(onehot_proof: bytes,
                counter_check: bytes,
                payload_check: bytes) -> bytes:
     binder = counter_check + payload_check
-    xof = XofTurboShake128(path_proof, dst(USAGE_EVAL_PROOF), binder)
+    xof = XofTurboShake128(onehot_proof, dst(USAGE_EVAL_PROOF), binder)
     return xof.next(PROOF_SIZE)
