@@ -1162,7 +1162,18 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
             <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
-            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-specification-of-vidpf" class="internal xref">Specification of VIDPF</a></p>
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-specification-of-vidpf" class="internal xref">Specification of VIDPF</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-key-generation" class="internal xref">Key Generation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-key-evaluation" class="internal xref">Key Evaluation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-auxiliary-functions" class="internal xref">Auxiliary functions</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-definition-of-mastic" class="internal xref">Definition of <code>Mastic</code></a></p>
@@ -1363,15 +1374,22 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 "prep message",
 "prep share", and
 "report".<a href="#section-2-4" class="pilcrow">¶</a></p>
-<p id="section-2-5">An instance of Mastic is determined by a desired bit-length of the input,
-denoted <code>BITS</code>, and an instance of the FLP in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The
-Client's measurement has two components: the input string <code>alpha: int</code> in
+<p id="section-2-5">Mastic uses finite fields as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. We usually
+denote a generic finite field by <code>F</code> and its Python class object, a subclass of
+<code>Field</code>, as <code>field: type[F]</code>.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6">An instance of Mastic is determined by a desired bit-length of the input,
+denoted <code>BITS</code>, and an instance of the FLP in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. We
+denote the class object for the FLP by <code>flp</code>.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<p id="section-2-7">The Client's measurement has two components: the input string <code>alpha: int</code> in
 <code>range(2**BITS)</code> (TODO: The type may change once we solve issue #34) and its
-weight <code>beta: Meaasurement</code> where <code>Measurement</code> is is determined by the FLP
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). The aggregate result has type <code>list[AggResult]</code>,
-where <code>AggResult</code> is likewise a type dfined by the FLP. Each element of this
-list corresponds to the total wieght for one of the candidate prefixes.<a href="#section-2-5" class="pilcrow">¶</a></p>
-<p id="section-2-6">Mastic also makes use of NTT-friendly finite fields as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> and eXtendable Output Functions (XOFs) as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-6" class="pilcrow">¶</a></p>
+weight. The weight's type is denoted <code>Measurement</code> and is determined by the
+FLP. (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). We use <code>beta: list[F]</code> to denote the
+encoded weight, obtained by invoking the FLP's measurement encoding method.<a href="#section-2-7" class="pilcrow">¶</a></p>
+<p id="section-2-8">The aggregate result has type <code>list[AggResult]</code>, where <code>AggResult</code> is likewise
+a type defined by the FLP. Each element of this list corresponds to the total
+weight for one of the candidate prefixes.<a href="#section-2-8" class="pilcrow">¶</a></p>
+<p id="section-2-9">Finally, Mastic usex eXtendable Output Functions (XOFs) as specified in
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-9" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="vidpf">
@@ -1379,135 +1397,517 @@ list corresponds to the total wieght for one of the candidate prefixes.<a href="
       <h2 id="name-specification-of-vidpf">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-specification-of-vidpf" class="section-name selfRef">Specification of VIDPF</a>
       </h2>
-<p id="section-3-1">Function secret sharing <span>[<a href="#GI14" class="cite xref">GI14</a>]</span> allows secret sharing of the output of a
-function <code>f()</code> into additive shares, where each function share is represented by
-a separate key. These keys enable the Aggregators to efficiently generate an
-additive share of the function’s output <code>f(x)</code> for a given input <code>x</code>.
-Distributed Point Functions (DPF) are a particular case of function secret
-sharing where <code>f()</code> is a "point function" for which <code>f(x) = beta</code> if <code>x</code> equals
-<code>alpha</code> and <code>0</code> otherwise for some <code>alpha</code>, <code>beta</code>. The computation is
-distributed in such a way that no one party knows either the point or what it
-evaluates to.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">An IDPF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8.1" class="relref">Section 8.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) generalizes DPF by secret-sharing an
-"incremental point function", i.e., the "point" in DPF is now a path on a full
-binary tree from the root to one of the leaves. Here we take <code>alpha</code> to be a bit
-string of fixed length, and we have that <code>f(x) = beta</code> if <code>x</code> is a prefix of
-<code>alpha</code> and <code>0</code> otherwise.<a href="#section-3-2" class="pilcrow">¶</a></p>
-<p id="section-3-3">An IDPF has two main operations. The first is the key-generation algorithm,
-which is run by the Client. It takes as input <code>alpha</code> and <code>beta</code> and returns
-two values: a list of "key shares", one for each Aggregator; and the "public
-share", to be distributed to both Aggregators. The second is the key-evaluation
-algorithm, run by each Aggregator. It takes as input a candidate prefix string
-<code>x</code>, the public share, and the Aggregator's key share and returns the
-Aggregator's share of <code>f(x)</code>.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4">Shares of the IDPF outputs can be aggregated together across multiple reports.
-This is used in Poplar1 (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) to solve the private prefix
-histogram problem. IDPFs are private in the sense that each Aggregator learns
-nothing about the underlying inputs beyond the value of this sum. However,
-IDPFs on their own do not provide robustness. For example, it is possible for a
-malicious Client to fool the Aggregators into accepting malformed counter
-(i.e., a value other than <code>0</code> or <code>1</code>). It is also possible for a Client to
-"vote twice" by constructing key shares for which <code>f(x) = f(x') = beta</code>, where
-<code>x</code> and <code>x'</code> are distinct, equal-length candidate prefixes.<a href="#section-3-4" class="pilcrow">¶</a></p>
-<p id="section-3-5">To mitigate these issues, IDPF must be composed with some interactive mechanism
-for ensuring the IDPF outputs are well-formed. Mastic uses the VIDPF of
-<span>[<a href="#MST24" class="cite xref">MST24</a>]</span> for this purpose, which endows IDPF with the following properties:<a href="#section-3-5" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-3-6">
-<li id="section-3-6.1">
-          <p id="section-3-6.1.1">One-hot Verifiability: There is at most one prefix of each length whose
-value under f is non-zero. In particular, the output shares at each level
-are additive shares of a one-hot vector.<a href="#section-3-6.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-3-6.2">
-          <p id="section-3-6.2.1">Path Verifiability: The One-hot Verifiability property alone is not
-sufficient to guarantee that the keys are well-formed. The Aggregators still
-need to verify that: a) the non-zero output values are across a single path
-in the tree, and b) the value of the root node is consistently propagated
-down the VIDPF tree. For example, if the root value is <code>beta</code>, then there is
-only a single path from root to the leaves with non-zero values, and all
-such values equal <code>beta</code>.<a href="#section-3-6.2.1" class="pilcrow">¶</a></p>
-</li>
-      </ol>
-<p id="section-3-7">Below we describe the syntax of VIDPF; in <a href="#vidpf-construction" class="auto internal xref">Section 5</a> we specify the
-concrete construction of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>.<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">A concrete <code>Vidpf</code> defines the types and constants enumerated in
-<a href="#vidpf-param" class="auto internal xref">Table 1</a>. In addition, it implements the following methods:<a href="#section-3-8" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-3-9.1">
-          <p id="section-3-9.1.1"><code>Vidpf.gen(alpha: Unsigned, beta: list[Vidpf.Field], binder: bytes, rand:
-bytes) -&gt; tuple[PublicShare, list[bytes]]</code> is the randomized key generation
-algorithm. (<code>rand</code> denotes the random bytes consumed by the algorithm.) Its
-inputs are the VIDPF index <code>alpha</code> (defined the same way as "IDPF index" in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), the output value <code>beta</code>, and a binder string.  The
-value of <code>alpha</code> <span class="bcp14">MUST</span> be in range <code>[0, 2^Vidpf.BITS)</code>; and <code>len(rand)</code> <span class="bcp14">MUST</span>
-be <code>Vidpf.RAND_SIZE</code>. The outputs are the public share and the list of key
-shares, one for each Aggregator. The length of each key share <span class="bcp14">MUST</span> be
-<code>Vidpf.KEY_SIZE</code>.<a href="#section-3-9.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-3-9.2">
-          <p id="section-3-9.2.1"><code>Vidpf.eval(agg_id: Unsigned, public_share: Vidpf.PublicShare, key_share:
-bytes, level: Unsigned, prefixes: tuple[Unsigned, ...], binder: bytes) -&gt;
-tuple[list[Vidpf.Field], bytes]</code> is the deterministic key evaluation
-algorithm. It takes as input the Aggregator ID (which <span class="bcp14">MUST</span> be in range <code>[0,
-Vidpf.SHARES)</code>, the public share, the Aggregator's key share, the VIDPF level
-(defined the same way as "IDPF level" in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), the list of
-prefixes to evaluate, and a binder string. Its outputs are the VIDPF output
-share and the VIDPF proof.<a href="#section-3-9.2.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
-<p id="section-3-10">The verifiability properties are guaranteed as long as each Aggregator computes
-the same VIDPF proof. Note that One-hot Verifiability and Path Verifiability
-are not sufficient to ensure robustness of Mastic; we will also need to ensure
-that the <code>beta</code> chosen by the Client is "in range". We will rely on FLPs
-({Section 7.1 of !VDAF}}) for this purpose. (<span>[<a href="#MST24" class="cite xref">MST24</a>]</span> describe a simple
-<code>range(2)</code> check, but we would like more sophisticated range checks for
-Mastic.)<a href="#section-3-10" class="pilcrow">¶</a></p>
-<p id="section-3-11">Note that <code>Vidpf</code> is less general than <code>Idpf</code> as defined <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>
-in that <code>beta</code> value is the same for each level of the tree. This constraint is
-necessary for Path Verifiability.<a href="#section-3-11" class="pilcrow">¶</a></p>
-<span id="name-constants-and-types-defined"></span><div id="vidpf-param">
+<span id="name-vidpf-parameters"></span><div id="vidpf-params">
 <table class="center" id="table-1">
         <caption>
 <a href="#table-1" class="selfRef">Table 1</a>:
-<a href="#name-constants-and-types-defined" class="selfRef">Constants and types defined by a concrete VIDPF.</a>
+<a href="#name-vidpf-parameters" class="selfRef">VIDPF parameters.</a>
         </caption>
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Parameter</th>
             <th class="text-left" rowspan="1" colspan="1">Description</th>
+            <th class="text-left" rowspan="1" colspan="1">Value</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">SHARES</td>
-            <td class="text-left" rowspan="1" colspan="1">Number of VIDPF keys output by VIDPF-key generator</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>KEY_SIZE: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">the size of each VIDPF key</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>XofFixedKeyAes128.SEED_SIZE</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.2.2" class="relref">Section 6.2.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">BITS</td>
-            <td class="text-left" rowspan="1" colspan="1">Length in bits of each input string</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>NONCE_SIZE: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">the size of the VIDPF nonce</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>KEY_SIZE</code>
+</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">VALUE_LEN</td>
-            <td class="text-left" rowspan="1" colspan="1">Number of field elements of each output value</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>RAND_SIZE: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">the number of random bytes consumed by <code>gen()</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>2 * KEY_SIZE</code>
+</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">RAND_SIZE</td>
-            <td class="text-left" rowspan="1" colspan="1">Size of the random string consumed by the VIDPF-key generator. Equal to twice the XOF's seed size.</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>BITS: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">bit length of the input string <code>alpha</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">KEY_SIZE</td>
-            <td class="text-left" rowspan="1" colspan="1">Size in bytes of each VIDPF key</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>VALUE_LEN: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">length of <code>beta</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Field</td>
-            <td class="text-left" rowspan="1" colspan="1">TODO</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">PublicShare</td>
-            <td class="text-left" rowspan="1" colspan="1">Type of the VIDPF public share</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>field: type[F]</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">class object for the field (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
           </tr>
         </tbody>
       </table>
+</div>
+<p id="section-3-2">This section specifies the Verifiable Incremental Distributed Point Function
+(VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 1</a>.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3">VIDPF is a function secret sharing scheme <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span> for functions <code>F</code> for which:<a href="#section-3-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-4.1">
+          <p id="section-3-4.1.1"><code>F(x) = [field(1)] + beta</code> if <code>x</code> is a prefix of <code>alpha</code><a href="#section-3-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-4.2">
+          <p id="section-3-4.2.1"><code>F(x) = field.zeros(VALUE_LEN+1)</code> if <code>x</code> is not a prefix of <code>alpha</code><a href="#section-3-4.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-5">where <code>alpha</code> and <code>beta</code> are the input and encoded weight of a Client. The
+scheme is designed to allow each Aggregator to compute a share of output <code>F(x)</code>
+for any candidate prefix <code>x</code> without revealing any information about <code>alpha</code> or
+<code>beta</code>. Furthermore, the output shares can be aggregated locally, allowing
+each Aggregator to compute a share of the total weight for <code>x</code>.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">Along with encoded weight <code>beta</code>, the output includes a counter prefix, denoted
+<code>field(1)</code>, so that the total weight also includes the number of inputs that
+begin with the given prefix. This allows for the Collector to take this into
+account when decoding the aggregate result for each prefix. This is required by
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
+Imagine arranging these prefixes in a binary tree where each path from the root
+corresponds to a prefix <code>x</code> and each node corresponds to a payload <code>F(x)</code>. We
+refer to this as the "prefix tree".<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">When the Aggregators evaluate a Client's VIDPF, they verify three properites of
+the prefix tree:<a href="#section-3-8" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3-9">
+<li id="section-3-9.1">
+          <p id="section-3-9.1.1">One-hotness: at every level of the tree, at most one node has a non-zero
+payload.<a href="#section-3-9.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-9.2">
+          <p id="section-3-9.2.1">Path consistency: each payload is equal to the sum of the payloads of its
+children. If one-hotness holds, then this ensures the payload is equal to
+<code>[field(1)] + beta</code> for each node along the <code>alpha</code> path.<a href="#section-3-9.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-9.3">
+          <p id="section-3-9.3.1">Counter consistency: the counter of the non-zero payload is equal to
+<code>field(1)</code>.<a href="#section-3-9.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-3-10">VIDPF is comprised of two algorithms.<a href="#section-3-10" class="pilcrow">¶</a></p>
+<p id="section-3-11">The key generation algorithm, defined in <a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a> takes in a <code>(alpha,
+beta)</code> and outputs secret shares of <code>F</code>. The shares take the form of a pair of
+"keys", one for each Aggregator, and a sequence of "correction words" sent to
+both Aggregators. We define correction words in the next section.<a href="#section-3-11" class="pilcrow">¶</a></p>
+<p id="section-3-12">The key evaluation algorithm, defined in <a href="#vidpf-key-eval" class="auto internal xref">Section 3.2</a>, takes in the
+correction words, the Aggregator's key, the sequence of candidate prefixes,
+and the nonce associated with the Client's report. It outputs secret shares of
+<code>beta</code>, the share of the payload for each prefix, and a byte string known as
+the "evaluation proof". To verify one-hotness, payload consistency, and
+counter consistency, the Aggregators check that the proofs they computed are
+equal.<a href="#section-3-12" class="pilcrow">¶</a></p>
+<div id="vidpf-key-gen">
+<section id="section-3.1">
+        <h3 id="name-key-generation">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-key-generation" class="section-name selfRef">Key Generation</a>
+        </h3>
+<p id="section-3.1-1">The VIDPF-key generation algorithm run by each Client is listed below. The
+specification invokes auxiliary functions defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs
+are the input string <code>alpha</code>, the encoded weight <code>beta</code>, a public nonce of
+length <code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
+<code>RAND_SIZE</code>. Its outputs are the public sequence of "correction words", one for
+each level of the tree, and the secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-3.1-2.1">
+            <p id="section-3.1-2.1.1">TODO Give a high level overview of how IDPF works, in particular the
+seed/control-bit invariant for each level. Define <code>CorrectionWord</code> and
+explain the role of correction words and define node proofs, which are unique
+to VIDPF.<a href="#section-3.1-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2.1.2">TODO Specify bounds on the inputs, namely that the nonce has to be random.
+(This is inherited from IDPF security considerations.)<a href="#section-3.1-2.1.2" class="pilcrow">¶</a></p>
+<p id="section-3.1-2.1.3">TODO Explain functional differences between VIDPF and IDPF in
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. Namely, there is no distinction between inner and
+leaf nodes and the payload is supposed to be the same at each level.<a href="#section-3.1-2.1.3" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div class="breakable lang-python sourcecode" id="section-3.1-3">
+<pre>
+def gen(self,
+        alpha: int,
+        beta: list[F],
+        nonce: bytes,
+        rand: bytes,
+        ) -&gt; tuple[list[CorrectionWord], list[bytes]]:
+    '''
+    The VIDPF key generation algorithm.
+
+    Returns the public share (i.e., the correction word for each
+    level of the tree) and two keys, one fore each aggregator.
+
+    Implementation note: for clarity, this algorithm has not been
+    written in a manner that is side-channel resistant. To avoid
+    leading `alpha` via a side-channel, implementations should avoid
+    branching or indexing into arrays in a data-dependent manner.
+    '''
+    if alpha not in range(2 ** self.BITS):
+        raise ValueError("alpha out of range")
+    if len(beta) != self.VALUE_LEN:
+        raise ValueError("incorrect beta length")
+    if len(nonce) != self.NONCE_SIZE:
+        raise ValueError("incorrect nonce size")
+    if len(rand) != self.RAND_SIZE:
+        raise ValueError("randomness has incorrect length")
+
+    keys = [rand[:self.KEY_SIZE], rand[self.KEY_SIZE:]]
+
+    # [MST24, Fig. 15]: s0^0, s1^0, t0^0, t1^0
+    seed = keys.copy()
+    ctrl = [False, True]
+    correction_words = []
+    for i in range(self.BITS):
+        idx = PrefixTreeIndex(alpha &gt;&gt; (self.BITS - i - 1), i)
+        bit = bool(idx.node &amp; 1)
+
+        # [MST24]: if x = 0 then keep &lt;- L, lose &lt;- R
+        #
+        # Implementation note: the value of `bits` is
+        # `alpha`-dependent.
+        (keep, lose) = (1, 0) if bit else (0, 1)
+
+        # Extend: compute the left and right children the current
+        # level of the tree. During evaluation, one of these children
+        # will be selected as the next seed and control bit.
+        #
+        # [MST24]: s_0^L || s_0^R || t_0^L || t_0^R
+        #          s_1^L || s_1^R || t_1^L || t_1^R
+        (s0, t0) = self.extend(seed[0], nonce)
+        (s1, t1) = self.extend(seed[1], nonce)
+
+        # Compute the correction words for this level's seed and
+        # control bit. Our goal is to maintain the following
+        # invariant, after correction:
+        #
+        # * If evaluation is on path, then each aggregator's will
+        #   compute a different seed and their control bits will be
+        #   secret shares of one.
+        #
+        # * If evaluation is off path, then the aggregators will
+        #   compute the same seed and their control bits will be
+        #   shares of zero.
+        #
+        # Implementation note: the index `lose` is `alpha`-dependent.
+        seed_cw = xor(s0[lose], s1[lose])
+        ctrl_cw = [
+            t0[0] ^ t1[0] ^ (not bit),  # [MST24]: t_c^L
+            t0[1] ^ t1[1] ^ bit,        # [MST24]: t_c^R
+        ]
+
+        # Correct.
+        #
+        # Implementation note: the index `keep` is `alpha`-dependent,
+        # as is `ctrl`.
+        if ctrl[0]:
+            s0[keep] = xor(s0[keep], seed_cw)
+            t0[keep] ^= ctrl_cw[keep]
+        if ctrl[1]:
+            s1[keep] = xor(s1[keep], seed_cw)
+            t1[keep] ^= ctrl_cw[keep]
+
+        # Convert.
+        (seed[0], w0) = self.convert(s0[keep], nonce)
+        (seed[1], w1) = self.convert(s1[keep], nonce)
+        ctrl[0] = t0[keep]  # [MST24]: t0'
+        ctrl[1] = t1[keep]  # [MST24]: t1'
+
+        # Compute the correction word for this level's payload.
+        #
+        # Implementation note: `ctrl` is `alpha`-dependent.
+        w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
+        if ctrl[1]:
+            w_cw = vec_neg(w_cw)
+
+        # Compute the correction word for this level's node proof. If
+        # evaluation is on path, then exactly one of the aggregatos
+        # will correct their node proof, causing them to compute the
+        # same node value. If evaluation is off path, then both will
+        # correct or neither will; and since they compute the same
+        # seed, they will again compute the same value.
+        proof_cw = xor(
+            self.node_proof(seed[0], idx),
+            self.node_proof(seed[1], idx),
+        )
+
+        correction_words.append((seed_cw, ctrl_cw, w_cw, proof_cw))
+
+    return (correction_words, keys)
+</pre><a href="#section-3.1-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="vidpf-key-eval">
+<section id="section-3.2">
+        <h3 id="name-key-evaluation">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-key-evaluation" class="section-name selfRef">Key Evaluation</a>
+        </h3>
+<p id="section-3.2-1">The VIDPF-key evaluation algorithm is listed below. See <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a> for
+deferred auxiliary functions. Its inputs are the Aggregator's ID (either <code>0</code> or
+<code>1</code>), the correction words, the Aggregator's key, the level of the tree, the
+sequence of prefixes, and the nonce associated with the report. Its outputs are
+the Aggregator's share of <code>beta</code>, the sequence of output shares for each
+prefix, and the evaluation proof.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-3.2-2.1">
+            <p id="section-3.2-2.1.1">TODO Provide an overview and define <code>PrefixTreeIndex</code> and <code>PrefixTreeEntry</code>.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div class="breakable lang-python sourcecode" id="section-3.2-3">
+<pre>
+def eval(self,
+         agg_id: int,
+         correction_words: list[CorrectionWord],
+         key: bytes,
+         level: int,
+         prefixes: Sequence[int],
+         nonce: bytes,
+         ) -&gt; tuple[list[F], list[list[F]], bytes]:
+    """
+    The VIDPF key evaluation algorithm.
+
+    Return the aggregator's share of `beta`, its output share for
+    each prefix, and its evaluation proof.
+    """
+    if agg_id not in range(2):
+        raise ValueError("invalid aggregator ID")
+    if len(correction_words) != self.BITS:
+        raise ValueError("corrections words has incorrect length")
+    if level not in range(self.BITS):
+        raise ValueError("level too deep")
+    if len(set(prefixes)) != len(prefixes):
+        raise ValueError("candidate prefixes are non-unique")
+
+    # Evaluate our share of the prefix tree and compute the path
+    # proof.
+    #
+    # Implementation note: we can save computation by storing
+    # `prefix_tree_share` across `eval()` calls for the same report.
+    prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
+    root = PrefixTreeEntry.root(key, bool(agg_id))
+    onehot_proof = ONEHOT_PROOF_INIT
+    for i in range(level+1):
+        for prefix in prefixes:
+            if prefix not in range(2 ** (level+1)):
+                raise ValueError("prefix too long")
+
+            # Compute the entry for `prefix`. To do so, we first need
+            # to look up the parent node.
+            #
+            # The index of the current prefix `prefix` is
+            # `PrefixTreeIndex(prefix &gt;&gt; (level - i), i)`. Its parent
+            # is at level `i - 1`.
+            idx = PrefixTreeIndex(prefix &gt;&gt; (level - i + 1), i - 1)
+            node = prefix_tree_share.setdefault(idx, root)
+            for child_idx in [idx.left_child(), idx.right_child()]:
+                # Compute the entry for `prefix` and its sibling. The
+                # sibling is used for the counter and payload checks.
+                if not prefix_tree_share.get(child_idx):
+                    (child, onehot_proof) = self.eval_next(
+                        node,
+                        onehot_proof,
+                        correction_words[i],
+                        nonce,
+                        child_idx,
+                    )
+                    prefix_tree_share[child_idx] = child
+
+    # Compute the aggregator's share of `beta`.
+    w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w
+    w1 = prefix_tree_share[PrefixTreeIndex(1, 0)].w
+    beta_share = vec_add(w0, w1)[1:]
+    if agg_id == 1:
+        beta_share = vec_neg(beta_share)
+
+    # Counter check: check that the first element of the payload is
+    # equal to 1.
+    #
+    # Each aggregator holds an additive share of the counter, so we
+    # aggregator 1 negate its share and add 1 so that they both
+    # compute the same value for `counter`.
+    counter_check = self.field.encode_vec(
+        [w0[0] + w1[0] + self.field(agg_id)])
+
+    # Payload check: for each node, check that the payload is equal
+    # to the sum of its children.
+    payload_check = b''
+    for prefix in prefixes:
+        for i in range(level):
+            idx = PrefixTreeIndex(prefix &gt;&gt; (level - i), i)
+            w = prefix_tree_share[idx].w
+            w0 = prefix_tree_share[idx.left_child()].w
+            w1 = prefix_tree_share[idx.right_child()].w
+            payload_check += self.field.encode_vec(
+                vec_sub(w, vec_add(w0, w1)))
+
+    # Compute the Aggregator's output share.
+    out_share = []
+    for prefix in prefixes:
+        idx = PrefixTreeIndex(prefix, level)
+        w = prefix_tree_share[idx].w
+        out_share.append(w if agg_id == 0 else vec_neg(w))
+
+    # Compute the evaluation proof. If both aggregators compute the
+    # same value, then they agree on the onehot proof, the counter,
+    # and the payload.
+    proof = eval_proof(onehot_proof, counter_check, payload_check)
+    return (beta_share, out_share, proof)
+
+def eval_next(self,
+              node: PrefixTreeEntry,
+              onehot_proof: bytes,
+              correction_word: CorrectionWord,
+              nonce: bytes,
+              idx: PrefixTreeIndex,
+              ) -&gt; tuple[PrefixTreeEntry, bytes]:
+    """
+    Extend a node in the tree, select and correct one of its
+    children, then convert it into a payload and the next seed.
+    """
+    (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
+    keep = idx.node &amp; 1
+
+    # Extend.
+    #
+    # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+    (s, t) = self.extend(node.seed, nonce)
+
+    # Correct.
+    #
+    # Implementation note: avoid branching on the value of control
+    # bits, as its value may be leaked by a side channel.
+    if node.ctrl:
+        s[keep] = xor(s[keep], seed_cw)
+        t[keep] ^= ctrl_cw[keep]
+
+    # Convert and correct the payload.
+    #
+    # Implementation note: the conditional addition should be
+    # replaced with a constant-time select in practice in order to
+    # reduce leakage via timing side channels.
+    (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i, W^i
+    next_ctrl = t[keep]  # [MST24]: t'^i
+    if next_ctrl:
+        w = vec_add(w, w_cw)
+
+    # Compute and correct the node proof and update the onehot proof.
+    # Each update resembles a step of Merkle-Damgard compression. The
+    # main difference is that we XOR each block (i.e., corrected node
+    # proof) with the previous hash (or IV) rather than compress.
+    #
+    #             corrected node proof
+    #                 |
+    #                 |
+    #                 v
+    # current      +-----+     +------+     +-----+      updated
+    # path   --+--&gt;| XOR |----&gt;| Hash |----&gt;| XOR |----&gt; path
+    # proof    |   +-----+     +------+     +-----+      proof
+    #          |                               ^
+    #          |                               |
+    #          +-------------------------------+
+    #
+    # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
+    #          \pi = \tilde \pi \xor
+    #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
+    #
+    # Implementation note: avoid branching on the control bit here.
+    node_proof = self.node_proof(next_seed, idx)
+    if next_ctrl:
+        node_proof = xor(node_proof, proof_cw)
+    onehot_proof = xor(onehot_proof,
+                       hash_proof(xor(onehot_proof, node_proof)))
+
+    return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
+</pre><a href="#section-3.2-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="vidpf-aux">
+<section id="section-3.3">
+        <h3 id="name-auxiliary-functions">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-auxiliary-functions" class="section-name selfRef">Auxiliary functions</a>
+        </h3>
+<div class="breakable lang-python sourcecode" id="section-3.3-1">
+<pre>
+def extend(self,
+           seed: bytes,
+           nonce: bytes,
+           ) -&gt; tuple[list[bytes], Ctrl]:
+    '''
+    Extend a seed into the seed and control bits for its left and
+    right children in the VIDPF tree.
+    '''
+    xof = XofFixedKeyAes128(seed, dst(USAGE_EXTEND), nonce)
+    s = [
+        bytearray(xof.next(self.KEY_SIZE)),
+        bytearray(xof.next(self.KEY_SIZE)),
+    ]
+    # Use the least significant bits as the control bit correction,
+    # and then zero it out. This gives effectively 127 bits of
+    # security, but reduces the number of AES calls needed by 1/3.
+    t = [bool(s[0][0] &amp; 1), bool(s[1][0] &amp; 1)]
+    s[0][0] &amp;= 0xFE
+    s[1][0] &amp;= 0xFE
+    return ([bytes(s[0]), bytes(s[1])], t)
+
+def convert(self,
+            seed: bytes,
+            nonce: bytes,
+            ) -&gt; tuple[bytes, list[F]]:
+    '''
+    Convert a selected seed into a payload and the seed for the next
+    level.
+    '''
+    xof = XofFixedKeyAes128(seed, dst(USAGE_CONVERT), nonce)
+    next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
+    payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
+    return (next_seed, payload)
+
+def node_proof(self,
+               seed: bytes,
+               idx: PrefixTreeIndex) -&gt; bytes:
+    '''
+    Compute the proof for this node.
+    '''
+    binder = \
+        to_le_bytes(self.BITS, 2) + \
+        to_le_bytes(idx.node, (self.BITS + 7) // 8) + \
+        to_le_bytes(idx.level, 2)
+    xof = XofTurboShake128(seed, dst(USAGE_NODE_PROOF), binder)
+    return xof.next(PROOF_SIZE)
+
+def hash_proof(proof: bytes) -&gt; bytes:
+    xof = XofTurboShake128(proof, dst(USAGE_ONEHOT_PROOF_HASH), b'')
+    return xof.next(PROOF_SIZE)
+
+def eval_proof(onehot_proof: bytes,
+               counter_check: bytes,
+               payload_check: bytes) -&gt; bytes:
+    binder = counter_check + payload_check
+    xof = XofTurboShake128(onehot_proof, dst(USAGE_EVAL_PROOF), binder)
+    return xof.next(PROOF_SIZE)
+</pre><a href="#section-3.3-1" class="pilcrow">¶</a>
+</div>
+</section>
 </div>
 </section>
 </div>
