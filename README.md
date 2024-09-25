@@ -7,22 +7,6 @@ This is the working area for the individual Internet-Draft, "The Mastic VDAF".
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mouris-cfrg-mastic)
 * [Compare Editor's Copy to Individual Draft](https://jimouris.github.io/draft-mouris-cfrg-mastic/#go.draft-mouris-cfrg-mastic.diff)
 
-
-## Build
-First clone the repository and its submodules.
-```shell
-$ git clone --recurse-submodules git@github.com:jimouris/draft-mouris-cfrg-mastic.git
-```
-
-Next, install `sagemath` and `pycryptodomex` (version >= 3.20):
-```shell
-apt install sagemath
-sage --pip install pycryptodomex
-```
-
-Finally, navigate to the [`poc`](poc) directory and run `make`.
-
-
 ## Contributing
 
 See the
@@ -30,7 +14,6 @@ See the
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
-
 
 ## Command Line Usage
 
@@ -42,4 +25,3 @@ $ make
 
 Command line usage requires that you have the necessary software installed.  See
 [the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
-
