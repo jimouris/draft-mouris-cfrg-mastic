@@ -23,14 +23,12 @@ Abstract
    This document describes Mastic, a two-party VDAF for the following
    secure aggregation task: each client holds an input and an associated
    weight, and the data collector wants to aggregate the weights of all
-   clients whose inputs begin with a chosen prefix.  This functionality
-   enables two classes of applications.  First, Mastic allows
-   partitioning metrics data by client attributes without revealing
-   which clients have which attributes.  Second, it supports a more
-   general variant of the heavy hitters problem, where the goal is to
-   compute the subset of inputs that occur most frequently.  In
-   particular, Mastic allows computing the subset of inputs that have
-   the highest total weight.
+   clients whose inputs begin with a prefix chosen by the data
+   collector.  This functionality enables two classes of applications.
+   First, it allows grouping metrics by client attributes without
+   revealing which clients have which attributes.  Second, it solves the
+   weighted heavy hitters problem, where the goal is to compute the
+   subset of inputs that have the highest total weight.
 
 About This Document
 
