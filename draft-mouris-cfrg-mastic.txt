@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 29 March 2025                                           Nillion
+Expires: 30 March 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                       25 September 2024
+                                                       26 September 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 29 March 2025.
+   This Internet-Draft will expire on 30 March 2025.
 
 Copyright Notice
 
@@ -81,7 +81,7 @@ Table of Contents
      3.1.  Key Generation
      3.2.  Key Evaluation
      3.3.  Auxiliary functions
-   4.  Definition of Mastic
+   4.  Specification
      4.1.  Sharding
      4.2.  Preparation
      4.3.  Validity of Aggregation Parameters
@@ -694,94 +694,174 @@ Table of Contents
        xof = XofTurboShake128(onehot_proof, dst(USAGE_EVAL_PROOF), binder)
        return xof.next(PROOF_SIZE)
 
-4.  Definition of Mastic
+4.  Specification
 
-      NOTE We are pretty confident about the overall structure of the
-      VDAF, but there are some details to work out and security analysis
-      to do.  In the meantime, check out the current reference
-      implementation at https://github.com/jimouris/draft-mouris-cfrg-
-      mastic/tree/main/poc.
+   Mastic combines the VIDPF from Section 3 with the FLP from
+   Section 7.3 of [VDAF].  An instance of Mastic is determined by a
+   choice of length of the input, denoted BITS, and a validity circuit,
+   an instance of Valid as defined in Section 7.3.2 of [VDAF].
 
-   This section describes Mastic, a VDAF suitable for a plethora of
-   aggregation functions including sum, mean, histograms, heavy hitters,
-   weighted heavy-hitters (see Appendix "Weighted Heavy-Hitters"),
-   attribute-based metrics (see Appendix "Attribute-based Metrics"),
-   linear regression and more.  Mastic allows computing functions _à la_
-   Prio3 VDAF Section 7 of [VDAF].
+   The validity circuit determines the type of the weights submitted by
+   Clients, denoted by W, the total weight computed by the Collector,
+   denoted by R, and the field (Section 6.1 of [VDAF]) in which the
+   weights are encoded and aggregated.  The field is denoted by F.
 
-   The core component of Mastic is a VIDPF as defined in Section 3.
-   VIDPFs inherently have the "one-hot verifiability" property, meaning
-   that in each level of the tree there exists at most one non-zero
-   value.  To guarantee that the Client's input is well-formed, Mastic
-   first verifies that the Client measurement is valid at the root level
-   using an FLP, and then, it ensures that this valid measurement is
-   propagated correctly down the tree using the one-hot verifiability
-   and the path verifiability properties.  Note that Mastic allows the
-   measurement to be of any type that can be verified by an arithmetic
-   circuit, not just a counter.  For instance, the measurement can be a
-   tuple of values, a string, a secret number within a public range,
-   etc.
+   The VIDPF is instantiated with bit length BITS, value length
+   valid.MEAS_LEN, and field valid.field, where valid is the validity
+   circuit.  We denote this instance of the VIDPF by vidpf.
 
-   As described in Section 2, each Client input consists of two
-   components, which we denote alpha and beta.  At a high level, the
-   Client generates VIDPF keys that encodes alpha and beta and an FLP
-   for the validity of beta.  Then the Client sends one VIDPF key to
-   each Aggregator and also publishes the VIDPF public share.  FLPs for
-   certain validity functions, including most range proofs, rely on the
-   establishment of shared random coins (joint randomness) between the
-   Client and all Aggregators.  When it is necessary for the Client to
-   generate joint randomness, it includes generator seeds in its shares
-   for each Aggregator, and the Aggregators confirm that they have
-   derived the same joint randomness during the FLP verification
-   process.
-
-   The Aggregators agree on an initial set of level-bit strings, where
-   level < BITS.  We refer to these strings as "candidate prefixes".
-   They evaluate their VIDPF key shares at each prefix in this set, to
-   obtain an additive share of the VIDPF output.
-
-   Mastic uses a combination of techniques to certify the validity of
-   this output.
-
-   1.  First, the Aggregators exchange VIDPF proofs.  If they are equal,
-       then this implies One-hot Verifiability and Path Verifiability as
-       described in Section 3.  One-hotness ensures that the VIDPF
-       output contains beta at most once (and every other output is 0).
-       Path Verifiability implies that, if the previous level contained
-       a non-zero value, then it is the same value as the current level.
-
-   2.  Second, the Aggregators interactively verify the FLP (Section 7.1
-       of [VDAF]) to assert that beta is valid.  We instantiate the FLP
-       with FlpGeneric from Section 7.3 of [VDAF], which defines
-       validity via an arithmetic circuit (Section 7.3.2 of [VDAF])
-       evaluated over (shares of) beta: if the output of the circuit is
-       0, then the value is said to be "valid"; otherwise it is
-       "invalid".
-
-       If none of the candidate prefixes are a prefix of alpha, then the
-       VIDPF output shares will not contain any shares of beta.
-       Moreover, VIDPF as specified in Section 5 does not as specified
-       permit evaluation at the root of the VIDPF tree.  Instead, each
-       Aggregator computes a share of beta by evaluating the VIDPF tree
-       at prefixes 0 and 1 and level == 0 and adding them up.  One-hot
-       Verifiability and Path Verifiability imply that the sum is equal
-       to the Aggregator's share of beta.
-
-          CP: An alternative way to spell this is to say that VIDPF
-          evaluation outputs a share of beta, which is what our current
-          API does in the reference code.
-
-   The aggregate result is obtained by summing up the encoded
-   measurement shares for each prefix and computing some function of the
-   sum.  The aggregation parameter contains the level and the set of
-   candidate prefixes.
-
-   The Aggregators send their aggregate shares to the Collector, who
-   unshards them to recover the results for each candidate prefix.
+   In the remainder, we write xof as shorthand for XofTurboShake128
+   (Section 6.2.1 of [VDAF]).
 
 4.1.  Sharding
 
-      NOTE to be specified in full detail.
+   The sharding algorithm takes in the measurement (the input and
+   weight), the nonce, and the sharding randomness.  The size of the
+   nonce is 16 bytes; the size of the randomness is vidpf.RAND_SIZE + 2
+   * xof.SEED_SIZE, plus an additional xof.SEED_SIZE if the validity
+   curcuit requires joint ramdoness.
+
+   The public share, denoted MasticPublicShare, is a tuple comprised of
+   the list correction words generated by the VIDPF key generation
+   algorithm and the FLP "joint randomness parts" (defined below) used
+   during preparation to compute the joint randomness for evaluating the
+   validity circuit.
+
+   The contents of each input share, denoted MasticInputShare, depends
+   on the Aggregator who receives it.  We refer to the first Aggregator
+   as the "Leader"; we refer to the second Aggregator as the "Helper".
+
+   1.  The Aggregator's VIDPF key share.
+
+   2.  An optional FLP proof share, vector of field elements.  This is
+       set for the Leader only.
+
+   3.  An optional FLP seed.  This is always set for the Helper, who
+       uses it to derive its FLP proof share.  This is set for the
+       Leader of the circuit uses joint randomness.
+
+   The behavior of the sharding algorithm depends on whether the circuit
+   requires joint randomness:
+
+   def shard(self,
+             measurement: tuple[int, W],
+             nonce: bytes,
+             rand: bytes,
+             ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+       if self.flp.JOINT_RAND_LEN > 0:
+           return self.shard_with_joint_rand(measurement, nonce, rand)
+       return self.shard_without_joint_rand(measurement, nonce, rand)
+
+   When no FLP joint randomness is required, sharding involves the
+   following steps:
+
+   1.  Encode the weight as beta
+
+   2.  Generate the VIDPF correction words and keys for alpha and beta
+
+   3.  Generate the FLP proof of beta's validity
+
+   4.  Compute the Leader's share of the proof
+
+   The complete algorithm is listed below:
+
+   def shard_without_joint_rand(
+           self,
+           measurement: tuple[int, W],
+           nonce: bytes,
+           rand: bytes,
+   ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+       (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
+       (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
+       (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+
+       (alpha, weight) = measurement
+       beta = self.flp.encode(weight)
+
+       # Generate VIDPF keys.
+       (correction_words, keys) = \
+           self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+
+       # Generate FLP and split it into shares.
+       prove_rand = self.prove_rand(prove_rand_seed)
+       proof = self.flp.prove(beta, prove_rand, [])
+       helper_proof_share = self.helper_proof_share(helper_seed)
+       leader_proof_share = vec_sub(proof, helper_proof_share)
+
+       public_share = (correction_words, None)
+       input_shares = [
+           (keys[0], leader_proof_share, None),
+           (keys[1], None, helper_seed),
+       ]
+       return (public_share, input_shares)
+
+   When FLP joint randomness is required, the Client must compute it
+   from the shares of beta sent to each Aggregator:
+
+   1.  Encode the weight as beta
+
+   2.  Generate the VIDPF correction words and keys for alpha and beta
+
+   3.  Compute each Aggregator's FLP joint randomness part by hashing
+       its share of beta with its FLP seed, its VIDPF key, and the VIDPF
+       correction words
+
+   4.  Compute the FLP joint randomness seed by hashing the joint
+       randomness parts
+
+   5.  Derive the FLP joint randomness from the joint randomness seed
+
+   6.  Generate the FLP proof of beta's validity using the derived joint
+       randomness
+
+   7.  Compute the Leader's share of the proof
+
+   The joint randomness is also needed to verify the FLP and must
+   therefore be recomputed during preparation (Section 4.2).  The Client
+   includes the parts in the public share for this purpose.
+
+   The complete algorithm is listed below:
+
+   def shard_with_joint_rand(
+           self,
+           measurement: tuple[int, W],
+           nonce: bytes,
+           rand: bytes,
+   ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+       (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
+       (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
+       (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
+       (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+
+       (alpha, weight) = measurement
+       beta = self.flp.encode(weight)
+
+       # Generate VIDPF keys.
+       (correction_words, keys) = \
+           self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+
+       # Generate FLP joint randomness.
+       joint_rand_parts = [
+           self.joint_rand_part(
+               0, leader_seed, keys[0], correction_words, nonce),
+           self.joint_rand_part(
+               1, helper_seed, keys[1], correction_words, nonce),
+       ]
+       joint_rand = self.joint_rand(
+           self.joint_rand_seed(joint_rand_parts))
+
+       # Generate FLP and split it into shares.
+       prove_rand = self.prove_rand(prove_rand_seed)
+       proof = self.flp.prove(beta, prove_rand, joint_rand)
+       helper_proof_share = self.helper_proof_share(helper_seed)
+       leader_proof_share = vec_sub(proof, helper_proof_share)
+
+       public_share = (correction_words, joint_rand_parts)
+       input_shares = [
+           (keys[0], leader_proof_share, leader_seed),
+           (keys[1], None, cast(Optional[bytes], helper_seed)),
+       ]
+       return (public_share, input_shares)
 
 4.2.  Preparation
 
