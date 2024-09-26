@@ -56,18 +56,6 @@ informative:
     seriesinfo: EUROCRYPT 2015
     target: https://www.iacr.org/archive/eurocrypt2015/90560300/90560300.pdf
 
-  BBCGGI21:
-    title: "Lightweight Techniques for Private Heavy Hitters"
-    author:
-      - ins: D. Boneh
-      - ins: E. Boyle
-      - ins: H. Corrigan-Gibbs
-      - ins: N. Gilboa
-      - ins: Y. Ishai
-    date: 2021
-    seriesinfo: IEEE S&P 2021
-    target: https://ia.cr/2021/017
-
   CP22:
     title: "Lightweight, Maliciously Secure Verifiable Function Secret Sharing"
     author:
@@ -76,15 +64,6 @@ informative:
     date : 2022
     seriesinfo: EUROCRYPT 2022
     target: https://iacr.org/cryptodb/data/paper.php?pubkey=31935
-
-  GI14:
-    title: "Distributed Point Functions and Their Applications"
-    author:
-      - ins: N. Gilboa
-      - ins: Y. Ishai
-    date: 2014
-    seriesinfo: EUROCRYPT 2014
-    target: https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35
 
   MST24:
     title: "PLASMA: Private, Lightweight Aggregated Statistics against Malicious Adversaries"
@@ -263,6 +242,11 @@ Finally, Mastic usex eXtendable Output Functions (XOFs) as specified in
 {{Section 6.2 of !VDAF}}.
 
 # Specification of VIDPF {#vidpf}
+
+> NOTE This specification is based on {{MST24}}, which in turn draws on ideas
+> from {{CP22}}. We don't yet have a concrete security analysis of the complete
+> construction. Some details of the construction are likely to change as a
+> result of such analysis.
 
 | Parameter         | Description                                           | Value                                                      |
 |:------------------|:------------------------------------------------------|:-----------------------------------------------------------|
@@ -698,7 +682,7 @@ def eval_proof(onehot_proof: bytes,
     return xof.next(PROOF_SIZE)
 ~~~
 
-# Specification {#vdaf}
+# Specification of Mastic {#vdaf}
 
 Mastic combines the VIDPF from {{vidpf}} with the FLP from {{Section 7.3 of
 !VDAF}}. An instance of Mastic is determined by a choice of length of the
@@ -899,7 +883,8 @@ security analysis of Mastic is provided in {{MPDST24}}.
 # Motivating Applications {#motivation}
 {:numbered="false"}
 
-The design of Mastic is informed primarily by two use cases, which we describe here.
+The design of Mastic is informed primarily by two use cases, which we describe
+here.
 
 ## Network Error Logging {#NEL}
 {:numbered="false"}
