@@ -14,19 +14,19 @@ from dst import (USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
                  USAGE_QUERY_RAND, dst)
 from vidpf import CorrectionWord, Vidpf
 
-Measurement = TypeVar("Measurement")
-AggResult = TypeVar("AggResult")
+W = TypeVar("W")
+R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
     int,            # level
     Sequence[int],  # prefixes
-    bool,           # whether to do the range check
+    bool,           # whether to do the weight check
 ]
 
 MasticPublicShare: TypeAlias = tuple[
     list[CorrectionWord],   # VIDPF correction words
-    Optional[list[bytes]],  # FLP public share
+    Optional[list[bytes]],  # FLP joint randomness parts
 ]
 
 MasticInputShare: TypeAlias = tuple[
@@ -37,7 +37,7 @@ MasticInputShare: TypeAlias = tuple[
 
 MasticPrepState: TypeAlias = tuple[
     list[F],          # Truncated output share
-    Optional[bytes],  # FLP corrected joint rand seed
+    Optional[bytes],  # Predicted FLP joint rand seed
 ]
 
 MasticPrepShare: TypeAlias = tuple[
@@ -51,20 +51,20 @@ MasticPrepMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
 
 class Mastic(
         Vdaf[
-            tuple[int, Measurement],  # Measurement
+            tuple[int, W],  # W
             MasticAggParam,
             MasticPublicShare,
             MasticInputShare,
             list[F],  # OutShare
             list[F],  # AggShare
-            list[AggResult],  # AggResult
+            list[R],  # R
             MasticPrepState,
             MasticPrepShare,
             MasticPrepMessage,
         ]):
 
     # NOTE We'd like to make this generic, but this appears to be blocked
-    # by a bug. We would add `Generic[Measurement, AggResult, X, F]` as
+    # by a bug. We would add `Generic[W, R, X, F]` as
     # one of the super classes of `Mastic`, but this causes a runtime
     # error.
     xof = XofTurboShake128
@@ -77,7 +77,7 @@ class Mastic(
 
     def __init__(self,
                  bits: int,
-                 valid: Valid[Measurement, AggResult, F]):
+                 valid: Valid[W, R, F]):
         self.field = valid.field
         self.flp = FlpBBCGGI19(valid)
         self.vidpf = Vidpf(valid.field, bits, valid.MEAS_LEN)
@@ -86,9 +86,9 @@ class Mastic(
             self.RAND_SIZE += self.xof.SEED_SIZE
 
     def shard(self,
-              measurement: tuple[int, Measurement],
+              measurement: tuple[int, W],
               nonce: bytes,
-              rand: bytes
+              rand: bytes,
               ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
         if self.flp.JOINT_RAND_LEN > 0:
             return self.shard_with_joint_rand(measurement, nonce, rand)
@@ -96,7 +96,7 @@ class Mastic(
 
     def shard_without_joint_rand(
             self,
-            measurement: tuple[int, Measurement],
+            measurement: tuple[int, W],
             nonce: bytes,
             rand: bytes,
     ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
@@ -105,8 +105,8 @@ class Mastic(
         (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
         assert len(rand) == 0  # REMOVE ME
 
-        (alpha, meas) = measurement
-        beta = self.flp.encode(meas)
+        (alpha, weight) = measurement
+        beta = self.flp.encode(weight)
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
@@ -127,7 +127,7 @@ class Mastic(
 
     def shard_with_joint_rand(
             self,
-            measurement: tuple[int, Measurement],
+            measurement: tuple[int, W],
             nonce: bytes,
             rand: bytes,
     ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
@@ -137,8 +137,8 @@ class Mastic(
         (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
         assert len(rand) == 0  # REMOVE ME
 
-        (alpha, meas) = measurement
-        beta = self.flp.encode(meas)
+        (alpha, weight) = measurement
+        beta = self.flp.encode(weight)
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
@@ -316,7 +316,7 @@ class Mastic(
                 agg_param: MasticAggParam,
                 agg_shares: list[list[F]],
                 _num_measurements: int,
-                ) -> list[AggResult]:
+                ) -> list[R]:
         (level, prefixes, _do_range_check) = agg_param
         agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
         for agg_share in agg_shares:
