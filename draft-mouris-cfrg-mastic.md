@@ -698,29 +698,39 @@ def eval_proof(onehot_proof: bytes,
     return xof.next(PROOF_SIZE)
 ~~~
 
-# Definition of `Mastic` {#vdaf}
+# Specification {#vdaf}
 
-> NOTE We are pretty confident about the overall structure of the VDAF, but
-> there are some details to work out and security analysis to do. In the
-> meantime, check out the current reference implementation at
-> https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc.
+An instance of Mastic is determined by a choice of length of the input, denoted
+`BITS`, and a validity circuit, an instance of `Valid` as defined in {{Section
+7.3.2 of !VDAF}}, that determines the type of the weight.
 
-This section describes Mastic, a VDAF suitable for a plethora of aggregation
-functions including sum, mean, histograms, heavy hitters, weighted
-heavy-hitters (see {{weighted-heavy-hitters}}), attribute-based metrics (see
-{{attribute-based-metrics}}), linear regression and more. Mastic allows
-computing functions *à la* Prio3 VDAF {{Section 7 of !VDAF}}.
 
-The core component of Mastic is a VIDPF as defined in {{vidpf}}. VIDPFs
-inherently have the "one-hot verifiability" property, meaning that in each
-level of the tree there exists at most one non-zero value. To guarantee that
-the Client's input is well-formed, Mastic first verifies that the Client
-measurement is valid at the root level using an FLP, and then, it ensures
-that this valid measurement is propagated correctly down the tree using the
-one-hot verifiability and the path verifiability properties. Note that Mastic
-allows the measurement to be of any type that can be verified by an arithmetic
-circuit, not just a counter. For instance, the measurement can be a tuple of
-values, a string, a secret number within a public range, etc.
+
+| Parameter         | Value                                              |
+|:------------------|:---------------------------------------------------|
+| `VERIFY_KEY_SIZE` | `xof.SEED_SIZE`                                    |
+| `RAND_SIZE`       | `vidpf.RAND_SIZE + 2 * xof.SEED_SIZE + xof.SEED_SIZE if valid.JOINT_RAND_LEN > 0 else 0 ` | |
+| `NONCE_SIZE`      | `16`                                               |
+| `ROUNDS`          | `1`                                                |
+| `SHARES`          | `2`                                                |
+| `Measurement`     | `tuple[int, M]`                                      // input and weight |
+| `AggParam`        | `tuple[int, Sequence[int], bool]`                    // VIDPF level, prefixes, and a bit indicating whether to do the weight check) |
+| `PublicShare`     | `tuple[list[CorrectionWord], Optional[list[bytes]]]` // where `CorrectionWord` is defined in {{vidpf}}   VIDPF correction words and FLP joint randomness parts |
+| `InputShare`      | `tuple[bytes, Optional[list[F]], Optional[bytes]]`   // VIDPF key, FLP leader proof share, and FLP seed |
+| `OutShare`        | `list[F]`                                            // truncated VIDPF output shares |
+| `AggShare`        | `list[F]`                                          |
+| `AggResult`       | `list[A]`                                            // aggregate result for each prefix |
+| `PrepState`       | `tuple[list[F], Optional[bytes]]`                    // truncated VIDPF output shares and predicted FLP joint randomness seed |
+| `PrepShare`       | `tuple[bytes, Optional[list[F]], Optional[bytes]]`   // VIDPF proof, FLP verifier share, and FLP joint randomness part |
+| `PrepMessage`     | `Optional[bytes]`                                    // FLP joint randomness seed |
+| `xof`             | `XofTurboShake128` ({{Section 6.2 of !VDAF}})       |
+| `valid`           | instance of `Valid` ({{Section 7.3.2 of !VDAF}}) with measurement type `M`, aggregate result type `A`, and field `F` |
+| `vidpf`           | instance of `Vidpf` ({{vidpf}}) with field `F`, input length `BITS`, and measurement length `valid.MEAS_LEN` |
+{: #prio3-param title="Mastic parameters."}
+
+
+
+This section specifies the Mastic VDAF.
 
 As described in {{conventions}}, each Client input consists of two components,
 which we denote `alpha` and `beta`. At a high level, the Client generates VIDPF

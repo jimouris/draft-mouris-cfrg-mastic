@@ -21,12 +21,12 @@ F = TypeVar("F", bound=NttField)
 MasticAggParam: TypeAlias = tuple[
     int,            # level
     Sequence[int],  # prefixes
-    bool,           # whether to do the range check
+    bool,           # whether to do the weight check
 ]
 
 MasticPublicShare: TypeAlias = tuple[
     list[CorrectionWord],   # VIDPF correction words
-    Optional[list[bytes]],  # FLP public share
+    Optional[list[bytes]],  # FLP joint randomness parts
 ]
 
 MasticInputShare: TypeAlias = tuple[
@@ -37,7 +37,7 @@ MasticInputShare: TypeAlias = tuple[
 
 MasticPrepState: TypeAlias = tuple[
     list[F],          # Truncated output share
-    Optional[bytes],  # FLP corrected joint rand seed
+    Optional[bytes],  # Predicted FLP joint rand seed
 ]
 
 MasticPrepShare: TypeAlias = tuple[
