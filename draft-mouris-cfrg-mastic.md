@@ -876,21 +876,14 @@ def shard_with_joint_rand(
 
 > NOTE to be specified in full detail.
 
-# Definition of `Vidpf` {#vidpf-construction}
-
-The construction of {{MST24}} builds on techniques from {{CP22}} to lift an IDPF
-to a VIDPF with the properties described in {{vidpf}}. Instead of a 2-round
-"secure sketch" MPC like that of Poplar1, the scheme relies on hashing.
-
-TODO(jimouris) Add an overview.
-
-> NOTE To be specified. The design is based on VIDPF from {{MST24}}.
-> https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc for the
-> reference implementation.
-
 # Security Considerations
 
-A security analysis of Mastic is provided in {{MPDST24}}.
+Mastic inherits its security considerations from {{Section 9 of !VDAF}}. A
+security analysis of Mastic is provided in {{MPDST24}}.
+
+> TODO Contrast with Poplar1, especially {{Section 9.4.2 of !VDAF}} ("Safe
+> Usage of IDPF Outputs"). In particular it's perfectly safe to use Mastic's
+> intermediate outputs.
 
 # IANA Considerations
 
