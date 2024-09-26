@@ -1032,15 +1032,45 @@ def prep_next(self,
 
 ## Validity of Aggregation Parameters {#agg-param-validity}
 
-> NOTE to be specified in full detail.
+To guarantee secure execution of Mastic, care must be taken in choosing the
+VIDPF prefixes and whether to verify the FLP. In particular, it is only safe to
+consume the FLP once; and it is only safe to evaluate the VIDPF at most once at
+any given level of the tree.
+
+> NOTE By "safe" we mean "covered by the analysis of {{MPDST24}}". It could be
+> that a little more flexibility is possible, but this is not guaranteed. If we
+> find matching attacks, we should mention them in {{security-considerations}}.
+
+We further restrict aggregation by requiring that the level strictly increases
+at each step:
+
+~~~ python
+def is_valid(self,
+             agg_param: MasticAggParam,
+             previous_agg_params: list[MasticAggParam],
+             ) -> bool:
+    (level, _prefixes, do_weight_check) = agg_param
+
+    # Check that the weight check is done exactly once.
+    weight_checked = \
+        (do_weight_check and len(previous_agg_params) == 0) or \
+        (not do_weight_check and
+            any(agg_param[2] for agg_param in previous_agg_params))
+
+    # Check that the level is strictly increasing.
+    level_increased = len(previous_agg_params) == 0 or \
+        level > previous_agg_params[-1][0]
+
+    return weight_checked and level_increased
+~~~
 
 ## Aggregation
 
-> NOTE to be specified in full detail.
+> TODO to be specified in full detail.
 
 ## Unsharding
 
-> NOTE to be specified in full detail.
+> TODO to be specified in full detail.
 
 # Security Considerations
 
@@ -1053,14 +1083,14 @@ security analysis of Mastic is provided in {{MPDST24}}.
 
 # IANA Considerations
 
-> NOTE to be specified.
+TODO
 
 --- back
 
 # Acknowledgments
 {:numbered="false"}
 
-> NOTE to be specified.
+TODO
 
 # Motivating Applications {#motivation}
 {:numbered="false"}
@@ -1397,3 +1427,8 @@ Using a third Aggregator, we can lift the security of Mastic from the
 semi-honest setting to malicious security. While more complex to implement than
 2-party Mastic, this mode allows achieves both privacy and robustness against a
 malicious Aggregator.
+
+# Test Vectors
+{:numbered="false"}
+
+TODO
