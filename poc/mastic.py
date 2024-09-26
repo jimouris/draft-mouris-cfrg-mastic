@@ -171,19 +171,19 @@ class Mastic(
                  agg_param: MasticAggParam,
                  previous_agg_params: list[MasticAggParam],
                  ) -> bool:
-        (level, _prefixes, do_range_check) = agg_param
+        (level, _prefixes, do_weight_check) = agg_param
 
-        # Check that the range check is done exactly once.
-        range_checked = \
-            (do_range_check and len(previous_agg_params) == 0) or \
-            (not do_range_check and
+        # Check that the weight check is done exactly once.
+        weight_checked = \
+            (do_weight_check and len(previous_agg_params) == 0) or \
+            (not do_weight_check and
                 any(agg_param[2] for agg_param in previous_agg_params))
 
         # Check that the level is strictly increasing.
         level_increased = len(previous_agg_params) == 0 or \
             level > previous_agg_params[-1][0]
 
-        return range_checked and level_increased
+        return weight_checked and level_increased
 
     def prep_init(
             self,
@@ -194,7 +194,7 @@ class Mastic(
             public_share: MasticPublicShare,
             input_share: MasticInputShare,
     ) -> tuple[MasticPrepState, MasticPrepShare]:
-        (level, prefixes, do_range_check) = agg_param
+        (level, prefixes, do_weight_check) = agg_param
         (key, proof_share, seed) = \
             self.expand_input_share(agg_id, input_share)
         (correction_words, joint_rand_parts) = public_share
@@ -213,7 +213,7 @@ class Mastic(
         joint_rand_part = None
         joint_rand_seed = None
         verifier_share = None
-        if do_range_check:
+        if do_weight_check:
             query_rand = self.query_rand(verify_key, nonce, level)
             joint_rand = []
             if self.flp.JOINT_RAND_LEN > 0:
@@ -234,8 +234,9 @@ class Mastic(
                 2,
             )
 
-        # Concatenate the output shares into one aggregatable output, applying
-        # the FLP truncation algorithm on each FLP measurement share.
+        # Concatenate the output shares into one aggregatable output,
+        # applying the FLP truncation algorithm on each FLP measurement
+        # share.
         truncated_out_share = []
         for val_share in out_share:
             truncated_out_share += [val_share[0]] + \
@@ -250,7 +251,7 @@ class Mastic(
             agg_param: MasticAggParam,
             prep_shares: list[MasticPrepShare],
     ) -> MasticPrepMessage:
-        (_level, _prefixes, do_range_check) = agg_param
+        (_level, _prefixes, do_weight_check) = agg_param
 
         if len(prep_shares) != 2:
             raise ValueError('unexpected number of prep shares')
@@ -266,7 +267,7 @@ class Mastic(
         if eval_proof_0 != eval_proof_1:
             raise Exception('VIDPF verification failed')
 
-        if not do_range_check:
+        if not do_weight_check:
             return None
         if verifier_share_0 is None or verifier_share_1 is None:
             raise ValueError('expected FLP verifier shares')
@@ -295,10 +296,10 @@ class Mastic(
         (truncated_out_share, joint_rand_seed) = prep_state
         if joint_rand_seed is not None:
             if prep_msg is None:
-                raise ValueError('expected FLP joint randomness confirmation')
+                raise ValueError('expected joint rand confirmation')
 
             if prep_msg != joint_rand_seed:
-                raise Exception('FLP joint randomness confirmation failed')
+                raise Exception('joint rand confirmation failed')
 
         return truncated_out_share
 
@@ -306,7 +307,7 @@ class Mastic(
                   agg_param: MasticAggParam,
                   out_shares: list[list[F]],
                   ) -> list[F]:
-        (level, prefixes, _do_range_check) = agg_param
+        (level, prefixes, _do_weight_check) = agg_param
         agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
         for out_share in out_shares:
             agg_share = vec_add(agg_share, out_share)
@@ -317,7 +318,7 @@ class Mastic(
                 agg_shares: list[list[F]],
                 _num_measurements: int,
                 ) -> list[R]:
-        (level, prefixes, _do_range_check) = agg_param
+        (level, prefixes, _do_weight_check) = agg_param
         agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)

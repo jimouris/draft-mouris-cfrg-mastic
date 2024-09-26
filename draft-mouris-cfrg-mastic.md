@@ -846,9 +846,191 @@ def shard_with_joint_rand(
 
 ## Preparation
 
-> NOTE to be specified in full detail.
+Each Aggregator initializes preparation with: the verification key shared by
+both Aggregators; its own ID, either `0` for the Leader and `1` for the Helper;
+the aggregation parameter; the report's nonce; the public share sent to each
+Aggregator; and the Aggregator's own input share.
 
-## Validity of Aggregation Parameters
+The aggregation parameter has the following components:
+
+1. the level of the VIDPF being evaluated
+1. the sequence of VIDPF prefixes being evaluated
+1. an indication of whether to verify the FLP
+
+The FLP is verified exactly once, the first time the report is aggregated. See
+{{agg-param-validity}}.
+
+The outputs of the initialization algorithm include the Aggregator's prep
+state, denoted `MasticPrepState`, and its outbound prep share, denoted
+`MasticPrepShare`. The prep share includes the Aggregator's FLP verifier share,
+joint randomness part, and VIDPF proof. These are combined into the prep
+message in the next step.
+
+Preparation initialization involves the following steps:
+
+1. Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
+   each corresponding payload. This step also produces our share of `beta`, to be
+   used to verify the FLP, and the VIDPF proof.
+
+1. If applicable, run the FLP query generation algorithm on our share of `beta`
+   and proof to obtain our FLP verifier share. If joint randomness is required,
+   then compute our joint randomness part and derive the joint randomness seed
+   using our co-Aggregator's part provided by the Client. Note that the Client
+   may have provided the wrong part, so we need to check that the seed was
+   computed correctly before completing preparation.
+
+1. Truncate each payload share according to the FLP encoding scheme and flatten
+   them into a single vector of field elements. This constitutes Mastic's
+   output share.
+
+The complete algorithm is listed below:
+
+~~~ python
+def prep_init(
+        self,
+        verify_key: bytes,
+        agg_id: int,
+        agg_param: MasticAggParam,
+        nonce: bytes,
+        public_share: MasticPublicShare,
+        input_share: MasticInputShare,
+) -> tuple[MasticPrepState, MasticPrepShare]:
+    (level, prefixes, do_weight_check) = agg_param
+    (key, proof_share, seed) = \
+        self.expand_input_share(agg_id, input_share)
+    (correction_words, joint_rand_parts) = public_share
+
+    # Evaluate the VIDPF.
+    (beta_share, out_share, eval_proof) = self.vidpf.eval(
+        agg_id,
+        correction_words,
+        key,
+        level,
+        prefixes,
+        nonce,
+    )
+
+    # Query the FLP if applicable.
+    joint_rand_part = None
+    joint_rand_seed = None
+    verifier_share = None
+    if do_weight_check:
+        query_rand = self.query_rand(verify_key, nonce, level)
+        joint_rand = []
+        if self.flp.JOINT_RAND_LEN > 0:
+            assert seed is not None
+            assert joint_rand_parts is not None
+            joint_rand_part = self.joint_rand_part(
+                agg_id, seed, key, correction_words, nonce)
+            joint_rand_parts[agg_id] = joint_rand_part
+            joint_rand_seed = self.joint_rand_seed(
+                joint_rand_parts)
+            joint_rand = self.joint_rand(
+                self.joint_rand_seed(joint_rand_parts))
+        verifier_share = self.flp.query(
+            beta_share,
+            proof_share,
+            query_rand,
+            joint_rand,
+            2,
+        )
+
+    # Concatenate the output shares into one aggregatable output,
+    # applying the FLP truncation algorithm on each FLP measurement
+    # share.
+    truncated_out_share = []
+    for val_share in out_share:
+        truncated_out_share += [val_share[0]] + \
+            self.flp.truncate(val_share[1:])
+
+    prep_state = (truncated_out_share, joint_rand_seed)
+    prep_share = (eval_proof, verifier_share, joint_rand_part)
+    return (prep_state, prep_share)
+~~~
+
+Next, the Aggregators' prep shares are combined into the prep message, denoted
+`MasticPrepMessage`:
+
+1. Check that both Aggregators computed the same VIDPF proof. If so, then it is
+   presumed that the output share is one-hot, has path consistency, and has
+   counter consistency as defined in {{vidpf}}.
+
+1. If applicable, combine the FLP verifier shares into the FLP verifier and run
+   the FLP decision algorithm. If successful, then it is presumed that the
+   weight is valid.
+
+1. If applicable, compute the FLP joint randomness seed from the parts.
+
+The prep message consists of the joint randomness seed. The complete algorithm
+is listed below:
+
+~~~ python
+def prep_shares_to_prep(
+        self,
+        agg_param: MasticAggParam,
+        prep_shares: list[MasticPrepShare],
+) -> MasticPrepMessage:
+    (_level, _prefixes, do_weight_check) = agg_param
+
+    if len(prep_shares) != 2:
+        raise ValueError('unexpected number of prep shares')
+
+    (eval_proof_0,
+     verifier_share_0,
+     joint_rand_part_0) = prep_shares[0]
+    (eval_proof_1,
+     verifier_share_1,
+     joint_rand_part_1) = prep_shares[1]
+
+    # Verify the VIDPF output.
+    if eval_proof_0 != eval_proof_1:
+        raise Exception('VIDPF verification failed')
+
+    if not do_weight_check:
+        return None
+    if verifier_share_0 is None or verifier_share_1 is None:
+        raise ValueError('expected FLP verifier shares')
+
+    # Verify the FLP.
+    verifier = vec_add(verifier_share_0, verifier_share_1)
+    if not self.flp.decide(verifier):
+        raise Exception('FLP verification failed')
+
+    if self.flp.JOINT_RAND_LEN == 0:
+        return None
+    if joint_rand_part_0 is None or joint_rand_part_1 is None:
+        raise ValueError('expected FLP joint randomness parts')
+
+    # Confirm the FLP joint randomness was computed properly.
+    prep_msg = self.joint_rand_seed([
+        joint_rand_part_0,
+        joint_rand_part_1,
+    ])
+    return prep_msg
+~~~
+
+Finally, each Aggregator completes preparation by checking that the true FLP
+joint randomness seed is equal to the value they computed in the initialization
+step, `prep_init()`. This is only done if a weight check was required by the
+aggregation parameter and joint randomness was required by the FLP:
+
+~~~ python
+def prep_next(self,
+              prep_state: MasticPrepState,
+              prep_msg: MasticPrepMessage,
+              ) -> list[F]:
+    (truncated_out_share, joint_rand_seed) = prep_state
+    if joint_rand_seed is not None:
+        if prep_msg is None:
+            raise ValueError('expected joint rand confirmation')
+
+        if prep_msg != joint_rand_seed:
+            raise Exception('joint rand confirmation failed')
+
+    return truncated_out_share
+~~~
+
+## Validity of Aggregation Parameters {#agg-param-validity}
 
 > NOTE to be specified in full detail.
 
