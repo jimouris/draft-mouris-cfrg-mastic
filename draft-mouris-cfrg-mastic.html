@@ -1249,7 +1249,10 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
-            <p id="section-toc.1-1.11.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+            <p id="section-toc.1-1.11.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-test-vectors" class="internal xref">Test Vectors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -2310,11 +2313,40 @@ def prep_next(self,
         <h3 id="name-validity-of-aggregation-par">
 <a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-validity-of-aggregation-par" class="section-name selfRef">Validity of Aggregation Parameters</a>
         </h3>
+<p id="section-4.3-1">To guarantee secure execution of Mastic, care must be taken in choosing the
+VIDPF prefixes and whether to verify the FLP. In particular, it is only safe to
+consume the FLP once; and it is only safe to evaluate the VIDPF at most once at
+any given level of the tree.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-4.3-1.1">
-            <p id="section-4.3-1.1.1">NOTE to be specified in full detail.<a href="#section-4.3-1.1.1" class="pilcrow">¶</a></p>
+<li class="normal ulEmpty" id="section-4.3-2.1">
+            <p id="section-4.3-2.1.1">NOTE By "safe" we mean "covered by the analysis of <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>". It could be
+that a little more flexibility is possible, but this is not guaranteed. If we
+find matching attacks, we should mention them in <a href="#security-considerations" class="auto internal xref">Section 5</a>.<a href="#section-4.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
+<p id="section-4.3-3">We further restrict aggregation by requiring that the level strictly increases
+at each step:<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.3-4">
+<pre>
+def is_valid(self,
+             agg_param: MasticAggParam,
+             previous_agg_params: list[MasticAggParam],
+             ) -&gt; bool:
+    (level, _prefixes, do_weight_check) = agg_param
+
+    # Check that the weight check is done exactly once.
+    weight_checked = \
+        (do_weight_check and len(previous_agg_params) == 0) or \
+        (not do_weight_check and
+            any(agg_param[2] for agg_param in previous_agg_params))
+
+    # Check that the level is strictly increasing.
+    level_increased = len(previous_agg_params) == 0 or \
+        level &gt; previous_agg_params[-1][0]
+
+    return weight_checked and level_increased
+</pre><a href="#section-4.3-4" class="pilcrow">¶</a>
+</div>
 </section>
 </div>
 <div id="aggregation">
@@ -2324,7 +2356,7 @@ def prep_next(self,
         </h3>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-4.4-1.1">
-            <p id="section-4.4-1.1.1">NOTE to be specified in full detail.<a href="#section-4.4-1.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.4-1.1.1">TODO to be specified in full detail.<a href="#section-4.4-1.1.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -2336,7 +2368,7 @@ def prep_next(self,
         </h3>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-4.5-1.1">
-            <p id="section-4.5-1.1.1">NOTE to be specified in full detail.<a href="#section-4.5-1.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.5-1.1.1">TODO to be specified in full detail.<a href="#section-4.5-1.1.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
@@ -2364,11 +2396,7 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
       <h2 id="name-iana-considerations">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-6-1.1">
-          <p id="section-6-1.1.1">NOTE to be specified.<a href="#section-6-1.1.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
+<p id="section-6-1">TODO<a href="#section-6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-combined-references">
@@ -2449,11 +2477,7 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="appendix-A-1.1">
-          <p id="appendix-A-1.1.1">NOTE to be specified.<a href="#appendix-A-1.1.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
+<p id="appendix-A-1">TODO<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="motivation">
@@ -2865,8 +2889,16 @@ malicious Aggregator.<a href="#appendix-C.4-4" class="pilcrow">¶</a></p>
 </div>
 </section>
 </div>
-<div id="authors-addresses">
+<div id="test-vectors">
 <section id="appendix-D">
+      <h2 id="name-test-vectors">
+<a href="#name-test-vectors" class="section-name selfRef">Test Vectors</a>
+      </h2>
+<p id="appendix-D-1">TODO<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-E">
       <h2 id="name-authors-addresses">
 <a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>

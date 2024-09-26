@@ -102,6 +102,7 @@ Table of Contents
      Attribute-based Metrics
      Plain Heavy-Hitters with VIDPF-Proof Aggregation
      Robustness Against a Malicious Aggregator
+   Test Vectors
    Authors' Addresses
 
 1.  Introduction
@@ -1057,15 +1058,45 @@ Table of Contents
 
 4.3.  Validity of Aggregation Parameters
 
-      NOTE to be specified in full detail.
+   To guarantee secure execution of Mastic, care must be taken in
+   choosing the VIDPF prefixes and whether to verify the FLP.  In
+   particular, it is only safe to consume the FLP once; and it is only
+   safe to evaluate the VIDPF at most once at any given level of the
+   tree.
+
+      NOTE By "safe" we mean "covered by the analysis of [MPDST24]".  It
+      could be that a little more flexibility is possible, but this is
+      not guaranteed.  If we find matching attacks, we should mention
+      them in Section 5.
+
+   We further restrict aggregation by requiring that the level strictly
+   increases at each step:
+
+   def is_valid(self,
+                agg_param: MasticAggParam,
+                previous_agg_params: list[MasticAggParam],
+                ) -> bool:
+       (level, _prefixes, do_weight_check) = agg_param
+
+       # Check that the weight check is done exactly once.
+       weight_checked = \
+           (do_weight_check and len(previous_agg_params) == 0) or \
+           (not do_weight_check and
+               any(agg_param[2] for agg_param in previous_agg_params))
+
+       # Check that the level is strictly increasing.
+       level_increased = len(previous_agg_params) == 0 or \
+           level > previous_agg_params[-1][0]
+
+       return weight_checked and level_increased
 
 4.4.  Aggregation
 
-      NOTE to be specified in full detail.
+      TODO to be specified in full detail.
 
 4.5.  Unsharding
 
-      NOTE to be specified in full detail.
+      TODO to be specified in full detail.
 
 5.  Security Considerations
 
@@ -1078,7 +1109,7 @@ Table of Contents
 
 6.  IANA Considerations
 
-      NOTE to be specified.
+   TODO
 
 7.  References
 
@@ -1147,7 +1178,7 @@ Table of Contents
 
 Acknowledgments
 
-      NOTE to be specified.
+   TODO
 
 Motivating Applications
 
@@ -1513,6 +1544,10 @@ Robustness Against a Malicious Aggregator
    semi-honest setting to malicious security.  While more complex to
    implement than 2-party Mastic, this mode allows achieves both privacy
    and robustness against a malicious Aggregator.
+
+Test Vectors
+
+   TODO
 
 Authors' Addresses
 
