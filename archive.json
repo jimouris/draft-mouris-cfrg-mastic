@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-09-24T00:46:44.746665+00:00",
+  "timestamp": "2024-09-26T00:46:09.495133+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -592,7 +592,7 @@
       "id": "I_kwDOJmRsfc51ViKA",
       "title": "Describing Other Aggregatable Functions in more details",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/39",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "pratiksarkar93",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -604,8 +604,8 @@
       ],
       "body": "I think we should explicitly mention (in Section 5.2 or Section 5.4?) how we can perform functions like Variance and Standard Deviation as it involves changing the beta value in a non-trivial way. \r\nbeta = (x, x^2) and the FLP needs to prove that the relation holds. ",
       "createdAt": "2023-10-30T14:57:48Z",
-      "updatedAt": "2023-10-30T15:02:36Z",
-      "closedAt": null,
+      "updatedAt": "2024-09-24T22:42:15Z",
+      "closedAt": "2024-09-24T22:42:15Z",
       "comments": [
         {
           "author": "jimouris",
@@ -620,6 +620,13 @@
           "body": "Sure I can do that. ",
           "createdAt": "2023-10-30T15:02:36Z",
           "updatedAt": "2023-10-30T15:02:36Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "We list some things you can do in the intro. Beyond this I don't think we need any more non-normative language on this. Once we're ready, we'll specify concrete variants of Mastic, something like this section for Prio3:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf#section-7.4",
+          "createdAt": "2024-09-24T22:42:15Z",
+          "updatedAt": "2024-09-24T22:42:15Z"
         }
       ]
     },
@@ -870,16 +877,16 @@
     {
       "number": 73,
       "id": "I_kwDOJmRsfc6W6NOm",
-      "title": "Choices for `PATH_PROOF_INIT`",
+      "title": "Choices for `ONEHOT_PROOF_INIT`",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/73",
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "`PATH_PROOF_INIT` is used as the initial path proof, which is updated with node proof computed by each call to `eval_next()`. It appears we're free to set this to any public value:\r\n* The original [de Castro and Polychroniadou paper](https://eprint.iacr.org/2021/580) sets this to the \"correction seed\" ($\\mathsf{cs}$ in Algorithm 3).\r\n* The PLASMA paper sets this to to \"0\" (the all zero string).\r\n* We currently set it to a salt.\r\n\r\nI had the thought that we could also derive this from the VDAF verification key so that it is pseudorandom from the point of view of the adversary (i.e., the malicious client). I wonder if this could provide some benefit in terms of security.\r\n\r\n",
+      "body": "`ONEHOT_PROOF_INIT` is used as the initial  proof, which is updated with node proof computed by each call to `eval_next()`. It appears we're free to set this to any public value:\r\n* The original [de Castro and Polychroniadou paper](https://eprint.iacr.org/2021/580) sets this to the \"correction seed\" ($\\mathsf{cs}$ in Algorithm 3).\r\n* The PLASMA paper sets this to to \"0\" (the all zero string).\r\n* We currently set it to a salt.\r\n\r\nI had the thought that we could also derive this from the VDAF verification key so that it is pseudorandom from the point of view of the adversary (i.e., the malicious client). I wonder if this could provide some benefit in terms of security.\r\n\r\n",
       "createdAt": "2024-09-17T18:40:53Z",
-      "updatedAt": "2024-09-18T19:08:35Z",
+      "updatedAt": "2024-09-25T22:07:23Z",
       "closedAt": null,
       "comments": []
     }
@@ -6377,24 +6384,26 @@
       "id": "PR_kwDOJmRsfc58OFpg",
       "title": "Clean up Mastic a bit",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/75",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "* Fix some awkwardness in the control flow that was revealed when we added type enforcement (296698483fc89c3bd140cbc8a833afecae9b94d8). The main goal was to reduce the number of type assertions we needed.\r\n\r\n* Remove \"flp_\" and \"vidpf_\" prefixes from variable names wherever which primitive they're associated with is clear in context.\r\n\r\n* Avoid nesting the term \"public share\". In other words, Mastic's public is composed of VIDPF correction words and FLP joint rand parts; make these components explicit. This avoids confusing variable aliases, like `flp_public_share = joint_rand_parts`.\r\n\r\n* Make `is_valid()` stricter by preventing aggregating at the same level of the VIDPF tree more than once. We don't know if this is secure, and in any case, this behavior isn't covered by the current proof. Also, try and make the spec of `is_valid()` a little simpler.\r\n\r\n* Align the FLP joint randomness confirmation with @hannahdaviscrypto's implementation. Namely, the prep share includes the aggregator's joint randomness part, and `prep_shares_to_prep()` combines them into the true joint randomness seed. Then `prep_next()` just confirms that the true joint randomness seed matches the one it computed during `prep_init()`.\r\n\r\n* Add a unit test that exercises Mastic with joint randomness. We had been testing this, with the `Sum` circuit; but the `Sum` circuit no longer uses joint randomness in the latest version of the base draft.\r\n\r\n* Improve `is_valid()` unit tests by replacing `assert`s with `self.assertTrue()`s.",
       "createdAt": "2024-09-20T22:28:34Z",
-      "updatedAt": "2024-09-23T19:48:15Z",
+      "updatedAt": "2024-09-24T15:34:28Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "dedc85a05f87a4e07ba5c4002cefe56a01fe8e0d",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/pass-of-mastic",
       "headRefOid": "93c5f9c484849e7df6d8fc059f0b4378f480ef13",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-09-24T15:34:28Z",
+      "mergedAt": "2024-09-24T15:34:28Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "d2c5ae707298b89d42619ecb0017f0fe49bdacdd"
+      },
       "comments": [],
       "reviews": [
         {
@@ -6436,8 +6445,104 @@
               "updatedAt": "2024-09-20T22:29:54Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6KlgdL",
+          "commit": {
+            "abbreviatedOid": "93c5f9c"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-09-24T12:25:41Z",
+          "updatedAt": "2024-09-24T12:28:16Z",
+          "comments": [
+            {
+              "originalPosition": 164,
+              "body": "`agg_param[2]` makes me go back to see what is `agg_param[0]` and `agg_param[1]`.\r\nCould we keep `(_level, _prefixes, do_range_check) = agg_param` ?",
+              "createdAt": "2024-09-24T12:25:42Z",
+              "updatedAt": "2024-09-24T12:28:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6KnvFV",
+          "commit": {
+            "abbreviatedOid": "93c5f9c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-09-24T15:34:16Z",
+          "updatedAt": "2024-09-24T15:34:16Z",
+          "comments": [
+            {
+              "originalPosition": 164,
+              "body": "Done!",
+              "createdAt": "2024-09-24T15:34:16Z",
+              "updatedAt": "2024-09-24T15:34:16Z"
+            }
+          ]
         }
       ]
+    },
+    {
+      "number": 76,
+      "id": "PR_kwDOJmRsfc58lIx8",
+      "title": "Pass of abstract, intro, conventions, and preliminaries",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/76",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "See commit messages for details.",
+      "createdAt": "2024-09-24T22:39:33Z",
+      "updatedAt": "2024-09-25T18:51:22Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "5f4fae5138af8f2bafecf838fa4667b62cd70a62",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/pass-of-draft",
+      "headRefOid": "d9f76ed929789547569758cfeb4a74e2db9b2aa0",
+      "closedAt": "2024-09-25T18:51:22Z",
+      "mergedAt": "2024-09-25T18:51:22Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "6fcedd00a636766eff2c53b7026522762b34fde0"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 77,
+      "id": "PR_kwDOJmRsfc58ty_p",
+      "title": "Pass of VIDPF",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/77",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Clean up formatting and rename some variables to align with the paper better.",
+      "createdAt": "2024-09-25T22:01:48Z",
+      "updatedAt": "2024-09-25T22:06:06Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "4ad3de817600b64ce158b197c85dba5b5de6a29f",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/pass-of-vidpf",
+      "headRefOid": "e322772b064a9647c8b04ea2ddf4db793acbc1e7",
+      "closedAt": "2024-09-25T22:06:06Z",
+      "mergedAt": "2024-09-25T22:06:06Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "cba0034e337277481bd64ef9b534228369142ecc"
+      },
+      "comments": [],
+      "reviews": []
     }
   ]
 }
