@@ -87,12 +87,11 @@ Table of Contents
      4.3.  Validity of Aggregation Parameters
      4.4.  Aggregation
      4.5.  Unsharding
-   5.  Definition of Vidpf
-   6.  Security Considerations
-   7.  IANA Considerations
-   8.  References
-     8.1.  Normative References
-     8.2.  Informative References
+   5.  Security Considerations
+   6.  IANA Considerations
+   7.  References
+     7.1.  Normative References
+     7.2.  Informative References
    Acknowledgments
    Motivating Applications
      Network Error Logging
@@ -879,30 +878,22 @@ Table of Contents
 
       NOTE to be specified in full detail.
 
-5.  Definition of Vidpf
+5.  Security Considerations
 
-   The construction of [MST24] builds on techniques from [CP22] to lift
-   an IDPF to a VIDPF with the properties described in Section 3.
-   Instead of a 2-round "secure sketch" MPC like that of Poplar1, the
-   scheme relies on hashing.
-
-   TODO(jimouris) Add an overview.
-
-      NOTE To be specified.  The design is based on VIDPF from [MST24].
-      https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc
-      for the reference implementation.
-
-6.  Security Considerations
-
+   Mastic inherits its security considerations from Section 9 of [VDAF].
    A security analysis of Mastic is provided in [MPDST24].
 
-7.  IANA Considerations
+      TODO Contrast with Poplar1, especially Section 9.4.2 of [VDAF]
+      ("Safe Usage of IDPF Outputs").  In particular it's perfectly safe
+      to use Mastic's intermediate outputs.
+
+6.  IANA Considerations
 
       NOTE to be specified.
 
-8.  References
+7.  References
 
-8.1.  Normative References
+7.1.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -919,7 +910,7 @@ Table of Contents
               August 2024, <https://datatracker.ietf.org/doc/html/draft-
               irtf-cfrg-vdaf-11>.
 
-8.2.  Informative References
+7.2.  Informative References
 
    [BBCGGI21] Boneh, D., Boyle, E., Corrigan-Gibbs, H., Gilboa, N., and
               Y. Ishai, "Lightweight Techniques for Private Heavy
