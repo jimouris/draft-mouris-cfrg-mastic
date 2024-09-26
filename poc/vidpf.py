@@ -332,7 +332,7 @@ class Vidpf(Generic[F]):
         # Implementation note: the conditional addition should be
         # replaced with a constant-time select in practice in order to
         # reduce leakage via timing side channels.
-        (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i, W^i
+        (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i,W^i
         next_ctrl = t[keep]  # [MST24]: t'^i
         if next_ctrl:
             w = vec_add(w, w_cw)
@@ -447,13 +447,13 @@ class Vidpf(Generic[F]):
 
 
 def hash_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(proof, dst(USAGE_ONEHOT_PROOF_HASH), b'')
+    xof = XofTurboShake128(b'', dst(USAGE_ONEHOT_PROOF_HASH), proof)
     return xof.next(PROOF_SIZE)
 
 
 def eval_proof(onehot_proof: bytes,
                counter_check: bytes,
                payload_check: bytes) -> bytes:
-    binder = counter_check + payload_check
-    xof = XofTurboShake128(onehot_proof, dst(USAGE_EVAL_PROOF), binder)
+    binder = onehot_proof + counter_check + payload_check
+    xof = XofTurboShake128(b'', dst(USAGE_EVAL_PROOF), binder)
     return xof.next(PROOF_SIZE)
