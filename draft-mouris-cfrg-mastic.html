@@ -1176,7 +1176,7 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
-            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-specification" class="internal xref">Specification</a></p>
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-specification-of-mastic" class="internal xref">Specification of Mastic</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
                 <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-sharding" class="internal xref">Sharding</a></p>
@@ -1394,6 +1394,14 @@ weight for one of the candidate prefixes.<a href="#section-2-8" class="pilcrow">
       <h2 id="name-specification-of-vidpf">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-specification-of-vidpf" class="section-name selfRef">Specification of VIDPF</a>
       </h2>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-3-1.1">
+          <p id="section-3-1.1.1">NOTE This specification is based on <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>, which in turn draws on ideas
+from <span>[<a href="#CP22" class="cite xref">CP22</a>]</span>. We don't yet have a concrete security analysis of the complete
+construction. Some details of the construction are likely to change as a
+result of such analysis.<a href="#section-3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 <span id="name-vidpf-parameters"></span><div id="vidpf-params">
 <table class="center" id="table-1">
         <caption>
@@ -1461,60 +1469,60 @@ weight for one of the candidate prefixes.<a href="#section-2-8" class="pilcrow">
         </tbody>
       </table>
 </div>
-<p id="section-3-2">This section specifies the Verifiable Incremental Distributed Point Function
-(VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 1</a>.<a href="#section-3-2" class="pilcrow">¶</a></p>
-<p id="section-3-3">VIDPF is a function secret sharing scheme <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span> for functions <code>F</code> for which:<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-3">This section specifies the Verifiable Incremental Distributed Point Function
+(VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 1</a>.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">VIDPF is a function secret sharing scheme <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span> for functions <code>F</code> for which:<a href="#section-3-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-3-4.1">
-          <p id="section-3-4.1.1"><code>F(x) = [field(1)] + beta</code> if <code>x</code> is a prefix of <code>alpha</code><a href="#section-3-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-3-5.1">
+          <p id="section-3-5.1.1"><code>F(x) = [field(1)] + beta</code> if <code>x</code> is a prefix of <code>alpha</code><a href="#section-3-5.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-3-4.2">
-          <p id="section-3-4.2.1"><code>F(x) = field.zeros(VALUE_LEN+1)</code> if <code>x</code> is not a prefix of <code>alpha</code><a href="#section-3-4.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-3-5.2">
+          <p id="section-3-5.2.1"><code>F(x) = field.zeros(VALUE_LEN+1)</code> if <code>x</code> is not a prefix of <code>alpha</code><a href="#section-3-5.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-3-5">where <code>alpha</code> and <code>beta</code> are the input and encoded weight of a Client. The
+<p id="section-3-6">where <code>alpha</code> and <code>beta</code> are the input and encoded weight of a Client. The
 scheme is designed to allow each Aggregator to compute a share of output <code>F(x)</code>
 for any candidate prefix <code>x</code> without revealing any information about <code>alpha</code> or
 <code>beta</code>. Furthermore, the output shares can be aggregated locally, allowing
-each Aggregator to compute a share of the total weight for <code>x</code>.<a href="#section-3-5" class="pilcrow">¶</a></p>
-<p id="section-3-6">Along with encoded weight <code>beta</code>, the output includes a counter prefix, denoted
+each Aggregator to compute a share of the total weight for <code>x</code>.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">Along with encoded weight <code>beta</code>, the output includes a counter prefix, denoted
 <code>field(1)</code>, so that the total weight also includes the number of inputs that
 begin with the given prefix. This allows for the Collector to take this into
 account when decoding the aggregate result for each prefix. This is required by
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-3-6" class="pilcrow">¶</a></p>
-<p id="section-3-7">The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
 Imagine arranging these prefixes in a binary tree where each path from the root
 corresponds to a prefix <code>x</code> and each node corresponds to a payload <code>F(x)</code>. We
-refer to this as the "prefix tree".<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">When the Aggregators evaluate a Client's VIDPF, they verify three properites of
-the prefix tree:<a href="#section-3-8" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-3-9">
-<li id="section-3-9.1">
-          <p id="section-3-9.1.1">One-hotness: at every level of the tree, at most one node has a non-zero
-payload.<a href="#section-3-9.1.1" class="pilcrow">¶</a></p>
+refer to this as the "prefix tree".<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-9">When the Aggregators evaluate a Client's VIDPF, they verify three properites of
+the prefix tree:<a href="#section-3-9" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3-10">
+<li id="section-3-10.1">
+          <p id="section-3-10.1.1">One-hotness: at every level of the tree, at most one node has a non-zero
+payload.<a href="#section-3-10.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-3-9.2">
-          <p id="section-3-9.2.1">Path consistency: each payload is equal to the sum of the payloads of its
+        <li id="section-3-10.2">
+          <p id="section-3-10.2.1">Path consistency: each payload is equal to the sum of the payloads of its
 children. If one-hotness holds, then this ensures the payload is equal to
-<code>[field(1)] + beta</code> for each node along the <code>alpha</code> path.<a href="#section-3-9.2.1" class="pilcrow">¶</a></p>
+<code>[field(1)] + beta</code> for each node along the <code>alpha</code> path.<a href="#section-3-10.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-3-9.3">
-          <p id="section-3-9.3.1">Counter consistency: the counter of the non-zero payload is equal to
-<code>field(1)</code>.<a href="#section-3-9.3.1" class="pilcrow">¶</a></p>
+        <li id="section-3-10.3">
+          <p id="section-3-10.3.1">Counter consistency: the counter of the non-zero payload is equal to
+<code>field(1)</code>.<a href="#section-3-10.3.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-3-10">VIDPF is comprised of two algorithms.<a href="#section-3-10" class="pilcrow">¶</a></p>
-<p id="section-3-11">The key generation algorithm, defined in <a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a> takes in a <code>(alpha,
+<p id="section-3-11">VIDPF is comprised of two algorithms.<a href="#section-3-11" class="pilcrow">¶</a></p>
+<p id="section-3-12">The key generation algorithm, defined in <a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a> takes in a <code>(alpha,
 beta)</code> and outputs secret shares of <code>F</code>. The shares take the form of a pair of
 "keys", one for each Aggregator, and a sequence of "correction words" sent to
-both Aggregators. We define correction words in the next section.<a href="#section-3-11" class="pilcrow">¶</a></p>
-<p id="section-3-12">The key evaluation algorithm, defined in <a href="#vidpf-key-eval" class="auto internal xref">Section 3.2</a>, takes in the
+both Aggregators. We define correction words in the next section.<a href="#section-3-12" class="pilcrow">¶</a></p>
+<p id="section-3-13">The key evaluation algorithm, defined in <a href="#vidpf-key-eval" class="auto internal xref">Section 3.2</a>, takes in the
 correction words, the Aggregator's key, the sequence of candidate prefixes,
 and the nonce associated with the Client's report. It outputs secret shares of
 <code>beta</code>, the share of the payload for each prefix, and a byte string known as
 the "evaluation proof". To verify one-hotness, payload consistency, and
 counter consistency, the Aggregators check that the proofs they computed are
-equal.<a href="#section-3-12" class="pilcrow">¶</a></p>
+equal.<a href="#section-3-13" class="pilcrow">¶</a></p>
 <div id="vidpf-key-gen">
 <section id="section-3.1">
         <h3 id="name-key-generation">
@@ -1910,8 +1918,8 @@ def eval_proof(onehot_proof: bytes,
 </div>
 <div id="vdaf">
 <section id="section-4">
-      <h2 id="name-specification">
-<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-specification" class="section-name selfRef">Specification</a>
+      <h2 id="name-specification-of-mastic">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-specification-of-mastic" class="section-name selfRef">Specification of Mastic</a>
       </h2>
 <p id="section-4-1">Mastic combines the VIDPF from <a href="#vidpf" class="auto internal xref">Section 3</a> with the FLP from <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-11#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. An instance of Mastic is determined by a choice of length of the
 input, denoted <code>BITS</code>, and a validity circuit, an instance of <code>Valid</code> as
@@ -2205,10 +2213,6 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 <a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
-<dt id="BBCGGI21">[BBCGGI21]</dt>
-        <dd>
-<span class="refAuthor">Boneh, D.</span>, <span class="refAuthor">Boyle, E.</span>, <span class="refAuthor">Corrigan-Gibbs, H.</span>, <span class="refAuthor">Gilboa, N.</span>, and <span class="refAuthor">Y. Ishai</span>, <span class="refTitle">"Lightweight Techniques for Private Heavy Hitters"</span>, <span class="seriesInfo">IEEE S&amp;P 2021 </span>, <time datetime="2021" class="refDate">2021</time>, <span>&lt;<a href="https://ia.cr/2021/017">https://ia.cr/2021/017</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="BGI15">[BGI15]</dt>
         <dd>
 <span class="refAuthor">Boyle, E.</span>, <span class="refAuthor">Gilboa, N.</span>, and <span class="refAuthor">Y. Ishai</span>, <span class="refTitle">"Function Secret Sharing"</span>, <span class="seriesInfo">EUROCRYPT 2015 </span>, <time datetime="2015" class="refDate">2015</time>, <span>&lt;<a href="https://www.iacr.org/archive/eurocrypt2015/90560300/90560300.pdf">https://www.iacr.org/archive/eurocrypt2015/90560300/90560300.pdf</a>&gt;</span>. </dd>
@@ -2220,10 +2224,6 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 <dt id="DAP">[DAP]</dt>
         <dd>
 <span class="refAuthor">Geoghegan, T.</span>, <span class="refAuthor">Patton, C.</span>, <span class="refAuthor">Rescorla, E.</span>, and <span class="refAuthor">C. A. Wood</span>, <span class="refTitle">"Distributed Aggregation Protocol for Privacy Preserving Measurement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-ppm-dap-07</span>, <time datetime="2023-09-14" class="refDate">14 September 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07">https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="GI14">[GI14]</dt>
-        <dd>
-<span class="refAuthor">Gilboa, N.</span> and <span class="refAuthor">Y. Ishai</span>, <span class="refTitle">"Distributed Point Functions and Their Applications"</span>, <span class="seriesInfo">EUROCRYPT 2014 </span>, <time datetime="2014" class="refDate">2014</time>, <span>&lt;<a href="https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35">https://link.springer.com/chapter/10.1007/978-3-642-55220-5_35</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="MPDST24">[MPDST24]</dt>
         <dd>
@@ -2271,7 +2271,8 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
       <h2 id="name-motivating-applications">
 <a href="#name-motivating-applications" class="section-name selfRef">Motivating Applications</a>
       </h2>
-<p id="appendix-B-1">The design of Mastic is informed primarily by two use cases, which we describe here.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-1">The design of Mastic is informed primarily by two use cases, which we describe
+here.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <div id="NEL">
 <section id="appendix-B.1">
         <h3 id="name-network-error-logging">

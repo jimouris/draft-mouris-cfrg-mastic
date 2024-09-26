@@ -81,7 +81,7 @@ Table of Contents
      3.1.  Key Generation
      3.2.  Key Evaluation
      3.3.  Auxiliary functions
-   4.  Specification
+   4.  Specification of Mastic
      4.1.  Sharding
      4.2.  Preparation
      4.3.  Validity of Aggregation Parameters
@@ -238,6 +238,11 @@ Table of Contents
    in Section 6.2 of [VDAF].
 
 3.  Specification of VIDPF
+
+      NOTE This specification is based on [MST24], which in turn draws
+      on ideas from [CP22].  We don't yet have a concrete security
+      analysis of the complete construction.  Some details of the
+      construction are likely to change as a result of such analysis.
 
    +=============+======================+=============================+
    | Parameter   | Description          | Value                       |
@@ -693,7 +698,7 @@ Table of Contents
        xof = XofTurboShake128(b'', dst(USAGE_EVAL_PROOF), binder)
        return xof.next(PROOF_SIZE)
 
-4.  Specification
+4.  Specification of Mastic
 
    Mastic combines the VIDPF from Section 3 with the FLP from
    Section 7.3 of [VDAF].  An instance of Mastic is determined by a
@@ -912,10 +917,6 @@ Table of Contents
 
 7.2.  Informative References
 
-   [BBCGGI21] Boneh, D., Boyle, E., Corrigan-Gibbs, H., Gilboa, N., and
-              Y. Ishai, "Lightweight Techniques for Private Heavy
-              Hitters", IEEE S&P 2021 , 2021, <https://ia.cr/2021/017>.
-
    [BGI15]    Boyle, E., Gilboa, N., and Y. Ishai, "Function Secret
               Sharing", EUROCRYPT 2015 , 2015,
               <https://www.iacr.org/archive/
@@ -932,11 +933,6 @@ Table of Contents
               ietf-ppm-dap-07, 14 September 2023,
               <https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-
               07>.
-
-   [GI14]     Gilboa, N. and Y. Ishai, "Distributed Point Functions and
-              Their Applications", EUROCRYPT 2014 , 2014,
-              <https://link.springer.com/
-              chapter/10.1007/978-3-642-55220-5_35>.
 
    [MPDST24]  Mouris, D., Patton, C., Davis, H., Sarkar, P., and N. G.
               Tsoutsos, "Mastic: Private Weighted Heavy-Hitters and
