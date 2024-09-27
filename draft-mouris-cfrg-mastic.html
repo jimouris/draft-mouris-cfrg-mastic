@@ -1829,9 +1829,10 @@ def eval_next(self,
     #                 |
     #                 |
     #                 v
+    #                 v
     # current      +-----+     +------+     +-----+      updated
-    # path   --+--&gt;| XOR |----&gt;| Hash |----&gt;| XOR |----&gt; path
-    # proof    |   +-----+     +------+     +-----+      proof
+    # proof  --+--&gt;| XOR |----&gt;| Hash |----&gt;| XOR |----&gt; proof
+    #          |   +-----+     +------+     +-----+
     #          |                               ^
     #          |                               |
     #          +-------------------------------+
