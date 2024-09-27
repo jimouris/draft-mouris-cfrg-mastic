@@ -1066,11 +1066,57 @@ def is_valid(self,
 
 ## Aggregation
 
-> TODO to be specified in full detail.
+Each output share consists of the truncated payload for each VIDPF prefix,
+flattened into a single vector. Aggregation involves simply adding these up:
+
+~~~ python
+def aggregate(self,
+              agg_param: MasticAggParam,
+              out_shares: list[list[F]],
+              ) -> list[F]:
+    (level, prefixes, _do_weight_check) = agg_param
+    agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    for out_share in out_shares:
+        agg_share = vec_add(agg_share, out_share)
+    return agg_share
+~~~
 
 ## Unsharding
 
-> TODO to be specified in full detail.
+The aggregate result consists of a list of total weights, each corresponding to
+one of the prefixes. To compute it:
+
+1. Add up the aggregate shares.
+
+1. For each prefix, decode the corresponding vector chunk using the FLP's
+   decoding algorithm ({{Section 7.1.1 of !VDAF}}). This requires the
+   measurement count, i.e., the number of inputs that began with the prefix.
+   This is encoded by the chunk.
+
+The complete algorithm is listed below:
+
+~~~ python
+def unshard(self,
+            agg_param: MasticAggParam,
+            agg_shares: list[list[F]],
+            _num_measurements: int,
+            ) -> list[R]:
+    (level, prefixes, _do_weight_check) = agg_param
+    agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    for agg_share in agg_shares:
+        agg = vec_add(agg, agg_share)
+
+    agg_result = []
+    while len(agg) > 0:
+        (chunk, agg) = front(self.flp.OUTPUT_LEN + 1, agg)
+        meas_count = chunk[0].as_unsigned()
+        agg_result.append(self.flp.decode(chunk[1:], meas_count))
+    return agg_result
+~~~
+
+## Auxiliary Functions
+
+TODO
 
 # Security Considerations
 
