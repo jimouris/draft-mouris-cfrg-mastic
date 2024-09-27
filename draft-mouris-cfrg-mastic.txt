@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 30 March 2025                                           Nillion
+Expires: 31 March 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                       26 September 2024
+                                                       27 September 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 30 March 2025.
+   This Internet-Draft will expire on 31 March 2025.
 
 Copyright Notice
 
@@ -87,6 +87,7 @@ Table of Contents
      4.3.  Validity of Aggregation Parameters
      4.4.  Aggregation
      4.5.  Unsharding
+     4.6.  Auxiliary Functions
    5.  Security Considerations
    6.  IANA Considerations
    7.  References
@@ -1092,11 +1093,54 @@ Table of Contents
 
 4.4.  Aggregation
 
-      TODO to be specified in full detail.
+   Each output share consists of the truncated payload for each VIDPF
+   prefix, flattened into a single vector.  Aggregation involves simply
+   adding these up:
+
+   def aggregate(self,
+                 agg_param: MasticAggParam,
+                 out_shares: list[list[F]],
+                 ) -> list[F]:
+       (level, prefixes, _do_weight_check) = agg_param
+       agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+       for out_share in out_shares:
+           agg_share = vec_add(agg_share, out_share)
+       return agg_share
 
 4.5.  Unsharding
 
-      TODO to be specified in full detail.
+   The aggregate result consists of a list of total weights, each
+   corresponding to one of the prefixes.  To compute it:
+
+   1.  Add up the aggregate shares.
+
+   2.  For each prefix, decode the corresponding vector chunk using the
+       FLP's decoding algorithm (Section 7.1.1 of [VDAF]).  This
+       requires the measurement count, i.e., the number of inputs that
+       began with the prefix.  This is encoded by the chunk.
+
+   The complete algorithm is listed below:
+
+   def unshard(self,
+               agg_param: MasticAggParam,
+               agg_shares: list[list[F]],
+               _num_measurements: int,
+               ) -> list[R]:
+       (level, prefixes, _do_weight_check) = agg_param
+       agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+       for agg_share in agg_shares:
+           agg = vec_add(agg, agg_share)
+
+       agg_result = []
+       while len(agg) > 0:
+           (chunk, agg) = front(self.flp.OUTPUT_LEN + 1, agg)
+           meas_count = chunk[0].as_unsigned()
+           agg_result.append(self.flp.decode(chunk[1:], meas_count))
+       return agg_result
+
+4.6.  Auxiliary Functions
+
+   TODO
 
 5.  Security Considerations
 
