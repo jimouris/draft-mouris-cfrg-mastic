@@ -130,16 +130,21 @@ example, a browser vendor might want to know which websites are visited most
 frequently without learning which clients visited which websites.
 
 This problem can be solved by combining a binary search with a subroutine
-solving the private "prefix histogram" subproblem. The goal of this subproblem
-is to count how many of the input strings begin with each of a sequence of
-candidate prefixes. This subproblem can be solved using a Verifiable
-Distributed Aggregation Function, or VDAF
-{{!VDAF=I-D.draft-irtf-cfrg-vdaf-11}}. (TODO Update the VDAF reference to draft
-12.) In particular, the Poplar1 VDAF described in {{Section 8 of !VDAF}}
-describes how to distribute this computation amongst two aggregation servers
-such that, as long as one server is honest, no individual's input is observed
-in the clear. At the same time, Poplar1 allows the servers to detect and remove
-any invalid measurements that would otherwise corrupt the computation.
+solving the simpler "prefix histogram" problem. The goal of this problem is to
+count how many of the input strings begin with each of a sequence of candidate
+prefixes. This problem can be solved using a Verifiable Distributed Aggregation
+Function, or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-11}}.
+
+> TODO Update the VDAF reference to draft 12 (issue \#34). Note that we're
+> currently in sync with an unpublished version of the draft. The repository is
+> https://github.com/cfrg/draft-irtf-cfrg-vdaf and the commit is
+> ea39dccccc83988029fd667555aa45f6589195b2.
+
+The Poplar1 VDAF specified in {{Section 8 of !VDAF}} describes how to
+distribute this computation amongst two aggregation servers such that, as long
+as one server is honest, no individual's input is observed in the clear. At the
+same time, Poplar1 allows the servers to detect and remove any invalid
+measurements that would otherwise corrupt the computation.
 
 This document describes Mastic {{MPDST24}}, a VDAF for the following, more
 general functionality: each client holds an input and an associated weight, and
@@ -159,41 +164,47 @@ functionality gives rise to two types of applications:
 1. "attribute-based metrics": The Prio3 VDAF ({{Section 7 of !VDAF}}) can be
    used for a variety of aggregation tasks, ranging from simple summary
    statistics, like average or standard deviation, to more sophisticated
-   summaries of data, like histograms or linear regression. In many situations,
-   it is desirable to group such metrics by client attributes such as
-   geolocation or user agent ({{Section 10.1.5 of ?RFC9110}}). Mastic provides
-   this functionality without revealing any client's attribute to the
+   representations of data, like histograms or linear regression. In many
+   situations, it is desirable to group such metrics by client attributes such
+   as geolocation or user agent ({{Section 10.1.5 of ?RFC9110}}). Mastic
+   provides this functionality without revealing any client's attribute to the
    aggregation servers or data collector.
 
 The main component of Mastic is the Verifiable Incremental Distributed Point
 Function (VIDPF) of {{MST24}}. VIDPF extends IDPF ({{Section 8.3 of !VDAF}}),
 the main building block of Poplar1. Both IDPF and VIDPF are a form of function
 secret sharing {{BGI15}}, where a client generates shares of a secret function
-`F` such that each server can computes shares of `F(x)` for a chosen `x`. In
+`F` such that each server can computes shares of `F(X)` for a chosen `X`. In
 our case, the function being shared is associated with a secret input string
-`alpha` and weight `beta` for which `F(x) = beta` for every prefix `x` of
-`alpha` and `F(p) = 0` for every `x` this is not a prefix of `alpha`. The
+`alpha` and weight `beta` for which `F(X) = beta` for every prefix `X` of
+`alpha` and `F(X) = 0` for every `X` this is not a prefix of `alpha`. The
 scheme is verifiable in the sense that, for any two candidate prefixes of the
 same length, the servers can verify that at most one of them evaluates to
 `beta` and the other(s) evaluate(s) to `0`.
 
 Mastic combines VIDPF with a method for checking that `beta` itself is a valid
-weight. For example, if the weights represent page load times in seconds it is
-important to make sure each weight is within a sensible range, say within
-thirty seconds. Otherwise, misbehaving clients would be able to poison the
+weight. For example, if the weights represent page load times, it is important
+to make sure each weight is within a sensible range, say within seconds rather
+than hours or days. Otherwise, misbehaving clients would be able to poison the
 computation by reporting out of range values. This range check is accomplished
 with the Fully Linear Proof (FLP) system of {{Section 7.3 of !VDAF}}. An FLP
 allows properties of secret shared data to be validated without revealing the
 data itself. In Mastic, the client generates an FLP of its `beta`'s validity;
 when the servers are ready to evaluate the VIDPF, they first compute shares of
-`beta` and verify the FLP. Then the VIDPF ensures that the non-`0` output of
-the point function is the same for erach evaluation.
+`beta` and verify the FLP, which itself is secret shared. Then the VIDPF
+ensures that the non-`0` output of the point function is the same for each
+evaluation.
 
 This document specifies VIDPF in {{vidpf}} and the composition of VIDPF and FLP
-into Mastic in {{vidpf}}. The appendix includes supplementary material, including:
+into Mastic in {{vidpf}}. The appendix includes supplementary material:
 
-* {{motivation}} discusses some use cases that motivated Mastic's functionality; and
-* {{additional-modes}} describes extensions and optimizations for Mastic at a high level.
+* {{motivation}} discusses some use cases that motivated Mastic's functionality.
+
+* {{additional-modes}} describes extensions and optimizations for Mastic,
+  including a batched "preparation" ({{Section 5.2 of !VDAF}}) mode of
+  operation that reduces communication cost, and a 3-party variant of the
+  protocol that ensures robustness against poisoning attacks in the presence of
+  one malicious aggregation server.
 
 # Conventions and Definitions {#conventions}
 
@@ -221,32 +232,33 @@ This document uses the following terms as defined in {{!VDAF}}:
 "report".
 
 Mastic uses finite fields as specified in {{Section 6.1 of !VDAF}}. We usually
-denote a generic finite field by `F` and its Python class object, a subclass of
+denote a finite field by `F` and its Python class object, a subclass of
 `Field`, as `field: type[F]`.
 
 An instance of Mastic is determined by a desired bit-length of the input,
-denoted `BITS`, and an instance of the FLP in {{Section 7.3 of !VDAF}}. We
-denote the class object for the FLP by `flp`.
+denoted `BITS`, and a validity circuit, an instance of `Valid` as defined in
+{{Section 7.3.2 of !VDAF}}. The validity circuit is used to instantiate the FLP
+and defines the type of the weights generated by Clients and the type of the
+total weight for each prefix computed by the Collector.
 
 The Client's measurement has two components: the input string `alpha: int` in
-`range(2**BITS)` (TODO: The type may change once we solve issue \#34) and its
-weight. The weight's type is denoted `Measurement` and is determined by the
-FLP. (see {{Section 7.1 of !VDAF}}). We use `beta: list[F]` to denote the
-encoded weight, obtained by invoking the FLP's measurement encoding method.
+`range(2**BITS)` (TODO The type may change once we solve issue \#34) and its
+weight. The weight's type is denoted by `W`. We use `beta: list[F]` to denote
+the encoded weight, obtained by invoking the FLP's encoder ({{Section 7.1.1 of
+!VDAF}}).
 
-The aggregate result has type `list[AggResult]`, where `AggResult` is likewise
-a type defined by the FLP. Each element of this list corresponds to the total
+The aggregate result has type `list[R]`, where `R` is likewise a type defined
+by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.
 
-Finally, Mastic usex eXtendable Output Functions (XOFs) as specified in
+Finally, Mastic uses eXtendable Output Functions (XOFs) as specified in
 {{Section 6.2 of !VDAF}}.
 
 # Specification of VIDPF {#vidpf}
 
 > NOTE This specification is based on {{MST24}}, which in turn draws on ideas
 > from {{CP22}}. We don't yet have a concrete security analysis of the complete
-> construction. Some details of the construction are likely to change as a
-> result of such analysis.
+> construction. Some details are likely to change as a result of such analysis.
 
 | Parameter         | Description                                           | Value                                                      |
 |:------------------|:------------------------------------------------------|:-----------------------------------------------------------|
@@ -263,27 +275,27 @@ This section specifies the Verifiable Incremental Distributed Point Function
 
 VIDPF is a function secret sharing scheme {{BGI15}} for functions `F` for which:
 
-  * `F(x) = [field(1)] + beta` if `x` is a prefix of `alpha`
-  * `F(x) = field.zeros(VALUE_LEN+1)` if `x` is not a prefix of `alpha`
+  * `F(X) = [field(1)] + beta` if `X` is a prefix of `alpha`
+  * `F(X) = field.zeros(VALUE_LEN+1)` if `x` is not a prefix of `alpha`
 
 where `alpha` and `beta` are the input and encoded weight of a Client. The
-scheme is designed to allow each Aggregator to compute a share of output `F(x)`
-for any candidate prefix `x` without revealing any information about `alpha` or
-`beta`. Furthermore, the output shares can be aggregated locally, allowing
-each Aggregator to compute a share of the total weight for `x`.
+scheme is designed to allow each Aggregator to compute a share of `F(X)` for
+any candidate prefix `X` without revealing any information about `alpha` or
+`beta`. Furthermore, the output shares can be aggregated locally, allowing each
+Aggregator to compute a share of the total weight for all inputs that have `X`
+as a prefix.
 
 Along with encoded weight `beta`, the output includes a counter prefix, denoted
-`field(1)`, so that the total weight also includes the number of inputs that
-begin with the given prefix. This allows for the Collector to take this into
-account when decoding the aggregate result for each prefix. This is required by
-{{Section 7.1 of !VDAF}}.
+`field(1)`, so that the total weight also includes the prefix count. This
+allows for the Collector to take this into account when decoding the aggregate
+result for each prefix. This is required by {{Section 7.1.1 of !VDAF}}.
 
 The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
 Imagine arranging these prefixes in a binary tree where each path from the root
-corresponds to a prefix `x` and each node corresponds to a payload `F(x)`. We
+corresponds to a prefix `X` and each node corresponds to a payload `F(X)`. We
 refer to this as the "prefix tree".
 
-When the Aggregators evaluate a Client's VIDPF, they verify three properites of
+When the Aggregators evaluate a Client's VIDPF, they verify three properties of
 the prefix tree:
 
 1. One-hotness: at every level of the tree, at most one node has a non-zero
@@ -298,12 +310,13 @@ the prefix tree:
 
 VIDPF is comprised of two algorithms.
 
-The key generation algorithm, defined in {{vidpf-key-gen}} takes in a `(alpha,
-beta)` and outputs secret shares of `F`. The shares take the form of a pair of
-"keys", one for each Aggregator, and a sequence of "correction words" sent to
-both Aggregators. We define correction words in the next section.
+The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
+beta)` and a nonce and outputs secret shares of `F`. The shares take the form
+of a pair of "keys", one for each Aggregator, and a sequence of "correction
+words" sent to both Aggregators. We define correction words in the next
+section.
 
-The key evaluation algorithm, defined in {{vidpf-key-eval}}, takes in the
+The key evaluation algorithm defined in {{vidpf-key-eval}} takes in the
 correction words, the Aggregator's key, the sequence of candidate prefixes,
 and the nonce associated with the Client's report. It outputs secret shares of
 `beta`, the share of the payload for each prefix, and a byte string known as
@@ -453,6 +466,7 @@ the Aggregator's share of `beta`, the sequence of output shares for each
 prefix, and the evaluation proof.
 
 > TODO Provide an overview and define `PrefixTreeIndex` and `PrefixTreeEntry`.
+> Explain how the evaluation proof is constructed.
 
 ~~~ python
 def eval(self,
@@ -711,25 +725,27 @@ functions referenced in the sharding and preparation sections.
 The sharding algorithm takes in the measurement (the input and weight), the
 nonce, and the sharding randomness. The size of the nonce is `16` bytes; the
 size of the randomness is `vidpf.RAND_SIZE + 2 * xof.SEED_SIZE`, plus an
-additional `xof.SEED_SIZE` if the validity curcuit requires joint ramdoness.
+additional `xof.SEED_SIZE` if the validity circuit takes joint randomness as
+input.
 
 The public share, denoted `MasticPublicShare`, is a tuple comprised of the list
 correction words generated by the VIDPF key generation algorithm and the FLP
 "joint randomness parts" (defined below) used during preparation to compute the
-joint randomness for evaluating the validity circuit.
+joint randomness.
 
 The contents of each input share, denoted `MasticInputShare`, depends on the
 Aggregator who receives it. We refer to the first Aggregator as the "Leader";
-we refer to the second Aggregator as the "Helper".
+we refer to the second Aggregator as the "Helper". The components of the input
+share are:
 
 1. The Aggregator's VIDPF key share.
 
-1. An optional FLP proof share, vector of field elements. This is set for the
+1. An optional FLP proof share, a vector of field elements. This is set for the
    Leader only.
 
-1. An optional FLP seed. This is always set for the Helper, who uses it to
-   derive its FLP proof share. This is set for the Leader of the circuit uses
-   joint randomness.
+1. An optional seed. This is always set for the Helper, who uses it to derive
+   its FLP proof share. This is set for the Leader of the circuit uses joint
+   randomness.
 
 The behavior of the sharding algorithm depends on whether the circuit requires
 joint randomness:
@@ -966,8 +982,8 @@ Next, the Aggregators' prep shares are combined into the prep message, denoted
 
 1. If applicable, compute the FLP joint randomness seed from the parts.
 
-The prep message consists of the joint randomness seed. The complete algorithm
-is listed below:
+The prep message consists of the optional joint randomness seed. The complete
+algorithm is listed below:
 
 ~~~ python
 def prep_shares_to_prep(
@@ -1043,8 +1059,8 @@ consume the FLP once; and it is only safe to evaluate the VIDPF at most once at
 any given level of the tree.
 
 > NOTE By "safe" we mean "covered by the analysis of {{MPDST24}}". It could be
-> that a little more flexibility is possible, but this is not guaranteed. If we
-> find matching attacks, we should mention them in {{security-considerations}}.
+> that we have a little more wiggle room, but we're not certain. If we find
+> matching attacks, we should mention them in {{security-considerations}}.
 
 We further restrict aggregation by requiring that the level strictly increases
 at each step:
@@ -1094,8 +1110,7 @@ one of the prefixes. To compute it:
 
 1. For each prefix, decode the corresponding vector chunk using the FLP's
    decoding algorithm ({{Section 7.1.1 of !VDAF}}). This requires the
-   measurement count, i.e., the number of inputs that began with the prefix.
-   This is encoded by the chunk.
+   the prefix count, which is also encoded by the chunk.
 
 The complete algorithm is listed below:
 
@@ -1343,9 +1358,9 @@ attribute-based metrics mode of operation {{attribute-based-metrics}}:
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 {:numbered="false"}
 
-> See {{NEL}} for a motivating application and
-> `example_weighted_heavy_hitters_mode()` in the reference implementation for an
-> end-to-end example.
+> TODO See {{NEL}} for a motivating application and
+> `example_weighted_heavy_hitters_mode()` in the reference implementation for
+> an end-to-end example.
 
 The primary use case for Mastic is a variant of the heavy-hitters problem, in
 which the prefix counts are replaced with a notion of weight that is specific to
@@ -1371,7 +1386,7 @@ minimum weight rather than a minimum count. In addition:
 ### Different Thresholds {#different-thresholds}
 {:numbered="false"}
 
-> For an end-to-end example, see
+> NOTE For an end-to-end example, see
 > `example_weighted_heavy_hitters_mode_with_different_thresholds()` in the
 > reference implementation.
 
@@ -1410,7 +1425,7 @@ threshold 5 should be used. However, if the Aggregators search for prefix
 ## Attribute-based Metrics {#attribute-based-metrics}
 {:numbered="false"}
 
-> See {{attribute-based-telemetry}} for a motivating application and
+> NOTE See {{attribute-based-telemetry}} for a motivating application and
 > `example_attribute_based_metrics_mode()` in the reference implementation for
 > an end-to-end example.
 
@@ -1429,7 +1444,7 @@ cryptographically secure hash function, such as SHA256
 {{?SHS=DOI.10.6028/NIST.FIPS.180-4}}, compute the hash of the Client's input
 string, and interpret each bit of the hash as a bit of the VIDPF index.
 
-> CP: Are we comfortable recommending truncating the hash? Collisions aren't so
+> TODO Are we comfortable recommending truncating the hash? Collisions aren't so
 > bad since the Client can just lie about `alpha` anyway. The main thing is to
 > pick a value for `BITS` that is large enough to avoid accidental collisions.
 
@@ -1442,7 +1457,7 @@ The Aggregators MAY aggregate a report any number times, but:
 2. The aggregation parameter MUST specify the last level of the VIDPF tree
    (i.e., `level` MUST be `Vidpf.BITS-1`).
 
-> OPEN ISSUE Figure out if these requirements are strict enough. We may need to
+> TODO Figure out if these requirements are strict enough. We may need to
 > tighten aggregation parameter validity if we find out that aggregating at the
 > same level more than once is not safe.
 
@@ -1470,7 +1485,7 @@ into a Merkle tree. During aggregation, the Aggregators interactively traverse
 the tree to detect the subtree(s) containing invalid reports and remove them
 from the batch.
 
-> OPEN ISSUE Decide if we should spell this out in greater detail. This feature
+> TODO Decide if we should spell this out in greater detail. This feature
 > is not compatible with {{?DAP=I-D.draft-ietf-ppm-dap-07}}; if we wanted to
 > extend DAP to support this, then we'd need to specify the wire format of the
 > messages exchanged between the Aggregators.
@@ -1492,7 +1507,7 @@ propagated down the tree correctly. Note that this trick is not suitable for
 weighted heavy-hitters, since it expects that each `beta` value is constant
 (e.g., 1).
 
-> OPEN ISSUE Proof aggregation could work with plain Mastic, but we would need
+> TODO Proof aggregation could work with plain Mastic, but we would need
 > to check the FLPs at the first round of aggregation, leading to best-case
 > communication cost would be `O(num_measurements + Vidpf.BITS)`. This would be
 > OK, but we would still want to support a mode for plain heavy-hitters that is
