@@ -307,8 +307,7 @@ class Mastic(
                   agg_param: MasticAggParam,
                   out_shares: list[list[F]],
                   ) -> list[F]:
-        (level, prefixes, _do_weight_check) = agg_param
-        agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+        agg_share = self.empty_agg(agg_param)
         for out_share in out_shares:
             agg_share = vec_add(agg_share, out_share)
         return agg_share
@@ -318,8 +317,7 @@ class Mastic(
                 agg_shares: list[list[F]],
                 _num_measurements: int,
                 ) -> list[R]:
-        (level, prefixes, _do_weight_check) = agg_param
-        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+        agg = self.empty_agg(agg_param)
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
 
@@ -404,6 +402,11 @@ class Mastic(
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
+
+    def empty_agg(self, agg_param: MasticAggParam) -> list[F]:
+        (_level, prefixes, _do_weight_check) = agg_param
+        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+        return agg
 
     def test_vec_encode_input_share(
         self,

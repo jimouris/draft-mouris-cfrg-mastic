@@ -701,6 +701,10 @@ circuit. We denote this instance of the VIDPF by `vidpf`.
 In the remainder, we write `xof` as shorthand for `XofTurboShake128` ({{Section
 6.2.1 of !VDAF}}).
 
+Mastic's implementation of the VDAF interface ({{Section 5 of !VDAF}}) is
+sepcified in the following sections. {{mastic-aux}} defines some auxiliary
+functions referenced in the sharding and preparation sections.
+
 ## Sharding
 
 The sharding algorithm takes in the measurement (the input and weight), the
@@ -1074,8 +1078,7 @@ def aggregate(self,
               agg_param: MasticAggParam,
               out_shares: list[list[F]],
               ) -> list[F]:
-    (level, prefixes, _do_weight_check) = agg_param
-    agg_share = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    agg_share = self.empty_agg(agg_param)
     for out_share in out_shares:
         agg_share = vec_add(agg_share, out_share)
     return agg_share
@@ -1101,8 +1104,7 @@ def unshard(self,
             agg_shares: list[list[F]],
             _num_measurements: int,
             ) -> list[R]:
-    (level, prefixes, _do_weight_check) = agg_param
-    agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    agg = self.empty_agg(agg_param)
     for agg_share in agg_shares:
         agg = vec_add(agg, agg_share)
 
@@ -1114,9 +1116,89 @@ def unshard(self,
     return agg_result
 ~~~
 
-## Auxiliary Functions
+## Auxiliary Functions {#mastic-aux}
 
-TODO
+~~~ python
+def expand_input_share(
+        self,
+        agg_id: int,
+        input_share: MasticInputShare,
+) -> tuple[bytes, list[F], Optional[bytes]]:
+    if agg_id == 0:
+        (key, proof_share, seed) = input_share
+        assert proof_share is not None
+    else:
+        (key, _leader_proof_share, seed) = input_share
+        assert seed is not None
+        proof_share = self.helper_proof_share(seed)
+    return (key, proof_share, seed)
+
+def helper_proof_share(self, seed: bytes) -> list[F]:
+    return self.xof.expand_into_vec(
+        self.field,
+        seed,
+        dst(USAGE_PROOF_SHARE),
+        b'',
+        self.flp.PROOF_LEN,
+    )
+
+def prove_rand(self, seed: bytes) -> list[F]:
+    return self.xof.expand_into_vec(
+        self.field,
+        seed,
+        dst(USAGE_PROVE_RAND),
+        b'',
+        self.flp.PROVE_RAND_LEN,
+    )
+
+def joint_rand_part(
+        self,
+        agg_id: int,
+        seed: bytes,
+        key: bytes,
+        correction_words: list[CorrectionWord],
+        nonce: bytes,
+) -> bytes:
+    pub = self.vidpf.encode_public_share(correction_words)
+    return self.xof.derive_seed(
+        seed,
+        dst(USAGE_JOINT_RAND_PART),
+        byte(agg_id) + nonce + key + pub,
+    )
+
+def joint_rand_seed(self, parts: list[bytes]) -> bytes:
+    return self.xof.derive_seed(
+        zeros(self.xof.SEED_SIZE),
+        dst(USAGE_JOINT_RAND_SEED),
+        concat(parts),
+    )
+
+def joint_rand(self, seed: bytes) -> list[F]:
+    return self.xof.expand_into_vec(
+        self.field,
+        seed,
+        dst(USAGE_JOINT_RAND),
+        b'',
+        self.flp.JOINT_RAND_LEN,
+    )
+
+def query_rand(self,
+               verify_key: bytes,
+               nonce: bytes,
+               level: int) -> list[F]:
+    return self.xof.expand_into_vec(
+        self.field,
+        verify_key,
+        dst(USAGE_QUERY_RAND),
+        nonce + to_le_bytes(level, 2),
+        self.flp.QUERY_RAND_LEN,
+    )
+
+def empty_agg(self, agg_param: MasticAggParam) -> list[F]:
+    (_level, prefixes, _do_weight_check) = agg_param
+    agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    return agg
+~~~
 
 # Security Considerations
 
