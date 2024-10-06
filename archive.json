@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-03T00:47:03.223081+00:00",
+  "timestamp": "2024-10-06T00:51:39.187806+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -864,11 +864,13 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "jimouris"
+      ],
       "labels": [],
       "body": "Define a few variants of Mastic, perhaps for Count, Sum, and Histogram. Add script for generating test vectors, similar to https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/main/poc/gen_test_vec.py, and use it to add test vectors to the repo.",
       "createdAt": "2024-09-17T18:21:47Z",
-      "updatedAt": "2024-09-27T00:24:17Z",
+      "updatedAt": "2024-10-04T18:55:49Z",
       "closedAt": null,
       "comments": []
     },
@@ -884,9 +886,17 @@
       "labels": [],
       "body": "`ONEHOT_PROOF_INIT` is used as the initial  proof, which is updated with node proof computed by each call to `eval_next()`. It appears we're free to set this to any public value:\r\n* The original [de Castro and Polychroniadou paper](https://eprint.iacr.org/2021/580) sets this to the \"correction seed\" ($\\mathsf{cs}$ in Algorithm 3).\r\n* The PLASMA paper sets this to to \"0\" (the all zero string).\r\n* We currently set it to a salt.\r\n\r\nI had the thought that we could also derive this from the VDAF verification key so that it is pseudorandom from the point of view of the adversary (i.e., the malicious client). I wonder if this could provide some benefit in terms of security.\r\n\r\n",
       "createdAt": "2024-09-17T18:40:53Z",
-      "updatedAt": "2024-09-26T23:27:06Z",
+      "updatedAt": "2024-10-04T18:29:12Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Per 2024/10/4 call: It would be nice if PROOF_SIZE could be reduced to 16 (smaller correction words).",
+          "createdAt": "2024-10-04T18:29:10Z",
+          "updatedAt": "2024-10-04T18:29:10Z"
+        }
+      ]
     },
     {
       "number": 78,
@@ -912,11 +922,13 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "cjpatton"
+      ],
       "labels": [],
       "body": "Each call to `vidpf.eval_next()` updates the onehot proof as follows (excerpted from the spec):\r\n\r\n```\r\n# Compute and correct the node proof and update the onehot proof.\r\n# Each update resembles a step of Merkle-Damgard compression. The\r\n# main difference is that we XOR each block (i.e., corrected node\r\n# proof) with the previous hash (or IV) rather than compress.\r\n#\r\n#             corrected node proof\r\n#                 |\r\n#                 |\r\n#                 v\r\n# current      +-----+     +------+     +-----+      updated\r\n# proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof\r\n#          |   +-----+     +------+     +-----+\r\n#          |                               ^\r\n#          |                               |\r\n#          +-------------------------------+\r\n#\r\n# [MST24]: \\tilde\\pi = H_1(x^{\\leq i} || s^\\i)\r\n#          \\pi = \\tilde \\pi \\xor\r\n#             H_2(\\pi \\xor (\\tilde\\pi \\xor t^\\i \\cdot \\cs^\\i)\r\n```\r\n\r\nThis is Merkle-Damgard-ish: the difference is that we XOR the next block (i.e., the node proof) with the current state (i.e., the current proof) then hash to get the next state, rather than compress the next block and the current state to get the next state. This comes from [CP22], but why do they do this? If we can get away with plain Merkle-Damgard, then it might be a good idea to use it here.",
       "createdAt": "2024-09-27T00:32:38Z",
-      "updatedAt": "2024-09-27T00:32:38Z",
+      "updatedAt": "2024-10-04T18:57:04Z",
       "closedAt": null,
       "comments": []
     },
@@ -928,11 +940,13 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "hannahdaviscrypto"
+      ],
       "labels": [],
       "body": "Right now the public share encodes the FLP joint randomness parts, following the same lines as Prio3. However while working on the paper we decided to move these to the input shares to save some communication. In particular, we would add the helper's part to the leader's input share and the leader's part to the helper's input share.",
       "createdAt": "2024-09-27T00:36:35Z",
-      "updatedAt": "2024-09-27T00:36:35Z",
+      "updatedAt": "2024-10-04T18:23:36Z",
       "closedAt": null,
       "comments": []
     },
@@ -944,11 +958,55 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "hannahdaviscrypto"
+      ],
       "labels": [],
       "body": "The FLP joint randomness computation binds to the VIDPF correction words and keys generated by the client. This means the aggregators have to either store the encoded correction words or re-encode them on the fly. Neither is desirable from an implementation perspective.\r\n\r\nTwo options:\r\n\r\n1. Replace the encoded correction words in the binder with a hash of the correction words, which the aggregator could compute while decoding.\r\n2. In @hannahdaviscrypto's implementation (https://github.com/divviup/libprio-rs/blob/dea0456ec4e0af8a3c1fed26db6bf7d776f195ad/src/flp/szk.rs#L459-L474), we bind only to the measurement shares. We suspect this is sufficient, and in fact it's implicit in the syntax of the paper.",
       "createdAt": "2024-10-01T14:27:37Z",
-      "updatedAt": "2024-10-01T14:29:04Z",
+      "updatedAt": "2024-10-04T18:23:06Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 84,
+      "id": "I_kwDOJmRsfc6Y4hiu",
+      "title": "Idea: Support for multipoint functions",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/84",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [
+        "cjpatton"
+      ],
+      "labels": [],
+      "body": "During the call with Google folks on 2024/10/3, @csharrison suggested it would nice to support a \"multihot histogram\" functionality, similar to [Prio3MultihotCountVec](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.5), where there are multiple non-zero paths in the VIDPF tree. This is interesting for example when combining the VDAF with a local DP mechanism, where the client might probabilistically set a bounded number of buckets in the histogram.\r\n\r\n[[CP22]](https://eprint.iacr.org/2021/580) describe \"distributed, multi-point functions\", which might be suitable here. (Thanks @jimouris for pointing this out.)\r\n\r\nConsider extending VIDPF to be multi-point.",
+      "createdAt": "2024-10-03T20:33:19Z",
+      "updatedAt": "2024-10-04T18:48:29Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Questions from 2024/10/4:\r\n* @jimouris: We have multiple inputs: do we need a distinct weight for each, or is it sufficient to have one weight? We can definitely do the second, but not sure about the first.\r\n* Nektarios: If the requirement is to compose with local DP mechanisms, then perhaps there's something else we can do that doesn't require the multiple inputs feature.",
+          "createdAt": "2024-10-04T18:48:24Z",
+          "updatedAt": "2024-10-04T18:48:24Z"
+        }
+      ]
+    },
+    {
+      "number": 85,
+      "id": "I_kwDOJmRsfc6ZAskR",
+      "title": "Add support for batched preparation",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/85",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/pull/565.\r\n\r\nWe can already batch VIDPF proof evaluation; we just need a way to batch FLP proof evaluation. This is accomplished by [Whipser](https://eprint.iacr.org/2024/666).\r\n\r\nAdd support for Whisper-style batching and implement an API for batched preparation for Mastic.",
+      "createdAt": "2024-10-04T18:54:57Z",
+      "updatedAt": "2024-10-04T18:54:57Z",
       "closedAt": null,
       "comments": []
     }
@@ -6605,6 +6663,90 @@
       },
       "comments": [],
       "reviews": []
+    },
+    {
+      "number": 82,
+      "id": "PR_kwDOJmRsfc59ijc0",
+      "title": "Add deck for 2024/10/3 talk at Google",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/82",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-10-03T18:48:38Z",
+      "updatedAt": "2024-10-03T18:56:12Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "877d0e5da58a831458719e7a3a46cc1084184d01",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/tech-talk",
+      "headRefOid": "6f58c0b6833fac05ae6fa9a1156c1254cabaff7a",
+      "closedAt": "2024-10-03T18:56:11Z",
+      "mergedAt": "2024-10-03T18:56:11Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "1427a60465818463bbdffbf0c2db72c7c2cc4cca"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6L3FnS",
+          "commit": {
+            "abbreviatedOid": "6f58c0b"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-03T18:55:28Z",
+          "updatedAt": "2024-10-03T18:55:28Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 83,
+      "id": "PR_kwDOJmRsfc59i2dX",
+      "title": "Add PLASMA and Mastic IETF CFRG presentations",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/83",
+      "state": "MERGED",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-10-03T19:35:28Z",
+      "updatedAt": "2024-10-03T20:33:47Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "1427a60465818463bbdffbf0c2db72c7c2cc4cca",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/talks",
+      "headRefOid": "8d758c5c1657119e0172e7092eb6df6d440f89e7",
+      "closedAt": "2024-10-03T20:33:42Z",
+      "mergedAt": "2024-10-03T20:33:42Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "fa705ebb9ab0c2fdc93b0c91689b976171c05c54"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6L3r8-",
+          "commit": {
+            "abbreviatedOid": "8d758c5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-03T20:24:49Z",
+          "updatedAt": "2024-10-03T20:24:49Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
