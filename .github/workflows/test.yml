@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         sage -pip install mypy
-        sage -pip install git+https://github.com/cfrg/draft-irtf-cfrg-vdaf@ea39dccccc83988029fd667555aa45f6589195b2#subdirectory=poc
+        sage -pip install git+https://github.com/cfrg/draft-irtf-cfrg-vdaf@draft-irtf-cfrg-vdaf-12#subdirectory=poc
 
     - name: Run tests
       working-directory: poc
