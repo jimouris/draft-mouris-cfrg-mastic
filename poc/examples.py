@@ -12,37 +12,37 @@ from vdaf_poc.vdaf_prio3 import Prio3Histogram
 from mastic import Mastic
 
 
-def get_reports_from_measurements(mastic, measurements):
+def get_reports_from_measurements(mastic, ctx, measurements):
     reports = []
     for measurement in measurements:
         nonce = gen_rand(16)
         rand = gen_rand(mastic.RAND_SIZE)
-        (public_share, input_shares) = mastic.shard(measurement, nonce, rand)
+        (public_share, input_shares) = mastic.shard(ctx,
+                                                    measurement,
+                                                    nonce,
+                                                    rand)
         reports.append((nonce, public_share, input_shares))
     return reports
 
 
-def get_threshold(thresholds, prefix, level):
+def get_threshold(thresholds, prefix):
     '''
-    Return the threshold of the given (prefix, level) if the tuple exists. If
-    not, check if any of its prefixes exist. If not, return the default
-    threshold.
+    Return the threshold of the given prefix if it exists. If not, check if any
+    of its prefixes exist. If not, return the default threshold.
     '''
-    while level > 0:
-        if (prefix, level) in thresholds:
-            return thresholds[(prefix, level)]
-        prefix >>= 1
-        level -= 1
+    for level in reversed(range(len(prefix)-1)):
+        if prefix[:level+1] in thresholds:
+            return thresholds[prefix[:level+1]]
     return thresholds['default']  # Return the default threshold
 
 
-def compute_heavy_hitters(mastic, bits, thresholds, reports):
+def compute_heavy_hitters(mastic, ctx, thresholds, reports):
     verify_key = gen_rand(16)
 
-    prefixes = [0, 1]
+    prefixes = [(False,), (True,)]
     prev_agg_params = []
     heavy_hitters = []
-    for level in range(bits):
+    for level in range(mastic.vidpf.BITS):
         agg_param = (level, prefixes, level == 0)
         assert mastic.is_valid(agg_param, prev_agg_params)
 
@@ -53,6 +53,7 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
             (prep_state, prep_shares) = zip(*[
                 mastic.prep_init(
                     verify_key,
+                    ctx,
                     agg_id,
                     agg_param,
                     nonce,
@@ -61,12 +62,12 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
             ])
 
             # computes the prep message; ...
-            prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
+            prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
 
             # and computes its output share.
             for agg_id in [0, 1]:
                 out_shares[agg_id].append(
-                    mastic.prep_next(prep_state[agg_id], prep_msg))
+                    mastic.prep_next(ctx, prep_state[agg_id], prep_msg))
 
         # Aggregators aggregate their output shares.
         agg_shares = [
@@ -77,18 +78,18 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
         agg_result = mastic.unshard(agg_param, agg_shares, len(reports))
         prev_agg_params.append(agg_param)
 
-        if level < bits - 1:
+        if level < mastic.vidpf.BITS - 1:
             # Compute the next set of candidate prefixes.
             next_prefixes = []
             for (prefix, count) in zip(prefixes, agg_result):
-                threshold = get_threshold(thresholds, prefix, level)
+                threshold = get_threshold(thresholds, prefix)
                 if count >= threshold:
-                    next_prefixes.append(prefix << 1)
-                    next_prefixes.append((prefix << 1) | 1)
+                    next_prefixes.append(prefix + (False,))
+                    next_prefixes.append(prefix + (True,))
             prefixes = next_prefixes
         else:
             for (prefix, count) in zip(prefixes, agg_result):
-                threshold = get_threshold(thresholds, prefix, level)
+                threshold = get_threshold(thresholds, prefix)
                 if count >= threshold:
                     heavy_hitters.append(prefix)
     return heavy_hitters
@@ -96,79 +97,85 @@ def compute_heavy_hitters(mastic, bits, thresholds, reports):
 
 def example_weighted_heavy_hitters_mode():
     bits = 4
+    ctx = b'example_weighted_heavy_hitters_mode'
     mastic = Mastic(bits, Count(Field64))
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
     # weight. Here the weight is simply a counter (either `0` or `1`).
     measurements = [
-        (0b1001, 1),
-        (0b0000, 1),
-        (0b0000, 0),
-        (0b0000, 1),
-        (0b1001, 1),
-        (0b0000, 1),
-        (0b1100, 1),
-        (0b0011, 1),
-        (0b1111, 0),
-        (0b1111, 0),
-        (0b1111, 1),
+        (mastic.vidpf.test_index_from_int(0b1001, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b0000, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b0000, bits), 0),
+        (mastic.vidpf.test_index_from_int(0b0000, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1001, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b0000, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1100, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b0011, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 0),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 0),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
     ]
 
-    reports = get_reports_from_measurements(mastic, measurements)
+    reports = get_reports_from_measurements(mastic, ctx, measurements)
 
     thresholds = {
         'default': 2,
     }
 
     # Collector and Aggregators compute the weighted heavy hitters.
-    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
-    print("Weighted heavy-hitters:",
-          list(map(lambda x: bin(x), heavy_hitters)))
-    assert heavy_hitters == [0, 9]
+    heavy_hitters = compute_heavy_hitters(mastic, ctx, thresholds, reports)
+    print("Weighted heavy-hitters:", heavy_hitters)
+    assert heavy_hitters == [mastic.vidpf.test_index_from_int(0b0000, bits),
+                             mastic.vidpf.test_index_from_int(0b1001, bits)]
 
 
 def example_weighted_heavy_hitters_mode_with_different_thresholds():
     bits = 4
+    ctx = b'example_weighted_heavy_hitters_mode_with_different_thresholds'
     mastic = Mastic(bits, Count(Field64))
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
     # weight. Here the weight is simply a counter (either `0` or `1`).
     measurements = [
-        (0b0000, 1),
-        (0b0001, 1),
-        (0b1001, 1),
-        (0b1001, 1),
-        (0b1010, 1),
-        (0b1010, 1),
-        (0b1111, 1),
-        (0b1111, 1),
-        (0b1111, 1),
-        (0b1111, 1),
-        (0b1111, 1),
+        (mastic.vidpf.test_index_from_int(0b0000, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b0001, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1001, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1001, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1010, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1010, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
+        (mastic.vidpf.test_index_from_int(0b1111, bits), 1),
     ]
 
-    reports = get_reports_from_measurements(mastic, measurements)
+    reports = get_reports_from_measurements(mastic, ctx, measurements)
 
     # (prefix, level): threshold
     # Note that levels start from zero
     thresholds = {
         'default': 2,
-        (0b00, 1): 1,
-        (0b10, 1): 3,
-        (0b11, 1): 5,
+        mastic.vidpf.test_index_from_int(0b00, 2): 1,
+        mastic.vidpf.test_index_from_int(0b10, 2): 3,
+        mastic.vidpf.test_index_from_int(0b11, 2): 5,
     }
 
     # Collector and Aggregators compute the weighted heavy hitters.
-    heavy_hitters = compute_heavy_hitters(mastic, bits, thresholds, reports)
-    print("Weighted heavy-hitters with different thresholds:",
-          list(map(lambda x: bin(x), heavy_hitters)))
-    assert heavy_hitters == [0, 1, 15]
+    heavy_hitters = compute_heavy_hitters(mastic, ctx, thresholds, reports)
+    print("Weighted heavy-hitters with different thresholds:", heavy_hitters)
+    assert heavy_hitters == [
+        mastic.vidpf.test_index_from_int(0b0000, bits),
+        mastic.vidpf.test_index_from_int(0b0001, bits),
+        mastic.vidpf.test_index_from_int(0b1111, bits),
+    ]
 
 
 def example_attribute_based_metrics_mode():
     bits = 8
+    ctx = b'example_attribute_based_metrics_mode'
     mastic = Mastic(bits, Sum(Field64, 3))
     verify_key = gen_rand(16)
 
@@ -183,7 +190,7 @@ def example_attribute_based_metrics_mode():
         assert bits == 8
         sha3 = hashlib.sha3_256()
         sha3.update(attr.encode('ascii'))
-        return sha3.digest()[0]
+        return mastic.vidpf.test_index_from_int(sha3.digest()[0], bits)
 
     # Clients shard their measurements. Each measurement is comprised of
     # (`alpha`, `beta`) where `beta` is the Client's contribution to the
@@ -209,6 +216,7 @@ def example_attribute_based_metrics_mode():
         nonce = gen_rand(16)
         rand = gen_rand(mastic.RAND_SIZE)
         (public_share, input_shares) = mastic.shard(
+            ctx,
             (h(attr), vote),
             nonce,
             rand,
@@ -231,6 +239,7 @@ def example_attribute_based_metrics_mode():
         (prep_state, prep_shares) = zip(*[
             mastic.prep_init(
                 verify_key,
+                ctx,
                 agg_id,
                 agg_param,
                 nonce,
@@ -239,12 +248,12 @@ def example_attribute_based_metrics_mode():
         ])
 
         # computes the prep message; ...
-        prep_msg = mastic.prep_shares_to_prep(agg_param, prep_shares)
+        prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
 
         # and computes its output share.
         for agg_id in [0, 1]:
             out_shares[agg_id].append(
-                mastic.prep_next(prep_state[agg_id], prep_msg))
+                mastic.prep_next(ctx, prep_state[agg_id], prep_msg))
 
     # Aggregators aggregate their output shares.
     agg_shares = [
@@ -261,7 +270,10 @@ def example_poplar1_overhead():
     nonce = gen_rand(16)
 
     cls = Poplar1(256)
-    (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
+    (public_share, input_shares) = cls.shard(b'poplar',
+                                             (False,)*256,
+                                             nonce,
+                                             gen_rand(cls.RAND_SIZE))
     b = 0
     p = len(cls.test_vec_encode_public_share(public_share))
     b += p
@@ -275,7 +287,8 @@ def example_poplar1_overhead():
     poplar1_bytes_uploaded = b
 
     cls = Mastic(256, Count(Field64))
-    (public_share, input_shares) = cls.shard((0, 0),
+    (public_share, input_shares) = cls.shard(b'mastic_count',
+                                             ((False,)*256, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
@@ -291,7 +304,8 @@ def example_poplar1_overhead():
     mastic_count_bytes_uploaded = b
 
     cls = Mastic(256, Sum(Field64, 8))
-    (public_share, input_shares) = cls.shard((0, 0),
+    (public_share, input_shares) = cls.shard(b'mastic_sum_8',
+                                             ((False,)*256, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
@@ -312,7 +326,8 @@ def example_poplar1_overhead():
         mastic_sum8_bytes_uploaded / mastic_count_bytes_uploaded * 100))
 
     cls = Mastic(32, Histogram(Field128, 100, 10))
-    (public_share, input_shares) = cls.shard((0, 0),
+    (public_share, input_shares) = cls.shard(b'mastic_histogram_100',
+                                             ((False,)*32, 0),
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
@@ -331,7 +346,10 @@ def example_poplar1_overhead():
     length = 100 * 100  # base histogram length * number of attributes
     chunk_length = math.floor(math.sqrt(length))
     cls = Prio3Histogram(2, length, chunk_length)
-    (public_share, input_shares) = cls.shard(0, nonce, gen_rand(cls.RAND_SIZE))
+    (public_share, input_shares) = cls.shard(b'prio3_histogram',
+                                             0,
+                                             nonce,
+                                             gen_rand(cls.RAND_SIZE))
     b = 0
     p = len(cls.test_vec_encode_public_share(public_share))
     b += p
@@ -353,7 +371,7 @@ def example_poplar1_overhead():
 
 
 if __name__ == '__main__':
-    example_poplar1_overhead()
     example_weighted_heavy_hitters_mode()
     example_attribute_based_metrics_mode()
     example_weighted_heavy_hitters_mode_with_different_thresholds()
+    example_poplar1_overhead()
