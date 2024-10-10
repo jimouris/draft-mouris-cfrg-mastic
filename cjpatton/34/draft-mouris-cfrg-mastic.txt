@@ -124,11 +124,6 @@ Table of Contents
    each of a sequence of candidate prefixes.  This problem can be solved
    using a Verifiable Distributed Aggregation Function, or VDAF [VDAF].
 
-      TODO Update the VDAF reference to draft 12 (issue #34).  Note that
-      we're currently in sync with an unpublished version of the draft.
-      The repository is https://github.com/cfrg/draft-irtf-cfrg-vdaf and
-      the commit is ea39dccccc83988029fd667555aa45f6589195b2.
-
    The Poplar1 VDAF specified in Section 8 of [VDAF] describes how to
    distribute this computation amongst two aggregation servers such
    that, as long as one server is honest, no individual's input is
@@ -238,10 +233,9 @@ Table of Contents
    the Collector.
 
    The Client's measurement has two components: the input string alpha:
-   int in range(2**BITS) (TODO The type may change once we solve issue
-   #34) and its weight.  The weight's type is denoted by W.  We use
-   beta: list[F] to denote the encoded weight, obtained by invoking the
-   FLP's encoder (Section 7.1.1 of [VDAF]).
+   tuple[bool, ...] of length BITS and its weight.  The weight's type is
+   denoted by W.  We use beta: list[F] to denote the encoded weight,
+   obtained by invoking the FLP's encoder (Section 7.1.1 of [VDAF]).
 
    The aggregate result has type list[R], where R is likewise a type
    defined by the validity circuit.  Each element of this list
@@ -367,8 +361,9 @@ Table of Contents
       each level.
 
    def gen(self,
-           alpha: int,
+           alpha: tuple[bool, ...],
            beta: list[F],
+           ctx: bytes,
            nonce: bytes,
            rand: bytes,
            ) -> tuple[list[CorrectionWord], list[bytes]]:
@@ -383,7 +378,7 @@ Table of Contents
        leading `alpha` via a side-channel, implementations should avoid
        branching or indexing into arrays in a data-dependent manner.
        '''
-       if alpha not in range(2 ** self.BITS):
+       if len(alpha) != self.BITS:
            raise ValueError("alpha out of range")
        if len(beta) != self.VALUE_LEN:
            raise ValueError("incorrect beta length")
@@ -399,8 +394,8 @@ Table of Contents
        ctrl = [False, True]
        correction_words = []
        for i in range(self.BITS):
-           idx = PrefixTreeIndex(alpha >> (self.BITS - i - 1), i)
-           bit = bool(idx.node & 1)
+           idx = PrefixTreeIndex(alpha[:i+1])
+           bit = alpha[i]
 
            # [MST24]: if x = 0 then keep <- L, lose <- R
            #
@@ -414,8 +409,8 @@ Table of Contents
            #
            # [MST24]: s_0^L || s_0^R || t_0^L || t_0^R
            #          s_1^L || s_1^R || t_1^L || t_1^R
-           (s0, t0) = self.extend(seed[0], nonce)
-           (s1, t1) = self.extend(seed[1], nonce)
+           (s0, t0) = self.extend(seed[0], ctx, nonce)
+           (s1, t1) = self.extend(seed[1], ctx, nonce)
 
            # Compute the correction words for this level's seed and
            # control bit. Our goal is to maintain the following
@@ -448,8 +443,8 @@ Table of Contents
                t1[keep] ^= ctrl_cw[keep]
 
            # Convert.
-           (seed[0], w0) = self.convert(s0[keep], nonce)
-           (seed[1], w1) = self.convert(s1[keep], nonce)
+           (seed[0], w0) = self.convert(s0[keep], ctx, nonce)
+           (seed[1], w1) = self.convert(s1[keep], ctx, nonce)
            ctrl[0] = t0[keep]  # [MST24]: t0'
            ctrl[1] = t1[keep]  # [MST24]: t1'
 
@@ -467,8 +462,8 @@ Table of Contents
            # correct or neither will; and since they compute the same
            # seed, they will again compute the same value.
            proof_cw = xor(
-               self.node_proof(seed[0], idx),
-               self.node_proof(seed[1], idx),
+               self.node_proof(seed[0], ctx, idx),
+               self.node_proof(seed[1], ctx, idx),
            )
 
            correction_words.append((seed_cw, ctrl_cw, w_cw, proof_cw))
@@ -492,7 +487,8 @@ Table of Contents
             correction_words: list[CorrectionWord],
             key: bytes,
             level: int,
-            prefixes: Sequence[int],
+            prefixes: tuple[tuple[bool, ...], ...],
+            ctx: bytes,
             nonce: bytes,
             ) -> tuple[list[F], list[list[F]], bytes]:
        """
@@ -507,6 +503,9 @@ Table of Contents
            raise ValueError("corrections words has incorrect length")
        if level not in range(self.BITS):
            raise ValueError("level too deep")
+       for prefix in prefixes:
+           if len(prefix) != level + 1:
+               raise ValueError("prefix with incorrect length")
        if len(set(prefixes)) != len(prefixes):
            raise ValueError("candidate prefixes are non-unique")
 
@@ -520,16 +519,9 @@ Table of Contents
        onehot_proof = ONEHOT_PROOF_INIT
        for i in range(level+1):
            for prefix in prefixes:
-               if prefix not in range(2 ** (level+1)):
-                   raise ValueError("prefix too long")
-
-               # Compute the entry for `prefix`. To do so, we first need
-               # to look up the parent node.
-               #
-               # The index of the current prefix `prefix` is
-               # `PrefixTreeIndex(prefix >> (level - i), i)`. Its parent
-               # is at level `i - 1`.
-               idx = PrefixTreeIndex(prefix >> (level - i + 1), i - 1)
+               # Compute the entry for `prefix`. Set `idx` to the
+               # index of its parent.
+               idx = PrefixTreeIndex(prefix[:i])
                node = prefix_tree_share.setdefault(idx, root)
                for child_idx in [idx.left_child(), idx.right_child()]:
                    # Compute the entry for `prefix` and its sibling. The
@@ -539,14 +531,15 @@ Table of Contents
                            node,
                            onehot_proof,
                            correction_words[i],
+                           ctx,
                            nonce,
                            child_idx,
                        )
                        prefix_tree_share[child_idx] = child
 
        # Compute the aggregator's share of `beta`.
-       w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w
-       w1 = prefix_tree_share[PrefixTreeIndex(1, 0)].w
+       w0 = prefix_tree_share[PrefixTreeIndex((False,))].w
+       w1 = prefix_tree_share[PrefixTreeIndex((True,))].w
        beta_share = vec_add(w0, w1)[1:]
        if agg_id == 1:
            beta_share = vec_neg(beta_share)
@@ -565,7 +558,7 @@ Table of Contents
        payload_check = b''
        for prefix in prefixes:
            for i in range(level):
-               idx = PrefixTreeIndex(prefix >> (level - i), i)
+               idx = PrefixTreeIndex(prefix[:i+1])
                w = prefix_tree_share[idx].w
                w0 = prefix_tree_share[idx.left_child()].w
                w1 = prefix_tree_share[idx.right_child()].w
@@ -575,20 +568,22 @@ Table of Contents
        # Compute the Aggregator's output share.
        out_share = []
        for prefix in prefixes:
-           idx = PrefixTreeIndex(prefix, level)
+           idx = PrefixTreeIndex(prefix)
            w = prefix_tree_share[idx].w
            out_share.append(w if agg_id == 0 else vec_neg(w))
 
        # Compute the evaluation proof. If both aggregators compute the
        # same value, then they agree on the onehot proof, the counter,
        # and the payload.
-       proof = eval_proof(onehot_proof, counter_check, payload_check)
+       proof = eval_proof(
+           ctx, onehot_proof, counter_check, payload_check)
        return (beta_share, out_share, proof)
 
    def eval_next(self,
                  node: PrefixTreeEntry,
                  onehot_proof: bytes,
                  correction_word: CorrectionWord,
+                 ctx: bytes,
                  nonce: bytes,
                  idx: PrefixTreeIndex,
                  ) -> tuple[PrefixTreeEntry, bytes]:
@@ -597,12 +592,12 @@ Table of Contents
        children, then convert it into a payload and the next seed.
        """
        (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
-       keep = idx.node & 1
+       keep = int(idx.path[-1])
 
        # Extend.
        #
        # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-       (s, t) = self.extend(node.seed, nonce)
+       (s, t) = self.extend(node.seed, ctx, nonce)
 
        # Correct.
        #
@@ -617,8 +612,8 @@ Table of Contents
        # Implementation note: the conditional addition should be
        # replaced with a constant-time select in practice in order to
        # reduce leakage via timing side channels.
-       (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i,W^i
-       next_ctrl = t[keep]  # [MST24]: t'^i
+       (next_seed, w) = self.convert(s[keep], ctx, nonce)
+       next_ctrl = t[keep]  # [MST24]: s^i,W^i, t'^i
        if next_ctrl:
            w = vec_add(w, w_cw)
 
@@ -630,7 +625,6 @@ Table of Contents
        #             corrected node proof
        #                 |
        #                 |
-       #                 v
        #                 v
        # current      +-----+     +------+     +-----+      updated
        # proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof
@@ -644,11 +638,11 @@ Table of Contents
        #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
        #
        # Implementation note: avoid branching on the control bit here.
-       node_proof = self.node_proof(next_seed, idx)
+       node_proof = self.node_proof(next_seed, ctx, idx)
        if next_ctrl:
            node_proof = xor(node_proof, proof_cw)
-       onehot_proof = xor(onehot_proof,
-                          hash_proof(xor(onehot_proof, node_proof)))
+       onehot_proof = xor(
+           onehot_proof, hash_proof(ctx, xor(onehot_proof, node_proof)))
 
        return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
 
@@ -656,13 +650,14 @@ Table of Contents
 
    def extend(self,
               seed: bytes,
+              ctx: bytes,
               nonce: bytes,
               ) -> tuple[list[bytes], Ctrl]:
        '''
        Extend a seed into the seed and control bits for its left and
        right children in the VIDPF tree.
        '''
-       xof = XofFixedKeyAes128(seed, dst(USAGE_EXTEND), nonce)
+       xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_EXTEND), nonce)
        s = [
            bytearray(xof.next(self.KEY_SIZE)),
            bytearray(xof.next(self.KEY_SIZE)),
@@ -677,39 +672,47 @@ Table of Contents
 
    def convert(self,
                seed: bytes,
+               ctx: bytes,
                nonce: bytes,
                ) -> tuple[bytes, list[F]]:
        '''
        Convert a selected seed into a payload and the seed for the next
        level.
        '''
-       xof = XofFixedKeyAes128(seed, dst(USAGE_CONVERT), nonce)
+       xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
        next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
        payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
        return (next_seed, payload)
 
    def node_proof(self,
                   seed: bytes,
+                  ctx: bytes,
                   idx: PrefixTreeIndex) -> bytes:
        '''
        Compute the proof for this node.
        '''
        binder = \
            to_le_bytes(self.BITS, 2) + \
-           to_le_bytes(idx.node, (self.BITS + 7) // 8) + \
-           to_le_bytes(idx.level, 2)
-       xof = XofTurboShake128(seed, dst(USAGE_NODE_PROOF), binder)
+           to_le_bytes(idx.level(), 2) + \
+           idx.encode()
+       xof = XofTurboShake128(seed,
+                              dst(ctx, USAGE_NODE_PROOF),
+                              binder)
        return xof.next(PROOF_SIZE)
 
-   def hash_proof(proof: bytes) -> bytes:
-       xof = XofTurboShake128(b'', dst(USAGE_ONEHOT_PROOF_HASH), proof)
+   def hash_proof(ctx: bytes, proof: bytes) -> bytes:
+       xof = XofTurboShake128(b'',
+                              dst(ctx, USAGE_ONEHOT_PROOF_HASH),
+                              proof)
        return xof.next(PROOF_SIZE)
 
-   def eval_proof(onehot_proof: bytes,
+
+   def eval_proof(ctx: bytes,
+                  onehot_proof: bytes,
                   counter_check: bytes,
                   payload_check: bytes) -> bytes:
        binder = onehot_proof + counter_check + payload_check
-       xof = XofTurboShake128(b'', dst(USAGE_EVAL_PROOF), binder)
+       xof = XofTurboShake128(b'', dst(ctx, USAGE_EVAL_PROOF), binder)
        return xof.next(PROOF_SIZE)
 
 4.  Specification of Mastic
@@ -767,13 +770,16 @@ Table of Contents
    requires joint randomness:
 
    def shard(self,
-             measurement: tuple[int, W],
+             ctx: bytes,
+             measurement: tuple[tuple[bool, ...], W],
              nonce: bytes,
              rand: bytes,
              ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
        if self.flp.JOINT_RAND_LEN > 0:
-           return self.shard_with_joint_rand(measurement, nonce, rand)
-       return self.shard_without_joint_rand(measurement, nonce, rand)
+           return self.shard_with_joint_rand(
+               ctx, measurement, nonce, rand)
+       return self.shard_without_joint_rand(
+           ctx, measurement, nonce, rand)
 
    When no FLP joint randomness is required, sharding involves the
    following steps:
@@ -790,25 +796,27 @@ Table of Contents
 
    def shard_without_joint_rand(
            self,
-           measurement: tuple[int, W],
+           ctx: bytes,
+           measurement: tuple[tuple[bool, ...], W],
            nonce: bytes,
            rand: bytes,
    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
        (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
        (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+       assert len(rand) == 0  # REMOVE ME
 
        (alpha, weight) = measurement
        beta = self.flp.encode(weight)
 
        # Generate VIDPF keys.
        (correction_words, keys) = \
-           self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+           self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
        # Generate FLP and split it into shares.
-       prove_rand = self.prove_rand(prove_rand_seed)
+       prove_rand = self.prove_rand(ctx, prove_rand_seed)
        proof = self.flp.prove(beta, prove_rand, [])
-       helper_proof_share = self.helper_proof_share(helper_seed)
+       helper_proof_share = self.helper_proof_share(ctx, helper_seed)
        leader_proof_share = vec_sub(proof, helper_proof_share)
 
        public_share = (correction_words, None)
@@ -847,7 +855,8 @@ Table of Contents
 
    def shard_with_joint_rand(
            self,
-           measurement: tuple[int, W],
+           ctx: bytes,
+           measurement: tuple[tuple[bool, ...], W],
            nonce: bytes,
            rand: bytes,
    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
@@ -855,28 +864,29 @@ Table of Contents
        (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+       assert len(rand) == 0  # REMOVE ME
 
        (alpha, weight) = measurement
        beta = self.flp.encode(weight)
 
        # Generate VIDPF keys.
        (correction_words, keys) = \
-           self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+           self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
        # Generate FLP joint randomness.
        joint_rand_parts = [
            self.joint_rand_part(
-               0, leader_seed, keys[0], correction_words, nonce),
+               ctx, 0, leader_seed, keys[0], correction_words, nonce),
            self.joint_rand_part(
-               1, helper_seed, keys[1], correction_words, nonce),
+               ctx, 1, helper_seed, keys[1], correction_words, nonce),
        ]
        joint_rand = self.joint_rand(
-           self.joint_rand_seed(joint_rand_parts))
+           ctx, self.joint_rand_seed(ctx, joint_rand_parts))
 
        # Generate FLP and split it into shares.
-       prove_rand = self.prove_rand(prove_rand_seed)
+       prove_rand = self.prove_rand(ctx, prove_rand_seed)
        proof = self.flp.prove(beta, prove_rand, joint_rand)
-       helper_proof_share = self.helper_proof_share(helper_seed)
+       helper_proof_share = self.helper_proof_share(ctx, helper_seed)
        leader_proof_share = vec_sub(proof, helper_proof_share)
 
        public_share = (correction_words, joint_rand_parts)
@@ -885,6 +895,24 @@ Table of Contents
            (keys[1], None, cast(Optional[bytes], helper_seed)),
        ]
        return (public_share, input_shares)
+
+   def is_valid(self,
+                agg_param: MasticAggParam,
+                previous_agg_params: list[MasticAggParam],
+                ) -> bool:
+       (level, _prefixes, do_weight_check) = agg_param
+
+       # Check that the weight check is done exactly once.
+       weight_checked = \
+           (do_weight_check and len(previous_agg_params) == 0) or \
+           (not do_weight_check and
+               any(agg_param[2] for agg_param in previous_agg_params))
+
+       # Check that the level is strictly increasing.
+       level_increased = len(previous_agg_params) == 0 or \
+           level > previous_agg_params[-1][0]
+
+       return weight_checked and level_increased
 
 4.2.  Preparation
 
@@ -935,6 +963,7 @@ Table of Contents
    def prep_init(
            self,
            verify_key: bytes,
+           ctx: bytes,
            agg_id: int,
            agg_param: MasticAggParam,
            nonce: bytes,
@@ -943,7 +972,7 @@ Table of Contents
    ) -> tuple[MasticPrepState, MasticPrepShare]:
        (level, prefixes, do_weight_check) = agg_param
        (key, proof_share, seed) = \
-           self.expand_input_share(agg_id, input_share)
+           self.expand_input_share(ctx, agg_id, input_share)
        (correction_words, joint_rand_parts) = public_share
 
        # Evaluate the VIDPF.
@@ -953,6 +982,7 @@ Table of Contents
            key,
            level,
            prefixes,
+           ctx,
            nonce,
        )
 
@@ -961,18 +991,18 @@ Table of Contents
        joint_rand_seed = None
        verifier_share = None
        if do_weight_check:
-           query_rand = self.query_rand(verify_key, nonce, level)
+           query_rand = self.query_rand(verify_key, ctx, nonce, level)
            joint_rand = []
            if self.flp.JOINT_RAND_LEN > 0:
                assert seed is not None
                assert joint_rand_parts is not None
                joint_rand_part = self.joint_rand_part(
-                   agg_id, seed, key, correction_words, nonce)
+                   ctx, agg_id, seed, key, correction_words, nonce)
                joint_rand_parts[agg_id] = joint_rand_part
                joint_rand_seed = self.joint_rand_seed(
-                   joint_rand_parts)
+                   ctx, joint_rand_parts)
                joint_rand = self.joint_rand(
-                   self.joint_rand_seed(joint_rand_parts))
+                   ctx, self.joint_rand_seed(ctx, joint_rand_parts))
            verifier_share = self.flp.query(
                beta_share,
                proof_share,
@@ -1013,6 +1043,7 @@ Table of Contents
 
    def prep_shares_to_prep(
            self,
+           ctx: bytes,
            agg_param: MasticAggParam,
            prep_shares: list[MasticPrepShare],
    ) -> MasticPrepMessage:
@@ -1048,7 +1079,7 @@ Table of Contents
            raise ValueError('expected FLP joint randomness parts')
 
        # Confirm the FLP joint randomness was computed properly.
-       prep_msg = self.joint_rand_seed([
+       prep_msg = self.joint_rand_seed(ctx, [
            joint_rand_part_0,
            joint_rand_part_1,
        ])
@@ -1061,6 +1092,7 @@ Table of Contents
    was required by the FLP:
 
    def prep_next(self,
+                 _ctx: bytes,
                  prep_state: MasticPrepState,
                  prep_msg: MasticPrepMessage,
                  ) -> list[F]:
@@ -1263,9 +1295,9 @@ Table of Contents
 
    [VDAF]     Barnes, R., Cook, D., Patton, C., and P. Schoppmann,
               "Verifiable Distributed Aggregation Functions", Work in
-              Progress, Internet-Draft, draft-irtf-cfrg-vdaf-11, 22
-              August 2024, <https://datatracker.ietf.org/doc/html/draft-
-              irtf-cfrg-vdaf-11>.
+              Progress, Internet-Draft, draft-irtf-cfrg-vdaf-12, 4
+              October 2024, <https://datatracker.ietf.org/doc/html/
+              draft-irtf-cfrg-vdaf-12>.
 
 7.2.  Informative References
 
