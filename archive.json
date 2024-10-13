@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-10T00:46:31.348432+00:00",
+  "timestamp": "2024-10-13T00:51:19.442747+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -6745,6 +6745,175 @@
           "createdAt": "2024-10-03T20:24:49Z",
           "updatedAt": "2024-10-03T20:24:49Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 86,
+      "id": "PR_kwDOJmRsfc5-QK6T",
+      "title": "Align with draft-irtf-cfrg-vdaf-12 (*)",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/86",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #34.\r\n\r\n* Plumb the application context string into the domain separation tag of each XOF invocation.\r\n* Change the VIDPF indices (inputs and prefixes) to `tuple[bool, ...]`, i.e., a sequence of bools.",
+      "createdAt": "2024-10-10T17:32:51Z",
+      "updatedAt": "2024-10-12T14:46:17Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "fa705ebb9ab0c2fdc93b0c91689b976171c05c54",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/34",
+      "headRefOid": "0e26dc0139b7223a7dcc7ce22e61e1dc64b642a4",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6MvN8L",
+          "commit": {
+            "abbreviatedOid": "0e26dc0"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-10T19:03:28Z",
+          "updatedAt": "2024-10-10T19:13:33Z",
+          "comments": [
+            {
+              "originalPosition": 148,
+              "body": "Shouldn't this be:\r\n```suggestion\r\n    w0 = prefix_tree_share[PrefixTreeIndex((False, False,))].w\r\n    w1 = prefix_tree_share[PrefixTreeIndex((True, False,))].w\r\n```",
+              "createdAt": "2024-10-10T19:03:28Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 37,
+              "body": "Add a comment about what `ctx` is? I couldn't figure it out from the changes",
+              "createdAt": "2024-10-10T19:04:42Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 179,
+              "body": "why pass it here?",
+              "createdAt": "2024-10-10T19:07:42Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 4,
+              "body": "?",
+              "createdAt": "2024-10-10T19:07:51Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 69,
+              "body": "Why the dots? Isn't `alpha: tuple[bool]` sufficient?",
+              "createdAt": "2024-10-10T19:10:16Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 172,
+              "body": "At this point I have understood what `ctx` :) but the name `ctx` is not very descriptive IMO. I understand that we have it as is to match the VDAF draft but could we have some comments in various places we use it as the name doesn't really imply what it is? (does it stand for `context`?)",
+              "createdAt": "2024-10-10T19:12:18Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 181,
+              "body": "```suggestion\r\n        w0 = prefix_tree_share[PrefixTreeIndex((False, False,))].w\r\n```\r\n?",
+              "createdAt": "2024-10-10T19:12:37Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            },
+            {
+              "originalPosition": 242,
+              "body": "```suggestion\r\n        next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i\r\n```",
+              "createdAt": "2024-10-10T19:12:54Z",
+              "updatedAt": "2024-10-10T19:13:33Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6M5n6L",
+          "commit": {
+            "abbreviatedOid": "0e26dc0"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-12T13:59:14Z",
+          "updatedAt": "2024-10-12T13:59:14Z",
+          "comments": [
+            {
+              "originalPosition": 16,
+              "body": "why are we using a nested tuple of booleans instead of an int sequence?",
+              "createdAt": "2024-10-12T13:59:14Z",
+              "updatedAt": "2024-10-12T13:59:14Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6M5ooD",
+          "commit": {
+            "abbreviatedOid": "0e26dc0"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-12T14:20:38Z",
+          "updatedAt": "2024-10-12T14:20:38Z",
+          "comments": [
+            {
+              "originalPosition": 172,
+              "body": "Should we enforce any constraints to the `ctx` size? The VDAF draft mentions the clients and aggregators need to agree on the string. Would it make sense to require that this is a hash of the context instead?",
+              "createdAt": "2024-10-12T14:20:38Z",
+              "updatedAt": "2024-10-12T14:20:38Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6M5oxP",
+          "commit": {
+            "abbreviatedOid": "0e26dc0"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-12T14:24:51Z",
+          "updatedAt": "2024-10-12T14:24:51Z",
+          "comments": [
+            {
+              "originalPosition": 182,
+              "body": "same as L271",
+              "createdAt": "2024-10-12T14:24:51Z",
+              "updatedAt": "2024-10-12T14:24:52Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6M5pfV",
+          "commit": {
+            "abbreviatedOid": "0e26dc0"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-12T14:46:16Z",
+          "updatedAt": "2024-10-12T14:46:17Z",
+          "comments": [
+            {
+              "originalPosition": 373,
+              "body": "?",
+              "createdAt": "2024-10-12T14:46:16Z",
+              "updatedAt": "2024-10-12T14:46:17Z"
+            }
+          ]
         }
       ]
     }
