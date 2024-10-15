@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 13 April 2025                                           Nillion
+Expires: 18 April 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         10 October 2024
+                                                         15 October 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 13 April 2025.
+   This Internet-Draft will expire on 18 April 2025.
 
 Copyright Notice
 
@@ -242,7 +242,15 @@ Table of Contents
    corresponds to the total weight for one of the candidate prefixes.
 
    Finally, Mastic uses eXtendable Output Functions (XOFs) as specified
-   in Section 6.2 of [VDAF].
+   in Section 6.2 of [VDAF].  Each invocation of a XOF is initialized
+   with a domain separation tag set to b'mastic' + to_le_bytes(VERSION,
+   4) + byte(usage) + ctx, where ctx is the application context string
+   (see Section 4.1 of [VDAF]) and usage is an integer in the range [0,
+   255).  The length of ctx MUST be in range [0, 2^16 - 11).
+
+      NOTE This range was computed by taking the maximum size of the
+      domain separation tag supported by both XofFixedKeyAes128 and
+      XofTurboShake128 and subtracting the length of the prefix.
 
 3.  Specification of VIDPF
 
@@ -342,7 +350,8 @@ Table of Contents
    The VIDPF-key generation algorithm run by each Client is listed
    below.  The specification invokes auxiliary functions defined in
    Section 3.3.  Its inputs are the input string alpha, the encoded
-   weight beta, a public nonce of length NONCE_SIZE, and the randomness
+   weight beta, the application context string ctx (Section 4.1 of
+   [VDAF]), a public nonce of length NONCE_SIZE, and the randomness
    consumed by the algorithm of length RAND_SIZE.  Its outputs are the
    public sequence of "correction words", one for each level of the
    tree, and the secret keys, one for each Aggregator.
@@ -613,7 +622,7 @@ Table of Contents
        # replaced with a constant-time select in practice in order to
        # reduce leakage via timing side channels.
        (next_seed, w) = self.convert(s[keep], ctx, nonce)
-       next_ctrl = t[keep]  # [MST24]: s^i,W^i, t'^i
+       next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
        if next_ctrl:
            w = vec_add(w, w_cw)
 
@@ -804,7 +813,6 @@ Table of Contents
        (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
        (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-       assert len(rand) == 0  # REMOVE ME
 
        (alpha, weight) = measurement
        beta = self.flp.encode(weight)
@@ -864,7 +872,6 @@ Table of Contents
        (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
        (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-       assert len(rand) == 0  # REMOVE ME
 
        (alpha, weight) = measurement
        beta = self.flp.encode(weight)

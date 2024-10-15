@@ -1039,7 +1039,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Davis, et al.</td>
-<td class="center">Expires 13 April 2025</td>
+<td class="center">Expires 18 April 2025</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1052,12 +1052,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-mouris-cfrg-mastic-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2024-10-10" class="published">10 October 2024</time>
+<time datetime="2024-10-15" class="published">15 October 2024</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2025-04-13">13 April 2025</time></dd>
+<dd class="expires"><time datetime="2025-04-18">18 April 2025</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1129,7 +1129,7 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 13 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 18 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1397,7 +1397,17 @@ invoking the FLP's encoder (<span><a href="https://datatracker.ietf.org/doc/html
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.<a href="#section-2-8" class="pilcrow">¶</a></p>
 <p id="section-2-9">Finally, Mastic uses eXtendable Output Functions (XOFs) as specified in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-9" class="pilcrow">¶</a></p>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. Each invocation of a XOF is initialized with a domain
+separation tag set to <code>b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) +
+ctx</code>, where <code>ctx</code> is the application context string (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and <code>usage</code> is an integer in the range <code>[0, 255)</code>. The length of <code>ctx</code>
+        <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 11)</code>.<a href="#section-2-9" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-2-10.1">
+          <p id="section-2-10.1.1">NOTE This range was computed by taking the maximum size of the domain
+separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
+subtracting the length of the prefix.<a href="#section-2-10.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 </section>
 </div>
 <div id="vidpf">
@@ -1541,8 +1551,9 @@ equal.<a href="#section-3-13" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-3.1-1">The VIDPF-key generation algorithm run by each Client is listed below. The
 specification invokes auxiliary functions defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs
-are the input string <code>alpha</code>, the encoded weight <code>beta</code>, a public nonce of
-length <code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
+are the input string <code>alpha</code>, the encoded weight <code>beta</code>, the application
+context string <code>ctx</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length
+<code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
 <code>RAND_SIZE</code>. Its outputs are the public sequence of "correction words", one for
 each level of the tree, and the secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
@@ -1823,7 +1834,7 @@ def eval_next(self,
     # replaced with a constant-time select in practice in order to
     # reduce leakage via timing side channels.
     (next_seed, w) = self.convert(s[keep], ctx, nonce)
-    next_ctrl = t[keep]  # [MST24]: s^i,W^i, t'^i
+    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
     if next_ctrl:
         w = vec_add(w, w_cw)
 
@@ -2035,7 +2046,6 @@ def shard_without_joint_rand(
     (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-    assert len(rand) == 0  # REMOVE ME
 
     (alpha, weight) = measurement
     beta = self.flp.encode(weight)
@@ -2102,7 +2112,6 @@ def shard_with_joint_rand(
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-    assert len(rand) == 0  # REMOVE ME
 
     (alpha, weight) = measurement
     beta = self.flp.encode(weight)
