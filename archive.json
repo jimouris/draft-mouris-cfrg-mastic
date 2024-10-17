@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-15T00:47:46.421133+00:00",
+  "timestamp": "2024-10-17T00:46:56.174971+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -478,7 +478,7 @@
       "id": "I_kwDOJmRsfc50zj7m",
       "title": "Harmonize VIDPF with changes to IDPF in draft-irtf-cfrg-vdaf-12",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/34",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -487,8 +487,8 @@
       "labels": [],
       "body": "We would like these to be aligned as possible. We're still optimizing IDPF here and there, e.g., https://github.com/cfrg/draft-irtf-cfrg-vdaf/pull/303. We should decide if we're OK with these optimizations.",
       "createdAt": "2023-10-24T16:46:18Z",
-      "updatedAt": "2024-09-17T13:25:44Z",
-      "closedAt": null,
+      "updatedAt": "2024-10-16T21:15:41Z",
+      "closedAt": "2024-10-16T21:15:41Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -1007,6 +1007,22 @@
       "body": "See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/pull/565.\r\n\r\nWe can already batch VIDPF proof evaluation; we just need a way to batch FLP proof evaluation. This is accomplished by [Whipser](https://eprint.iacr.org/2024/666).\r\n\r\nAdd support for Whisper-style batching and implement an API for batched preparation for Mastic.",
       "createdAt": "2024-10-04T18:54:57Z",
       "updatedAt": "2024-10-04T18:54:57Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 87,
+      "id": "I_kwDOJmRsfc6ajxBX",
+      "title": "Upgrade to draft-irtf-cfrg-vdaf-13",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/87",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This draft has not been cut as of this writing, but it will include at least the following features:\r\n* Change to the aggregation API to make it streaming\r\n* Removal of `sage` as a dependency",
+      "createdAt": "2024-10-16T21:11:50Z",
+      "updatedAt": "2024-10-16T21:11:50Z",
       "closedAt": null,
       "comments": []
     }
@@ -6753,24 +6769,26 @@
       "id": "PR_kwDOJmRsfc5-QK6T",
       "title": "Align with draft-irtf-cfrg-vdaf-12 (*)",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/86",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #34.\r\n\r\n* Plumb the application context string into the domain separation tag of each XOF invocation.\r\n* Change the VIDPF indices (inputs and prefixes) to `tuple[bool, ...]`, i.e., a sequence of bools.",
       "createdAt": "2024-10-10T17:32:51Z",
-      "updatedAt": "2024-10-12T14:46:17Z",
+      "updatedAt": "2024-10-16T21:15:40Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "fa705ebb9ab0c2fdc93b0c91689b976171c05c54",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/34",
-      "headRefOid": "0e26dc0139b7223a7dcc7ce22e61e1dc64b642a4",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "68f4e8663ffb49a6693b0663766fcf6192379799",
+      "closedAt": "2024-10-16T21:15:40Z",
+      "mergedAt": "2024-10-16T21:15:40Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "f2d9feea98e762993eb0cd91ce0f3bdc914b6ef7"
+      },
       "comments": [],
       "reviews": [
         {
@@ -6914,6 +6932,93 @@
               "updatedAt": "2024-10-12T14:46:17Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6NSSyw",
+          "commit": {
+            "abbreviatedOid": "9c7449c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-15T19:33:09Z",
+          "updatedAt": "2024-10-15T20:00:37Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "Added this to the paragraph above (this is the \"application context string\").",
+              "createdAt": "2024-10-15T19:33:09Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 148,
+              "body": "In the previous version, the inputs to `PrefixTreeIndex` were the \"node\" and the \"level\". There `0` is the level. In the new version, we just pass the sequence of bools to `PrefixTreeIndex`.",
+              "createdAt": "2024-10-15T19:34:24Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 373,
+              "body": "Nice catch: in the reference code, lines labeled \"REMOVE ME\" are intended to be deleted when copying to the draft. I remove this line. \r\n\r\nLikewise below.",
+              "createdAt": "2024-10-15T19:35:16Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 16,
+              "body": "We decided to make this change for IDPF in the base draft: https://github.com/cfrg/draft-irtf-cfrg-vdaf/issues/416\r\n\r\nTL;DR: representing an index `int` is not ideal because you have to carry around additional information in certain contexts, namely the level of the tree you're aggregating at. This change is intended to simplify the code a bit (I think it does).",
+              "createdAt": "2024-10-15T19:37:03Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 179,
+              "body": "This parameter is required by the API in the base draft.",
+              "createdAt": "2024-10-15T19:37:24Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 4,
+              "body": "This was to remind to update this test, which I've now done. Thanks for catching this.\r\n\r\nI added a type hint to `test()`, which triggers the type checker.",
+              "createdAt": "2024-10-15T19:49:40Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 69,
+              "body": "`tuple[bool]` would be a tuple with one element, whose type is a `bool`. The `...` tells the type checker that this is a sequence of `bool`s.",
+              "createdAt": "2024-10-15T19:50:30Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 172,
+              "body": "It stands for \"application context string\". I'll add the definition and document its length in the conventions section. The maximum length is determined by the XOFs as well as the length of the other bytes we jam in to the domain separation tag. I don't think we need to require the user to pre-hash this.\r\n\r\nGreat ideas :)",
+              "createdAt": "2024-10-15T19:54:36Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 181,
+              "body": "See explanation above.",
+              "createdAt": "2024-10-15T19:58:58Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            },
+            {
+              "originalPosition": 242,
+              "body": "Fixed here and in the draft.",
+              "createdAt": "2024-10-15T19:59:44Z",
+              "updatedAt": "2024-10-15T20:00:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6NTHiq",
+          "commit": {
+            "abbreviatedOid": "68f4e86"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-15T20:45:28Z",
+          "updatedAt": "2024-10-16T21:10:33Z",
+          "comments": []
         }
       ]
     }
