@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 15 April 2025                                           Nillion
+Expires: 21 April 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         12 October 2024
+                                                         18 October 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 April 2025.
+   This Internet-Draft will expire on 21 April 2025.
 
 Copyright Notice
 
@@ -384,7 +384,16 @@ Table of Contents
    corresponds to the total weight for one of the candidate prefixes.
 
    Finally, Mastic uses eXtendable Output Functions (XOFs) as specified
-   in Section 6.2 of [VDAF] (definitions also repeated above).
+   in Section 6.2 of [VDAF] (definitions also repeated above).  Each
+   invocation of a XOF is initialized with a domain separation tag set
+   to b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) + ctx, where ctx
+   is the application context string (see Section 4.1 of [VDAF]) and
+   usage is an integer in the range [0, 255).  The length of ctx MUST be
+   in range [0, 2^16 - 11).
+
+      NOTE This range was computed by taking the maximum size of the
+      domain separation tag supported by both XofFixedKeyAes128 and
+      XofTurboShake128 and subtracting the length of the prefix.
 
 3.  Specification of VIDPF
 
@@ -501,7 +510,8 @@ Table of Contents
    The VIDPF-key generation algorithm run by each Client is listed
    below.  The specification invokes auxiliary functions defined in
    Section 3.3.  Its inputs are the input string alpha, the encoded
-   weight beta, a public nonce of length NONCE_SIZE, and the randomness
+   weight beta, the application context string ctx (Section 4.1 of
+   [VDAF]), a public nonce of length NONCE_SIZE, and the randomness
    consumed by the algorithm of length RAND_SIZE.  Its outputs are the
    public sequence of "correction words", one for each level of the
    tree, and the secret keys, one for each Aggregator.
@@ -772,7 +782,7 @@ Table of Contents
        # replaced with a constant-time select in practice in order to
        # reduce leakage via timing side channels.
        (next_seed, w) = self.convert(s[keep], ctx, nonce)
-       next_ctrl = t[keep]  # [MST24]: s^i,W^i, t'^i
+       next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
        if next_ctrl:
            w = vec_add(w, w_cw)
 
@@ -1437,7 +1447,26 @@ Table of Contents
 
 6.  IANA Considerations
 
-   TODO
+   IANA is requested to add a new identifier to the "Verifiable
+   Distributed Aggregation Functions (VDAF)" registry, that is described
+   in Section 10 of [VDAF].  In short, VDAF identifiers are used for
+   domain separation, which guards against failures of entropy sources,
+   by ensuring that invocations of different VDAFs use different derived
+   values, even if they are invoked with the same underlying random
+   data.
+
+   The new requested entry to the VDAF Identifier registry is as
+   follows:
+
+    +===============+=======================+======+===============+
+    | Value         | Scheme                | Type | Reference     |
+    +===============+=======================+======+===============+
+    | 0x00000007    | Mastic                | VDAF | Section 4     |
+    |               |                       |      | of RFC XXXX   |
+    +---------------+-----------------------+------+---------------+
+
+   (RFC EDITOR: Please replace "RFC XXXX" above with the RFC number
+   assigned to this document.)
 
 7.  References
 
@@ -1506,7 +1535,13 @@ Table of Contents
 
 Acknowledgments
 
-   TODO
+   The Network Error Logging and Attribute-Based Browser Telemetry
+   applications (discussed in the next sections) were first described to
+   the authors by the PPM working group at IETF.  The authors would like
+   to thank Suleman Ahmad and Simon Friedberger for their help in
+   fleshing out the details.  D.  Mouris and N.G.  Tsoutsos would like
+   to acknowledge the support of the National Science Foundation (Award
+   2239334).
 
 Motivating Applications
 
@@ -1638,7 +1673,7 @@ Modes of Operation
 
 Weighted Heavy-Hitters
 
-      TODO See Appendix "Network Error Logging" for a motivating
+      NOTE See Appendix "Network Error Logging" for a motivating
       application and example_weighted_heavy_hitters_mode() in the
       reference implementation for an end-to-end example.
 

@@ -1039,7 +1039,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Davis, et al.</td>
-<td class="center">Expires 15 April 2025</td>
+<td class="center">Expires 21 April 2025</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1052,12 +1052,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-mouris-cfrg-mastic-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2024-10-12" class="published">12 October 2024</time>
+<time datetime="2024-10-18" class="published">18 October 2024</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2025-04-15">15 April 2025</time></dd>
+<dd class="expires"><time datetime="2025-04-21">21 April 2025</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1129,7 +1129,7 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 15 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 21 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1493,7 +1493,17 @@ invoking the FLP's encoder (<span><a href="https://datatracker.ietf.org/doc/html
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.<a href="#section-2-8" class="pilcrow">¶</a></p>
 <p id="section-2-9">Finally, Mastic uses eXtendable Output Functions (XOFs) as specified in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> (definitions also repeated above).<a href="#section-2-9" class="pilcrow">¶</a></p>
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> (definitions also repeated above). Each invocation of a XOF is initialized with a domain
+separation tag set to <code>b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) +
+ctx</code>, where <code>ctx</code> is the application context string (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and <code>usage</code> is an integer in the range <code>[0, 255)</code>. The length of <code>ctx</code>
+        <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 11)</code>.<a href="#section-2-9" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-2-10.1">
+          <p id="section-2-10.1.1">NOTE This range was computed by taking the maximum size of the domain
+separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
+subtracting the length of the prefix.<a href="#section-2-10.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 </section>
 </div>
 <div id="vidpf">
@@ -1666,8 +1676,9 @@ equal.<a href="#section-3-13" class="pilcrow">¶</a></p>
         </h3>
 <p id="section-3.1-1">The VIDPF-key generation algorithm run by each Client is listed below. The
 specification invokes auxiliary functions defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs
-are the input string <code>alpha</code>, the encoded weight <code>beta</code>, a public nonce of
-length <code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
+are the input string <code>alpha</code>, the encoded weight <code>beta</code>, the application
+context string <code>ctx</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length
+<code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
 <code>RAND_SIZE</code>. Its outputs are the public sequence of "correction words", one for
 each level of the tree, and the secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
@@ -1948,7 +1959,7 @@ def eval_next(self,
     # replaced with a constant-time select in practice in order to
     # reduce leakage via timing side channels.
     (next_seed, w) = self.convert(s[keep], ctx, nonce)
-    next_ctrl = t[keep]  # [MST24]: s^i,W^i, t'^i
+    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
     if next_ctrl:
         w = vec_add(w, w_cw)
 
@@ -2700,7 +2711,19 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
       <h2 id="name-iana-considerations">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-6-1">TODO<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-1">IANA is requested to add a new identifier to the "Verifiable Distributed Aggregation Functions (VDAF)" registry, that is described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-10" class="relref">Section 10</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. In short, VDAF identifiers are used for domain separation, which guards against failures of entropy sources, by ensuring that invocations of different VDAFs use different derived values, even if they are invoked with the same underlying random data.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">The new requested entry to the VDAF Identifier registry is as follows:<a href="#section-6-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6-3">
+<pre>
+ +===============+=======================+======+===============+
+ | Value         | Scheme                | Type | Reference     |
+ +===============+=======================+======+===============+
+ | 0x00000007    | Mastic                | VDAF | Section 4     |
+ |               |                       |      | of RFC XXXX   |
+ +---------------+-----------------------+------+---------------+
+</pre><a href="#section-6-3" class="pilcrow">¶</a>
+</div>
+<p id="section-6-4">(RFC EDITOR: Please replace "RFC XXXX" above with the RFC number assigned to this document.)<a href="#section-6-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-combined-references">
@@ -2781,7 +2804,7 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
       <h2 id="name-acknowledgments">
 <a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="appendix-A-1">TODO<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-1">The Network Error Logging and Attribute-Based Browser Telemetry applications (discussed in the next sections) were first described to the authors by the PPM working group at IETF. The authors would like to thank Suleman Ahmad and Simon Friedberger for their help in fleshing out the details. D. Mouris and N.G. Tsoutsos would like to acknowledge the support of the National Science Foundation (Award 2239334).<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="motivation">
@@ -2915,7 +2938,7 @@ list. Then the index of 1 is simply <code>t * s</code>.<a href="#appendix-B.2-5.
         </h3>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="appendix-C.1-1.1">
-            <p id="appendix-C.1-1.1.1">TODO See <a href="#NEL" class="auto internal xref">Appendix "Network Error Logging"</a> for a motivating application and
+            <p id="appendix-C.1-1.1.1">NOTE See <a href="#NEL" class="auto internal xref">Appendix "Network Error Logging"</a> for a motivating application and
 <code>example_weighted_heavy_hitters_mode()</code> in the reference implementation for
 an end-to-end example.<a href="#appendix-C.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -2935,8 +2958,7 @@ described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfr
 minimum weight rather than a minimum count. In addition:<a href="#appendix-C.1-4" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="appendix-C.1-5">
 <li id="appendix-C.1-5.1">
-            <p id="appendix-C.1-5.1.1">The Aggregators <span class="bcp14">MUST</span> perform the range check (i.e., verify the FLP) at the
-first round of aggregation and remove any invalid reports before proceeding.<a href="#appendix-C.1-5.1.1" class="pilcrow">¶</a></p>
+            <p id="appendix-C.1-5.1.1">The Aggregators <span class="bcp14">MUST</span> perform the range check (i.e., verify the FLP) at the first round of aggregation and remove any invalid reports before proceeding.<a href="#appendix-C.1-5.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-C.1-5.2">
             <p id="appendix-C.1-5.2.1">The level at which the reports are Aggregated <span class="bcp14">MUST</span> be strictly increasing.<a href="#appendix-C.1-5.2.1" class="pilcrow">¶</a></p>
