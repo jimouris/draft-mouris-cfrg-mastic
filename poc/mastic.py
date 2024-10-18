@@ -339,7 +339,7 @@ class Mastic(
         return agg_result
 
     def encode_agg_param(self, agg_param: MasticAggParam) -> bytes:
-        level, prefixes, do_weight_check = agg_param
+        (level, prefixes, do_weight_check) = agg_param
         if level not in range(2 ** 16):
             raise ValueError('level out of range')
         if len(prefixes) not in range(2 ** 32):
@@ -349,11 +349,7 @@ class Mastic(
         encoded += to_be_bytes(len(prefixes), 4)
         # NOTE: The do_weight_check is the only difference between Mastic's and
         # Poplar1's `encode_agg_param``
-        encoded += to_be_bytes(do_weight_check, 1)
-        # NOTE: The following lines are exerpted in the document. Their width
-        # should be limited to 69 columns after de-indenting, or 77 columns
-        # before de-indenting, to avoid warnings from xml2rfc.
-        # ===================================================================
+        encoded += to_be_bytes(int(do_weight_check), 1)
         prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
         encoded_prefixes = bytearray()
         for prefix in prefixes:
@@ -362,7 +358,6 @@ class Mastic(
                 for (bit_position, bit) in enumerate(chunk):
                     byte_out |= bit << (7 - bit_position)
                 encoded_prefixes.append(byte_out)
-        # NOTE: End of excerpt.
         assert len(encoded_prefixes) == prefixes_len
         encoded += encoded_prefixes
         return encoded
