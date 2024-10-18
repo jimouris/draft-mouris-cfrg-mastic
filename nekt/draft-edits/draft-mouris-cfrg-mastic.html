@@ -2171,7 +2171,6 @@ def shard_without_joint_rand(
     (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-    assert len(rand) == 0  # REMOVE ME
 
     (alpha, weight) = measurement
     beta = self.flp.encode(weight)
@@ -2238,7 +2237,6 @@ def shard_with_joint_rand(
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
-    assert len(rand) == 0  # REMOVE ME
 
     (alpha, weight) = measurement
     beta = self.flp.encode(weight)
