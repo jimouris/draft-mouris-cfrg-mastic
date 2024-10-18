@@ -1,9 +1,10 @@
 '''The Mastic VDAF'''
 
+import itertools
 from typing import Optional, TypeAlias, TypeVar, cast
 
-from vdaf_poc.common import (byte, concat, front, to_le_bytes, vec_add,
-                             vec_sub, zeros)
+from vdaf_poc.common import (byte, concat, front, to_be_bytes, to_le_bytes,
+                             vec_add, vec_sub, zeros)
 from vdaf_poc.field import NttField
 from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
 from vdaf_poc.vdaf import Vdaf
@@ -336,6 +337,30 @@ class Mastic(
             meas_count = chunk[0].as_unsigned()
             agg_result.append(self.flp.decode(chunk[1:], meas_count))
         return agg_result
+
+    def encode_agg_param(self, agg_param: MasticAggParam) -> bytes:
+        (level, prefixes, do_weight_check) = agg_param
+        if level not in range(2 ** 16):
+            raise ValueError('level out of range')
+        if len(prefixes) not in range(2 ** 32):
+            raise ValueError('number of prefixes out of range')
+        encoded = bytes()
+        encoded += to_be_bytes(level, 2)
+        encoded += to_be_bytes(len(prefixes), 4)
+        # NOTE: The do_weight_check is the only difference between Mastic's and
+        # Poplar1's `encode_agg_param``
+        encoded += to_be_bytes(int(do_weight_check), 1)
+        prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
+        encoded_prefixes = bytearray()
+        for prefix in prefixes:
+            for chunk in itertools.batched(prefix, 8):
+                byte_out = 0
+                for (bit_position, bit) in enumerate(chunk):
+                    byte_out |= bit << (7 - bit_position)
+                encoded_prefixes.append(byte_out)
+        assert len(encoded_prefixes) == prefixes_len
+        encoded += encoded_prefixes
+        return encoded
 
     def expand_input_share(
             self,

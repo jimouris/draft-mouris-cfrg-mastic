@@ -1,4 +1,5 @@
-from typing import TypeAlias, Self
+from typing import Self, TypeAlias
+
 
 class Index:
     def __init__(self, *bits: int):

@@ -21,8 +21,6 @@ draft-mouris-cfrg-mastic.xml
 package-lock.json
 report.xml
 !requirements.txt
-sagelib
-*.sage.py
 *.bak
 *.pyc
 *.pyo
