@@ -48,9 +48,6 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
 
         # Aggregators prepare reports for aggregation.
         agg_shares = [mastic.agg_init(agg_param) for _ in range(mastic.SHARES)]
-
-        print('agg_shares', agg_shares)
-
         for (nonce, public_share, input_shares) in reports:
             # Each aggregator broadcast its prep share.
             (prep_state, prep_shares) = zip(*[
