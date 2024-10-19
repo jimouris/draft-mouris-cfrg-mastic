@@ -1,7 +1,8 @@
 """Verifiable Distributed Point Function (VIDPF)"""
 
 import itertools
-from typing import Generic, Self, Sequence, TypeAlias, TypeVar
+from random import randrange
+from typing import Generic, Self, TypeAlias, TypeVar
 
 from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor, zeros
 from vdaf_poc.field import NttField
@@ -18,7 +19,7 @@ PROOF_SIZE: int = 32
 
 # Walk proof for an empty tree.
 ONEHOT_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                                     dst(USAGE_ONEHOT_PROOF_INIT),
+                                     dst(b'', USAGE_ONEHOT_PROOF_INIT),
                                      b'').next(PROOF_SIZE)
 
 Ctrl: TypeAlias = list[bool]
@@ -32,27 +33,35 @@ CorrectionWord: TypeAlias = tuple[
 
 
 class PrefixTreeIndex:
-    node: int
-    level: int
+    def __init__(self, path: tuple[bool, ...]):
+        self.path = path
 
-    def __init__(self, node: int, level: int):
-        self.node = node
-        self.level = level
+    def encode(self) -> bytes:
+        encoded = bytearray()
+        for chunk in itertools.batched(self.path, 8):
+            byte_out = 0
+            for (bit_position, bit) in enumerate(chunk):
+                byte_out |= bit << (7 - bit_position)
+            encoded.append(byte_out)
+        return encoded
+
+    def level(self) -> int:
+        return len(self.path) - 1
 
     def sibling(self) -> Self:
-        return self.__class__(self.node ^ 1, self.level)
+        return self.__class__(self.path[:-1] + (not self.path[-1],))
 
     def left_child(self) -> Self:
-        return self.__class__(self.node << 1, self.level+1)
+        return self.__class__(self.path + (False,))
 
     def right_child(self) -> Self:
         return self.left_child().sibling()
 
     def __hash__(self):
-        return hash((self.node, self.level))
+        return hash(self.path)
 
     def __eq__(self, other):
-        return self.node == other.node and self.level == other.level
+        return self.path == other.path
 
 
 class PrefixTreeEntry(Generic[F]):
@@ -94,8 +103,9 @@ class Vidpf(Generic[F]):
         self.VALUE_LEN = value_len
 
     def gen(self,
-            alpha: int,
+            alpha: tuple[bool, ...],
             beta: list[F],
+            ctx: bytes,
             nonce: bytes,
             rand: bytes,
             ) -> tuple[list[CorrectionWord], list[bytes]]:
@@ -110,7 +120,7 @@ class Vidpf(Generic[F]):
         leading `alpha` via a side-channel, implementations should avoid
         branching or indexing into arrays in a data-dependent manner.
         '''
-        if alpha not in range(2 ** self.BITS):
+        if len(alpha) != self.BITS:
             raise ValueError("alpha out of range")
         if len(beta) != self.VALUE_LEN:
             raise ValueError("incorrect beta length")
@@ -126,8 +136,8 @@ class Vidpf(Generic[F]):
         ctrl = [False, True]
         correction_words = []
         for i in range(self.BITS):
-            idx = PrefixTreeIndex(alpha >> (self.BITS - i - 1), i)
-            bit = bool(idx.node & 1)
+            idx = PrefixTreeIndex(alpha[:i+1])
+            bit = alpha[i]
 
             # [MST24]: if x = 0 then keep <- L, lose <- R
             #
@@ -141,8 +151,8 @@ class Vidpf(Generic[F]):
             #
             # [MST24]: s_0^L || s_0^R || t_0^L || t_0^R
             #          s_1^L || s_1^R || t_1^L || t_1^R
-            (s0, t0) = self.extend(seed[0], nonce)
-            (s1, t1) = self.extend(seed[1], nonce)
+            (s0, t0) = self.extend(seed[0], ctx, nonce)
+            (s1, t1) = self.extend(seed[1], ctx, nonce)
 
             # Compute the correction words for this level's seed and
             # control bit. Our goal is to maintain the following
@@ -175,8 +185,8 @@ class Vidpf(Generic[F]):
                 t1[keep] ^= ctrl_cw[keep]
 
             # Convert.
-            (seed[0], w0) = self.convert(s0[keep], nonce)
-            (seed[1], w1) = self.convert(s1[keep], nonce)
+            (seed[0], w0) = self.convert(s0[keep], ctx, nonce)
+            (seed[1], w1) = self.convert(s1[keep], ctx, nonce)
             ctrl[0] = t0[keep]  # [MST24]: t0'
             ctrl[1] = t1[keep]  # [MST24]: t1'
 
@@ -194,8 +204,8 @@ class Vidpf(Generic[F]):
             # correct or neither will; and since they compute the same
             # seed, they will again compute the same value.
             proof_cw = xor(
-                self.node_proof(seed[0], idx),
-                self.node_proof(seed[1], idx),
+                self.node_proof(seed[0], ctx, idx),
+                self.node_proof(seed[1], ctx, idx),
             )
 
             correction_words.append((seed_cw, ctrl_cw, w_cw, proof_cw))
@@ -207,7 +217,8 @@ class Vidpf(Generic[F]):
              correction_words: list[CorrectionWord],
              key: bytes,
              level: int,
-             prefixes: Sequence[int],
+             prefixes: tuple[tuple[bool, ...], ...],
+             ctx: bytes,
              nonce: bytes,
              ) -> tuple[list[F], list[list[F]], bytes]:
         """
@@ -222,6 +233,9 @@ class Vidpf(Generic[F]):
             raise ValueError("corrections words has incorrect length")
         if level not in range(self.BITS):
             raise ValueError("level too deep")
+        for prefix in prefixes:
+            if len(prefix) != level + 1:
+                raise ValueError("prefix with incorrect length")
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
@@ -235,16 +249,9 @@ class Vidpf(Generic[F]):
         onehot_proof = ONEHOT_PROOF_INIT
         for i in range(level+1):
             for prefix in prefixes:
-                if prefix not in range(2 ** (level+1)):
-                    raise ValueError("prefix too long")
-
-                # Compute the entry for `prefix`. To do so, we first need
-                # to look up the parent node.
-                #
-                # The index of the current prefix `prefix` is
-                # `PrefixTreeIndex(prefix >> (level - i), i)`. Its parent
-                # is at level `i - 1`.
-                idx = PrefixTreeIndex(prefix >> (level - i + 1), i - 1)
+                # Compute the entry for `prefix`. Set `idx` to the
+                # index of its parent.
+                idx = PrefixTreeIndex(prefix[:i])
                 node = prefix_tree_share.setdefault(idx, root)
                 for child_idx in [idx.left_child(), idx.right_child()]:
                     # Compute the entry for `prefix` and its sibling. The
@@ -254,14 +261,15 @@ class Vidpf(Generic[F]):
                             node,
                             onehot_proof,
                             correction_words[i],
+                            ctx,
                             nonce,
                             child_idx,
                         )
                         prefix_tree_share[child_idx] = child
 
         # Compute the aggregator's share of `beta`.
-        w0 = prefix_tree_share[PrefixTreeIndex(0, 0)].w
-        w1 = prefix_tree_share[PrefixTreeIndex(1, 0)].w
+        w0 = prefix_tree_share[PrefixTreeIndex((False,))].w
+        w1 = prefix_tree_share[PrefixTreeIndex((True,))].w
         beta_share = vec_add(w0, w1)[1:]
         if agg_id == 1:
             beta_share = vec_neg(beta_share)
@@ -280,7 +288,7 @@ class Vidpf(Generic[F]):
         payload_check = b''
         for prefix in prefixes:
             for i in range(level):
-                idx = PrefixTreeIndex(prefix >> (level - i), i)
+                idx = PrefixTreeIndex(prefix[:i+1])
                 w = prefix_tree_share[idx].w
                 w0 = prefix_tree_share[idx.left_child()].w
                 w1 = prefix_tree_share[idx.right_child()].w
@@ -290,20 +298,22 @@ class Vidpf(Generic[F]):
         # Compute the Aggregator's output share.
         out_share = []
         for prefix in prefixes:
-            idx = PrefixTreeIndex(prefix, level)
+            idx = PrefixTreeIndex(prefix)
             w = prefix_tree_share[idx].w
             out_share.append(w if agg_id == 0 else vec_neg(w))
 
         # Compute the evaluation proof. If both aggregators compute the
         # same value, then they agree on the onehot proof, the counter,
         # and the payload.
-        proof = eval_proof(onehot_proof, counter_check, payload_check)
+        proof = eval_proof(
+            ctx, onehot_proof, counter_check, payload_check)
         return (beta_share, out_share, proof)
 
     def eval_next(self,
                   node: PrefixTreeEntry,
                   onehot_proof: bytes,
                   correction_word: CorrectionWord,
+                  ctx: bytes,
                   nonce: bytes,
                   idx: PrefixTreeIndex,
                   ) -> tuple[PrefixTreeEntry, bytes]:
@@ -312,12 +322,12 @@ class Vidpf(Generic[F]):
         children, then convert it into a payload and the next seed.
         """
         (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
-        keep = idx.node & 1
+        keep = int(idx.path[-1])
 
         # Extend.
         #
         # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-        (s, t) = self.extend(node.seed, nonce)
+        (s, t) = self.extend(node.seed, ctx, nonce)
 
         # Correct.
         #
@@ -332,8 +342,8 @@ class Vidpf(Generic[F]):
         # Implementation note: the conditional addition should be
         # replaced with a constant-time select in practice in order to
         # reduce leakage via timing side channels.
-        (next_seed, w) = self.convert(s[keep], nonce)  # [MST24]: s^i,W^i
-        next_ctrl = t[keep]  # [MST24]: t'^i
+        (next_seed, w) = self.convert(s[keep], ctx, nonce)
+        next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
         if next_ctrl:
             w = vec_add(w, w_cw)
 
@@ -358,11 +368,11 @@ class Vidpf(Generic[F]):
         #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
         #
         # Implementation note: avoid branching on the control bit here.
-        node_proof = self.node_proof(next_seed, idx)
+        node_proof = self.node_proof(next_seed, ctx, idx)
         if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
-        onehot_proof = xor(onehot_proof,
-                           hash_proof(xor(onehot_proof, node_proof)))
+        onehot_proof = xor(
+            onehot_proof, hash_proof(ctx, xor(onehot_proof, node_proof)))
 
         return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
 
@@ -371,13 +381,14 @@ class Vidpf(Generic[F]):
 
     def extend(self,
                seed: bytes,
+               ctx: bytes,
                nonce: bytes,
                ) -> tuple[list[bytes], Ctrl]:
         '''
         Extend a seed into the seed and control bits for its left and
         right children in the VIDPF tree.
         '''
-        xof = XofFixedKeyAes128(seed, dst(USAGE_EXTEND), nonce)
+        xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_EXTEND), nonce)
         s = [
             bytearray(xof.next(self.KEY_SIZE)),
             bytearray(xof.next(self.KEY_SIZE)),
@@ -392,28 +403,32 @@ class Vidpf(Generic[F]):
 
     def convert(self,
                 seed: bytes,
+                ctx: bytes,
                 nonce: bytes,
                 ) -> tuple[bytes, list[F]]:
         '''
         Convert a selected seed into a payload and the seed for the next
         level.
         '''
-        xof = XofFixedKeyAes128(seed, dst(USAGE_CONVERT), nonce)
+        xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
         payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
         return (next_seed, payload)
 
     def node_proof(self,
                    seed: bytes,
+                   ctx: bytes,
                    idx: PrefixTreeIndex) -> bytes:
         '''
         Compute the proof for this node.
         '''
         binder = \
             to_le_bytes(self.BITS, 2) + \
-            to_le_bytes(idx.node, (self.BITS + 7) // 8) + \
-            to_le_bytes(idx.level, 2)
-        xof = XofTurboShake128(seed, dst(USAGE_NODE_PROOF), binder)
+            to_le_bytes(idx.level(), 2) + \
+            idx.encode()
+        xof = XofTurboShake128(seed,
+                               dst(ctx, USAGE_NODE_PROOF),
+                               binder)
         return xof.next(PROOF_SIZE)
 
     def encode_public_share(
@@ -435,7 +450,10 @@ class Vidpf(Generic[F]):
             encoded += proof
         return encoded
 
-    def is_prefix(self, x: int, y: int, level: int) -> bool:
+    def is_prefix(self,
+                  x: tuple[bool, ...],
+                  y: tuple[bool, ...],
+                  level: int) -> bool:
         """
         Returns `True` iff `x` is the prefix of `y` at level `level`.
 
@@ -443,17 +461,40 @@ class Vidpf(Generic[F]):
 
             - `level` in `range(self.BITS)`
         """
-        return y >> (self.BITS - 1 - level) == x
+        return x == y[:level+1]
+
+    def test_input_rand(self) -> tuple[bool, ...]:
+        bits = []
+        for _ in range(self.BITS):
+            bits.append(bool(randrange(2)))
+        return tuple(bits)
+
+    def test_input_zero(self) -> tuple[bool, ...]:
+        return tuple([False] * self.BITS)
+
+    def test_index_from_int(self, value: int, length: int) -> tuple[bool, ...]:
+        assert length <= self.BITS
+        return tuple(
+            (value >> (length - 1 - i)) & 1 != 0 for i in range(length)
+        )
+
+    def prefixes_for_level(self, level: int) -> tuple[tuple[bool, ...], ...]:
+        return tuple(
+            self.test_index_from_int(value, level+1) for value in range(2**level)
+        )
 
 
-def hash_proof(proof: bytes) -> bytes:
-    xof = XofTurboShake128(b'', dst(USAGE_ONEHOT_PROOF_HASH), proof)
+def hash_proof(ctx: bytes, proof: bytes) -> bytes:
+    xof = XofTurboShake128(b'',
+                           dst(ctx, USAGE_ONEHOT_PROOF_HASH),
+                           proof)
     return xof.next(PROOF_SIZE)
 
 
-def eval_proof(onehot_proof: bytes,
+def eval_proof(ctx: bytes,
+               onehot_proof: bytes,
                counter_check: bytes,
                payload_check: bytes) -> bytes:
     binder = onehot_proof + counter_check + payload_check
-    xof = XofTurboShake128(b'', dst(USAGE_EVAL_PROOF), binder)
+    xof = XofTurboShake128(b'', dst(ctx, USAGE_EVAL_PROOF), binder)
     return xof.next(PROOF_SIZE)

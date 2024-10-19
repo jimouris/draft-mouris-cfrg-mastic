@@ -2,6 +2,7 @@ import unittest
 
 from func import Index, Weight, mastic_func, weighted_heavy_hitters
 
+
 class TestIndex(unittest.TestCase):
     def test_is_prefx(self):
         self.assertTrue(Index(0, 0, 1).is_prefix(Index(0, 0, 1, 0)))

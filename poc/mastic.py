@@ -1,9 +1,10 @@
 '''The Mastic VDAF'''
 
-from typing import Optional, Sequence, TypeAlias, TypeVar, cast
+import itertools
+from typing import Optional, TypeAlias, TypeVar, cast
 
-from vdaf_poc.common import (byte, concat, front, to_le_bytes, vec_add,
-                             vec_sub, zeros)
+from vdaf_poc.common import (byte, concat, front, to_be_bytes, to_le_bytes,
+                             vec_add, vec_sub, zeros)
 from vdaf_poc.field import NttField
 from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
 from vdaf_poc.vdaf import Vdaf
@@ -19,9 +20,9 @@ R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
-    int,            # level
-    Sequence[int],  # prefixes
-    bool,           # whether to do the weight check
+    int,                      # level
+    tuple[tuple[bool, ...]],  # prefixes
+    bool,                     # whether to do the weight check
 ]
 
 MasticPublicShare: TypeAlias = tuple[
@@ -51,7 +52,7 @@ MasticPrepMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
 
 class Mastic(
         Vdaf[
-            tuple[int, W],  # W
+            tuple[tuple[bool, ...], W],  # W
             MasticAggParam,
             MasticPublicShare,
             MasticInputShare,
@@ -86,17 +87,21 @@ class Mastic(
             self.RAND_SIZE += self.xof.SEED_SIZE
 
     def shard(self,
-              measurement: tuple[int, W],
+              ctx: bytes,
+              measurement: tuple[tuple[bool, ...], W],
               nonce: bytes,
               rand: bytes,
               ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
         if self.flp.JOINT_RAND_LEN > 0:
-            return self.shard_with_joint_rand(measurement, nonce, rand)
-        return self.shard_without_joint_rand(measurement, nonce, rand)
+            return self.shard_with_joint_rand(
+                ctx, measurement, nonce, rand)
+        return self.shard_without_joint_rand(
+            ctx, measurement, nonce, rand)
 
     def shard_without_joint_rand(
             self,
-            measurement: tuple[int, W],
+            ctx: bytes,
+            measurement: tuple[tuple[bool, ...], W],
             nonce: bytes,
             rand: bytes,
     ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
@@ -110,12 +115,12 @@ class Mastic(
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
-            self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+            self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
         # Generate FLP and split it into shares.
-        prove_rand = self.prove_rand(prove_rand_seed)
+        prove_rand = self.prove_rand(ctx, prove_rand_seed)
         proof = self.flp.prove(beta, prove_rand, [])
-        helper_proof_share = self.helper_proof_share(helper_seed)
+        helper_proof_share = self.helper_proof_share(ctx, helper_seed)
         leader_proof_share = vec_sub(proof, helper_proof_share)
 
         public_share = (correction_words, None)
@@ -127,7 +132,8 @@ class Mastic(
 
     def shard_with_joint_rand(
             self,
-            measurement: tuple[int, W],
+            ctx: bytes,
+            measurement: tuple[tuple[bool, ...], W],
             nonce: bytes,
             rand: bytes,
     ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
@@ -142,22 +148,22 @@ class Mastic(
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
-            self.vidpf.gen(alpha, beta, nonce, vidpf_rand)
+            self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
         # Generate FLP joint randomness.
         joint_rand_parts = [
             self.joint_rand_part(
-                0, leader_seed, keys[0], correction_words, nonce),
+                ctx, 0, leader_seed, keys[0], correction_words, nonce),
             self.joint_rand_part(
-                1, helper_seed, keys[1], correction_words, nonce),
+                ctx, 1, helper_seed, keys[1], correction_words, nonce),
         ]
         joint_rand = self.joint_rand(
-            self.joint_rand_seed(joint_rand_parts))
+            ctx, self.joint_rand_seed(ctx, joint_rand_parts))
 
         # Generate FLP and split it into shares.
-        prove_rand = self.prove_rand(prove_rand_seed)
+        prove_rand = self.prove_rand(ctx, prove_rand_seed)
         proof = self.flp.prove(beta, prove_rand, joint_rand)
-        helper_proof_share = self.helper_proof_share(helper_seed)
+        helper_proof_share = self.helper_proof_share(ctx, helper_seed)
         leader_proof_share = vec_sub(proof, helper_proof_share)
 
         public_share = (correction_words, joint_rand_parts)
@@ -188,6 +194,7 @@ class Mastic(
     def prep_init(
             self,
             verify_key: bytes,
+            ctx: bytes,
             agg_id: int,
             agg_param: MasticAggParam,
             nonce: bytes,
@@ -196,7 +203,7 @@ class Mastic(
     ) -> tuple[MasticPrepState, MasticPrepShare]:
         (level, prefixes, do_weight_check) = agg_param
         (key, proof_share, seed) = \
-            self.expand_input_share(agg_id, input_share)
+            self.expand_input_share(ctx, agg_id, input_share)
         (correction_words, joint_rand_parts) = public_share
 
         # Evaluate the VIDPF.
@@ -206,6 +213,7 @@ class Mastic(
             key,
             level,
             prefixes,
+            ctx,
             nonce,
         )
 
@@ -214,18 +222,18 @@ class Mastic(
         joint_rand_seed = None
         verifier_share = None
         if do_weight_check:
-            query_rand = self.query_rand(verify_key, nonce, level)
+            query_rand = self.query_rand(verify_key, ctx, nonce, level)
             joint_rand = []
             if self.flp.JOINT_RAND_LEN > 0:
                 assert seed is not None
                 assert joint_rand_parts is not None
                 joint_rand_part = self.joint_rand_part(
-                    agg_id, seed, key, correction_words, nonce)
+                    ctx, agg_id, seed, key, correction_words, nonce)
                 joint_rand_parts[agg_id] = joint_rand_part
                 joint_rand_seed = self.joint_rand_seed(
-                    joint_rand_parts)
+                    ctx, joint_rand_parts)
                 joint_rand = self.joint_rand(
-                    self.joint_rand_seed(joint_rand_parts))
+                    ctx, self.joint_rand_seed(ctx, joint_rand_parts))
             verifier_share = self.flp.query(
                 beta_share,
                 proof_share,
@@ -248,6 +256,7 @@ class Mastic(
 
     def prep_shares_to_prep(
             self,
+            ctx: bytes,
             agg_param: MasticAggParam,
             prep_shares: list[MasticPrepShare],
     ) -> MasticPrepMessage:
@@ -283,13 +292,14 @@ class Mastic(
             raise ValueError('expected FLP joint randomness parts')
 
         # Confirm the FLP joint randomness was computed properly.
-        prep_msg = self.joint_rand_seed([
+        prep_msg = self.joint_rand_seed(ctx, [
             joint_rand_part_0,
             joint_rand_part_1,
         ])
         return prep_msg
 
     def prep_next(self,
+                  _ctx: bytes,
                   prep_state: MasticPrepState,
                   prep_msg: MasticPrepMessage,
                   ) -> list[F]:
@@ -328,8 +338,33 @@ class Mastic(
             agg_result.append(self.flp.decode(chunk[1:], meas_count))
         return agg_result
 
+    def encode_agg_param(self, agg_param: MasticAggParam) -> bytes:
+        (level, prefixes, do_weight_check) = agg_param
+        if level not in range(2 ** 16):
+            raise ValueError('level out of range')
+        if len(prefixes) not in range(2 ** 32):
+            raise ValueError('number of prefixes out of range')
+        encoded = bytes()
+        encoded += to_be_bytes(level, 2)
+        encoded += to_be_bytes(len(prefixes), 4)
+        # NOTE: The do_weight_check is the only difference between Mastic's and
+        # Poplar1's `encode_agg_param``
+        encoded += to_be_bytes(int(do_weight_check), 1)
+        prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
+        encoded_prefixes = bytearray()
+        for prefix in prefixes:
+            for chunk in itertools.batched(prefix, 8):
+                byte_out = 0
+                for (bit_position, bit) in enumerate(chunk):
+                    byte_out |= bit << (7 - bit_position)
+                encoded_prefixes.append(byte_out)
+        assert len(encoded_prefixes) == prefixes_len
+        encoded += encoded_prefixes
+        return encoded
+
     def expand_input_share(
             self,
+            ctx: bytes,
             agg_id: int,
             input_share: MasticInputShare,
     ) -> tuple[bytes, list[F], Optional[bytes]]:
@@ -339,29 +374,30 @@ class Mastic(
         else:
             (key, _leader_proof_share, seed) = input_share
             assert seed is not None
-            proof_share = self.helper_proof_share(seed)
+            proof_share = self.helper_proof_share(ctx, seed)
         return (key, proof_share, seed)
 
-    def helper_proof_share(self, seed: bytes) -> list[F]:
+    def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(USAGE_PROOF_SHARE),
+            dst(ctx, USAGE_PROOF_SHARE),
             b'',
             self.flp.PROOF_LEN,
         )
 
-    def prove_rand(self, seed: bytes) -> list[F]:
+    def prove_rand(self, ctx: bytes, seed: bytes) -> list[F]:
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(USAGE_PROVE_RAND),
+            dst(ctx, USAGE_PROVE_RAND),
             b'',
             self.flp.PROVE_RAND_LEN,
         )
 
     def joint_rand_part(
             self,
+            ctx: bytes,
             agg_id: int,
             seed: bytes,
             key: bytes,
@@ -371,34 +407,35 @@ class Mastic(
         pub = self.vidpf.encode_public_share(correction_words)
         return self.xof.derive_seed(
             seed,
-            dst(USAGE_JOINT_RAND_PART),
+            dst(ctx, USAGE_JOINT_RAND_PART),
             byte(agg_id) + nonce + key + pub,
         )
 
-    def joint_rand_seed(self, parts: list[bytes]) -> bytes:
+    def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
         return self.xof.derive_seed(
             zeros(self.xof.SEED_SIZE),
-            dst(USAGE_JOINT_RAND_SEED),
+            dst(ctx, USAGE_JOINT_RAND_SEED),
             concat(parts),
         )
 
-    def joint_rand(self, seed: bytes) -> list[F]:
+    def joint_rand(self, ctx: bytes, seed: bytes) -> list[F]:
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(USAGE_JOINT_RAND),
+            dst(ctx, USAGE_JOINT_RAND),
             b'',
             self.flp.JOINT_RAND_LEN,
         )
 
     def query_rand(self,
                    verify_key: bytes,
+                   ctx: bytes,
                    nonce: bytes,
                    level: int) -> list[F]:
         return self.xof.expand_into_vec(
             self.field,
             verify_key,
-            dst(USAGE_QUERY_RAND),
+            dst(ctx, USAGE_QUERY_RAND),
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
