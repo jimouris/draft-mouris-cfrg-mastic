@@ -47,9 +47,12 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
         assert mastic.is_valid(agg_param, prev_agg_params)
 
         # Aggregators prepare reports for aggregation.
-        out_shares = [[], []]
+        agg_shares = [mastic.agg_init(agg_param) for _ in range(mastic.SHARES)]
+
+        print('agg_shares', agg_shares)
+
         for (nonce, public_share, input_shares) in reports:
-            # Each aggregator broadcast its prep share; ...
+            # Each aggregator broadcast its prep share.
             (prep_state, prep_shares) = zip(*[
                 mastic.prep_init(
                     verify_key,
@@ -58,21 +61,19 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
                     agg_param,
                     nonce,
                     public_share,
-                    input_shares[agg_id]) for agg_id in [0, 1]
+                    input_shares[agg_id]) for agg_id in range(mastic.SHARES)
             ])
 
-            # computes the prep message; ...
+            # Each aggregator computes the prep message.
             prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
 
-            # and computes its output share.
-            for agg_id in [0, 1]:
-                out_shares[agg_id].append(
-                    mastic.prep_next(ctx, prep_state[agg_id], prep_msg))
-
-        # Aggregators aggregate their output shares.
-        agg_shares = [
-            mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
-        ]
+            # Each Aggregator computes and aggregates its output share.
+            for agg_id in range(mastic.SHARES):
+                out_share = mastic.prep_next(ctx, prep_state[agg_id], prep_msg)
+                assert not isinstance(out_share, tuple)
+                agg_shares[agg_id] = mastic.agg_update(agg_param,
+                                                       agg_shares[agg_id],
+                                                       out_share)
 
         # Collector computes the aggregate result.
         agg_result = mastic.unshard(agg_param, agg_shares, len(reports))
@@ -233,9 +234,9 @@ def example_attribute_based_metrics_mode():
     assert mastic.is_valid(agg_param, [])
 
     # Aggregators prepare reports for aggregation.
-    out_shares = [[], []]
+    agg_shares = [mastic.agg_init(agg_param) for _ in range(mastic.SHARES)]
     for (nonce, public_share, input_shares) in reports:
-        # Each aggregator broadcast its prep share; ...
+        # Each aggregator broadcast its prep share.
         (prep_state, prep_shares) = zip(*[
             mastic.prep_init(
                 verify_key,
@@ -244,21 +245,19 @@ def example_attribute_based_metrics_mode():
                 agg_param,
                 nonce,
                 public_share,
-                input_shares[agg_id]) for agg_id in [0, 1]
+                input_shares[agg_id]) for agg_id in range(mastic.SHARES)
         ])
 
-        # computes the prep message; ...
+        # Each aggregator computes the prep message.
         prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
 
-        # and computes its output share.
-        for agg_id in [0, 1]:
-            out_shares[agg_id].append(
-                mastic.prep_next(ctx, prep_state[agg_id], prep_msg))
-
-    # Aggregators aggregate their output shares.
-    agg_shares = [
-        mastic.aggregate(agg_param, out_shares[agg_id]) for agg_id in [0, 1]
-    ]
+        # Each Aggregator computes and aggregates its output share.
+        for agg_id in range(mastic.SHARES):
+            out_share = mastic.prep_next(ctx, prep_state[agg_id], prep_msg)
+            assert not isinstance(out_share, tuple)
+            agg_shares[agg_id] = mastic.agg_update(agg_param,
+                                                   agg_shares[agg_id],
+                                                   out_share)
 
     # Collector computes the aggregate result.
     agg_result = mastic.unshard(agg_param, agg_shares, len(measurements))
