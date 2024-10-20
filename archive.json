@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-17T00:46:56.174971+00:00",
+  "timestamp": "2024-10-20T00:52:26.205966+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -1018,13 +1018,23 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "jimouris"
+      ],
       "labels": [],
-      "body": "This draft has not been cut as of this writing, but it will include at least the following features:\r\n* Change to the aggregation API to make it streaming\r\n* Removal of `sage` as a dependency",
+      "body": "This draft has not been cut as of this writing, but it will include at least the following features:\r\n* [ ] Change to the aggregation API to make it streaming\r\n* [x] Removal of `sage` as a dependency",
       "createdAt": "2024-10-16T21:11:50Z",
-      "updatedAt": "2024-10-16T21:11:50Z",
+      "updatedAt": "2024-10-19T11:57:44Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "Additionally update https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/main/poc/requirements.txt#L4 to 13 when VDAF is cut.",
+          "createdAt": "2024-10-19T11:57:30Z",
+          "updatedAt": "2024-10-19T11:57:30Z"
+        }
+      ]
     }
   ],
   "pulls": [
@@ -7021,6 +7031,151 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 88,
+      "id": "PR_kwDOJmRsfc5_I0aY",
+      "title": "Remove Sage and add encode_agg_param",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/88",
+      "state": "MERGED",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "partially address https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/87",
+      "createdAt": "2024-10-18T19:12:28Z",
+      "updatedAt": "2024-10-18T20:30:26Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "f2d9feea98e762993eb0cd91ce0f3bdc914b6ef7",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/remove-sage",
+      "headRefOid": "72bd889f7006c523f0b656b077d7c4f5dd7d70cd",
+      "closedAt": "2024-10-18T20:30:24Z",
+      "mergedAt": "2024-10-18T20:30:24Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "c00df0839806b6766a15348ebecf840dd76991f7"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6Nypw3",
+          "commit": {
+            "abbreviatedOid": "dfe4605"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "\ud83d\udc4d \r\n",
+          "createdAt": "2024-10-18T19:49:06Z",
+          "updatedAt": "2024-10-18T19:50:46Z",
+          "comments": [
+            {
+              "originalPosition": 18,
+              "body": "```suggestion\r\n        (level, prefixes, do_weight_check) = agg_param\r\n```",
+              "createdAt": "2024-10-18T19:49:07Z",
+              "updatedAt": "2024-10-18T19:50:46Z"
+            },
+            {
+              "originalPosition": 28,
+              "body": "nit: Python seems to be alright with an implicit cast here, but this makes me shutter\r\n```suggestion\r\n        encoded += to_be_bytes(int(do_weight_check), 1)\r\n```",
+              "createdAt": "2024-10-18T19:50:08Z",
+              "updatedAt": "2024-10-18T19:50:46Z"
+            },
+            {
+              "originalPosition": 32,
+              "body": "This doesn't apply to us\r\n```suggestion\r\n```",
+              "createdAt": "2024-10-18T19:50:27Z",
+              "updatedAt": "2024-10-18T19:50:46Z"
+            },
+            {
+              "originalPosition": 41,
+              "body": "```suggestion\r\n```",
+              "createdAt": "2024-10-18T19:50:36Z",
+              "updatedAt": "2024-10-18T19:50:46Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 89,
+      "id": "PR_kwDOJmRsfc5_KRGW",
+      "title": "Added function definitions, updated parameters",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89",
+      "state": "OPEN",
+      "author": "TrustworthyComputing",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
+      "createdAt": "2024-10-19T05:10:34Z",
+      "updatedAt": "2024-10-19T05:10:35Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "nekt/draft-edits-2",
+      "headRefOid": "89608ef6527e90081bc5297b8f3fe37ed7b4710e",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 90,
+      "id": "PR_kwDOJmRsfc5_LLwI",
+      "title": "Make aggregate API streaming",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/90",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "* Replace `aggregate()` with streaming API\r\n* Update VDAF upstream to https://github.com/cfrg/draft-irtf-cfrg-vdaf/commit/8bbac2ea217ca4c980dceec9af6a99ffcc30deb3\r\n* Update CODEOWNERS\r\n\r\nCloses https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/87\r\n",
+      "createdAt": "2024-10-19T12:53:08Z",
+      "updatedAt": "2024-10-19T12:59:36Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/streaming",
+      "headRefOid": "c53e2756b06ada69d00c9b39b5bdf3c18b249981",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 91,
+      "id": "PR_kwDOJmRsfc5_LPrq",
+      "title": "Add initial test vectors",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/91",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Note: on top of https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/90 so review in order\r\n\r\nAddresses: https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/72",
+      "createdAt": "2024-10-19T13:20:09Z",
+      "updatedAt": "2024-10-19T13:53:04Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/test-vectors",
+      "headRefOid": "50c5864e8e1be7a1050697c13bebf17f898080de",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
