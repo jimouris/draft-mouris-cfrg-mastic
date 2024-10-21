@@ -1130,14 +1130,23 @@ Each output share consists of the truncated payload for each VIDPF prefix,
 flattened into a single vector. Aggregation involves simply adding these up:
 
 ~~~ python
-def aggregate(self,
-              agg_param: MasticAggParam,
-              out_shares: list[list[F]],
-              ) -> list[F]:
-    agg_share = self.empty_agg(agg_param)
-    for out_share in out_shares:
-        agg_share = vec_add(agg_share, out_share)
-    return agg_share
+def agg_init(self, agg_param: MasticAggParam) -> list[F]:
+    return self.empty_agg(agg_param)
+
+def agg_update(self,
+                agg_param: MasticAggParam,
+                agg_share: list[F],
+                out_share: list[F]) -> list[F]:
+    return vec_add(agg_share, out_share)
+
+def merge(self,
+            agg_param: MasticAggParam,
+            agg_shares: list[list[F]]) -> list[F]:
+    (_level, prefixes, _do_weight_check) = agg_param
+    agg = self.empty_agg(agg_param)
+    for agg_share in agg_shares:
+        agg = vec_add(agg, agg_share)
+    return cast(list[F], agg)
 ~~~
 
 ## Unsharding
@@ -1159,9 +1168,7 @@ def unshard(self,
             agg_shares: list[list[F]],
             _num_measurements: int,
             ) -> list[R]:
-    agg = self.empty_agg(agg_param)
-    for agg_share in agg_shares:
-        agg = vec_add(agg, agg_share)
+    agg = self.merge(agg_param, agg_shares)
 
     agg_result = []
     while len(agg) > 0:

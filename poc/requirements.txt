@@ -1,4 +1,4 @@
 mypy==1.12.0
 mypy-extensions==1.0.0
 pycryptodomex==3.21.0
-vdaf_poc @ git+https://github.com/cfrg/draft-irtf-cfrg-vdaf@592f767c056b2034e20c692bc2c147f62d6a1e97#subdirectory=poc
+vdaf_poc @ git+https://github.com/cfrg/draft-irtf-cfrg-vdaf@8bbac2ea217ca4c980dceec9af6a99ffcc30deb3#subdirectory=poc
