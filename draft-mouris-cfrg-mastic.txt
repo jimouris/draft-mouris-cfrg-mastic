@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 21 April 2025                                           Nillion
+Expires: 24 April 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         18 October 2024
+                                                         21 October 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 21 April 2025.
+   This Internet-Draft will expire on 24 April 2025.
 
 Copyright Notice
 
@@ -1153,14 +1153,23 @@ Table of Contents
    prefix, flattened into a single vector.  Aggregation involves simply
    adding these up:
 
-   def aggregate(self,
-                 agg_param: MasticAggParam,
-                 out_shares: list[list[F]],
-                 ) -> list[F]:
-       agg_share = self.empty_agg(agg_param)
-       for out_share in out_shares:
-           agg_share = vec_add(agg_share, out_share)
-       return agg_share
+   def agg_init(self, agg_param: MasticAggParam) -> list[F]:
+       return self.empty_agg(agg_param)
+
+   def agg_update(self,
+                   agg_param: MasticAggParam,
+                   agg_share: list[F],
+                   out_share: list[F]) -> list[F]:
+       return vec_add(agg_share, out_share)
+
+   def merge(self,
+               agg_param: MasticAggParam,
+               agg_shares: list[list[F]]) -> list[F]:
+       (_level, prefixes, _do_weight_check) = agg_param
+       agg = self.empty_agg(agg_param)
+       for agg_share in agg_shares:
+           agg = vec_add(agg, agg_share)
+       return cast(list[F], agg)
 
 4.5.  Unsharding
 
@@ -1181,9 +1190,7 @@ Table of Contents
                agg_shares: list[list[F]],
                _num_measurements: int,
                ) -> list[R]:
-       agg = self.empty_agg(agg_param)
-       for agg_share in agg_shares:
-           agg = vec_add(agg, agg_share)
+       agg = self.merge(agg_param, agg_shares)
 
        agg_result = []
        while len(agg) > 0:
