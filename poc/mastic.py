@@ -317,7 +317,9 @@ class Mastic(
         return truncated_out_share
 
     def agg_init(self, agg_param: MasticAggParam) -> list[F]:
-        return self.empty_agg(agg_param)
+        (_level, prefixes, _do_weight_check) = agg_param
+        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+        return agg
 
     def agg_update(self,
                    agg_param: MasticAggParam,
@@ -329,7 +331,7 @@ class Mastic(
               agg_param: MasticAggParam,
               agg_shares: list[list[F]]) -> list[F]:
         (_level, prefixes, _do_weight_check) = agg_param
-        agg = self.empty_agg(agg_param)
+        agg = self.agg_init(agg_param)
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
         return cast(list[F], agg)
@@ -449,11 +451,6 @@ class Mastic(
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
-
-    def empty_agg(self, agg_param: MasticAggParam) -> list[F]:
-        (_level, prefixes, _do_weight_check) = agg_param
-        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
-        return agg
 
     def test_vec_encode_input_share(
         self,
