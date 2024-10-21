@@ -2421,7 +2421,9 @@ flattened into a single vector. Aggregation involves simply adding these up:<a h
 <div class="lang-python sourcecode" id="section-4.4-2">
 <pre>
 def agg_init(self, agg_param: MasticAggParam) -&gt; list[F]:
-    return self.empty_agg(agg_param)
+    (_level, prefixes, _do_weight_check) = agg_param
+    agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+    return agg
 
 def agg_update(self,
                 agg_param: MasticAggParam,
@@ -2433,7 +2435,7 @@ def merge(self,
             agg_param: MasticAggParam,
             agg_shares: list[list[F]]) -&gt; list[F]:
     (_level, prefixes, _do_weight_check) = agg_param
-    agg = self.empty_agg(agg_param)
+    agg = self.agg_init(agg_param)
     for agg_share in agg_shares:
         agg = vec_add(agg, agg_share)
     return cast(list[F], agg)
@@ -2559,11 +2561,6 @@ def query_rand(self,
         nonce + to_le_bytes(level, 2),
         self.flp.QUERY_RAND_LEN,
     )
-
-def empty_agg(self, agg_param: MasticAggParam) -&gt; list[F]:
-    (_level, prefixes, _do_weight_check) = agg_param
-    agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
-    return agg
 </pre><a href="#section-4.6-1" class="pilcrow">¶</a>
 </div>
 </section>
