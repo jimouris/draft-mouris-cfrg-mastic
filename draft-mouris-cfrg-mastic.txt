@@ -5,14 +5,14 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 24 April 2025                                           Nillion
+Expires: 25 April 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
                                                                P. Sarkar
                                                           Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         21 October 2024
+                                                         22 October 2024
 
 
                             The Mastic VDAF
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 24 April 2025.
+   This Internet-Draft will expire on 25 April 2025.
 
 Copyright Notice
 
@@ -1154,7 +1154,9 @@ Table of Contents
    adding these up:
 
    def agg_init(self, agg_param: MasticAggParam) -> list[F]:
-       return self.empty_agg(agg_param)
+       (_level, prefixes, _do_weight_check) = agg_param
+       agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+       return agg
 
    def agg_update(self,
                    agg_param: MasticAggParam,
@@ -1166,7 +1168,7 @@ Table of Contents
                agg_param: MasticAggParam,
                agg_shares: list[list[F]]) -> list[F]:
        (_level, prefixes, _do_weight_check) = agg_param
-       agg = self.empty_agg(agg_param)
+       agg = self.agg_init(agg_param)
        for agg_share in agg_shares:
            agg = vec_add(agg, agg_share)
        return cast(list[F], agg)
@@ -1275,11 +1277,6 @@ Table of Contents
            nonce + to_le_bytes(level, 2),
            self.flp.QUERY_RAND_LEN,
        )
-
-   def empty_agg(self, agg_param: MasticAggParam) -> list[F]:
-       (_level, prefixes, _do_weight_check) = agg_param
-       agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
-       return agg
 
 5.  Security Considerations
 
