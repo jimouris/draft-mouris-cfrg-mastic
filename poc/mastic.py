@@ -5,8 +5,9 @@ from typing import Optional, TypeAlias, TypeVar, cast
 
 from vdaf_poc.common import (byte, concat, front, to_be_bytes, to_le_bytes,
                              vec_add, vec_sub, zeros)
-from vdaf_poc.field import NttField
-from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
+from vdaf_poc.field import Field64, Field128, NttField
+from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
+                                   MultihotCountVec, Sum, SumVec, Valid)
 from vdaf_poc.vdaf import Vdaf
 from vdaf_poc.xof import XofTurboShake128
 
@@ -21,7 +22,7 @@ F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
     int,                      # level
-    tuple[tuple[bool, ...]],  # prefixes
+    tuple[tuple[bool, ...], ...],  # prefixes
     bool,                     # whether to do the weight check
 ]
 
@@ -502,3 +503,57 @@ class Mastic(
         if prep_message is not None:
             encoded += prep_message
         return encoded
+
+
+##
+# INSTANTIATIONS
+#
+
+class MasticCount(Mastic):
+    ID = 0x00000001
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticCount'
+
+    def __init__(self, bits: int):
+        super().__init__(bits, Count(Field64))
+
+
+class MasticSum(Mastic):
+    ID = 0x00000002
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticSum'
+
+    def __init__(self, bits: int, max_measurement: int):
+        super().__init__(bits, Sum(Field64, max_measurement))
+
+
+class MasticSumVec(Mastic):
+    ID = 0x00000003
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticSumVec'
+
+    def __init__(self, bits: int, length: int, sum_vec_bits: int, chunk_length: int):
+        super().__init__(bits, SumVec(Field128, length, sum_vec_bits, chunk_length))
+
+
+class MasticHistogram(Mastic):
+    ID = 0x00000004
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticHistogram'
+
+    def __init__(self, bits: int, length: int, chunk_length: int):
+        super().__init__(bits, Histogram(Field128, length, chunk_length))
+
+
+class MasticMultihotCountVec(Mastic):
+    ID = 0x00000005
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticMultihotCountVec'
+
+    def __init__(self, bits: int, length: int, max_weight: int, chunk_length: int):
+        super().__init__(bits, MultihotCountVec(Field128, length, max_weight, chunk_length))

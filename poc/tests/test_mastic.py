@@ -1,16 +1,14 @@
 import unittest
 
 from vdaf_poc.common import from_be_bytes
-from vdaf_poc.field import Field64, Field128
-from vdaf_poc.flp_bbcggi19 import Count, Sum, SumVec
 from vdaf_poc.test_utils import TestVdaf
 
-from mastic import Mastic
+from mastic import MasticCount, MasticSum, MasticSumVec
 
 
 class TestValidAggParams(unittest.TestCase):
     def test_is_valid(self) -> None:
-        mastic = Mastic(4, Count(Field64))
+        mastic = MasticCount(4)
 
         self.assertTrue(mastic.is_valid(
             (0, ((False,),), True),
@@ -70,7 +68,7 @@ class TestValidAggParams(unittest.TestCase):
 
 class TestMastic(TestVdaf):
     def test_count(self):
-        mastic = Mastic(2, Count(Field64))
+        mastic = MasticCount(2)
         self.run_vdaf_test(
             mastic,
             (
@@ -91,7 +89,7 @@ class TestMastic(TestVdaf):
             [2, 3],
         )
 
-        mastic = Mastic(2, Count(Field64))
+        mastic = MasticCount(2)
         self.run_vdaf_test(
             mastic,
             (1, (mastic.vidpf.test_index_from_int(0b00, 2),
@@ -106,7 +104,7 @@ class TestMastic(TestVdaf):
             [1, 1],
         )
 
-        mastic = Mastic(16, Count(Field64))
+        mastic = MasticCount(16)
         self.run_vdaf_test(
             mastic,
             (14, (mastic.vidpf.test_index_from_int(0b111100001111000, 15),), True),
@@ -120,7 +118,7 @@ class TestMastic(TestVdaf):
             [1],
         )
 
-        mastic = Mastic(256, Count(Field64))
+        mastic = MasticCount(256)
         self.run_vdaf_test(
             mastic,
             (
@@ -143,7 +141,7 @@ class TestMastic(TestVdaf):
         )
 
     def test_sum(self):
-        mastic = Mastic(2, Sum(Field64, 2**3 - 1))
+        mastic = MasticSum(2, 2**3 - 1)
         self.run_vdaf_test(
             mastic,
             (0, (mastic.vidpf.test_index_from_int(0b0, 1),
@@ -158,7 +156,7 @@ class TestMastic(TestVdaf):
             [11, 10],
         )
 
-        mastic = Mastic(2, Sum(Field64, 2**2 - 1))
+        mastic = MasticSum(2, 2**2 - 1)
         self.run_vdaf_test(
             mastic,
             (1, (mastic.vidpf.test_index_from_int(0b00, 2),
@@ -173,7 +171,7 @@ class TestMastic(TestVdaf):
             [2, 3],
         )
 
-        mastic = Mastic(16, Sum(Field64, 1))
+        mastic = MasticSum(16, 1)
         self.run_vdaf_test(
             mastic,
             (14, (mastic.vidpf.test_index_from_int(0b111100001111000, 15),), True),
@@ -187,7 +185,7 @@ class TestMastic(TestVdaf):
             [1],
         )
 
-        mastic = Mastic(256, Sum(Field64, 2**8 - 1))
+        mastic = MasticSum(256, 2**8 - 1)
         self.run_vdaf_test(
             mastic,
             (
@@ -210,7 +208,7 @@ class TestMastic(TestVdaf):
         )
 
     def test_sum_vec(self):
-        mastic = Mastic(16, SumVec(Field128, 3, 1, 1))
+        mastic = MasticSumVec(16, 3, 1, 1)
         self.run_vdaf_test(
             mastic,
             (14, (mastic.vidpf.test_index_from_int(0b111100001111000, 15),), True),
