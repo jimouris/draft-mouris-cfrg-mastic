@@ -5,8 +5,9 @@ from typing import Optional, TypeAlias, TypeVar, cast
 
 from vdaf_poc.common import (byte, concat, front, to_be_bytes, to_le_bytes,
                              vec_add, vec_sub, zeros)
-from vdaf_poc.field import NttField
-from vdaf_poc.flp_bbcggi19 import FlpBBCGGI19, Valid
+from vdaf_poc.field import Field64, Field128, NttField
+from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
+                                   MultihotCountVec, Sum, SumVec, Valid)
 from vdaf_poc.vdaf import Vdaf
 from vdaf_poc.xof import XofTurboShake128
 
@@ -20,9 +21,9 @@ R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
-    int,                      # level
-    tuple[tuple[bool, ...]],  # prefixes
-    bool,                     # whether to do the weight check
+    int,                            # level
+    tuple[tuple[bool, ...], ...],   # prefixes
+    bool,                           # whether to do the weight check
 ]
 
 MasticPublicShare: TypeAlias = tuple[
@@ -75,6 +76,9 @@ class Mastic(
     NONCE_SIZE = 16
     SHARES = 2
     ROUNDS = 1
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'Mastic'
 
     def __init__(self,
                  bits: int,
@@ -314,7 +318,9 @@ class Mastic(
         return truncated_out_share
 
     def agg_init(self, agg_param: MasticAggParam) -> list[F]:
-        return self.empty_agg(agg_param)
+        (_level, prefixes, _do_weight_check) = agg_param
+        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
+        return agg
 
     def agg_update(self,
                    agg_param: MasticAggParam,
@@ -326,7 +332,7 @@ class Mastic(
               agg_param: MasticAggParam,
               agg_shares: list[list[F]]) -> list[F]:
         (_level, prefixes, _do_weight_check) = agg_param
-        agg = self.empty_agg(agg_param)
+        agg = self.agg_init(agg_param)
         for agg_share in agg_shares:
             agg = vec_add(agg, agg_share)
         return cast(list[F], agg)
@@ -447,11 +453,6 @@ class Mastic(
             self.flp.QUERY_RAND_LEN,
         )
 
-    def empty_agg(self, agg_param: MasticAggParam) -> list[F]:
-        (_level, prefixes, _do_weight_check) = agg_param
-        agg = self.field.zeros(len(prefixes)*(1+self.flp.OUTPUT_LEN))
-        return agg
-
     def test_vec_encode_input_share(
         self,
         input_share: MasticInputShare,
@@ -478,12 +479,81 @@ class Mastic(
         return encoded
 
     def test_vec_encode_agg_share(self, agg_share: list[F]) -> bytes:
-        raise NotImplementedError("pick an encoding of agg share")
+        encoded = bytes()
+        if len(agg_share) > 0:
+            encoded += self.field.encode_vec(agg_share)
+        return encoded
 
     def test_vec_encode_prep_share(
             self, prep_share: MasticPrepShare) -> bytes:
-        raise NotImplementedError("pick an encoding of prep share")
+        (eval_proof, verifier_share, joint_rand) = prep_share
+        assert verifier_share is not None
+        assert isinstance(verifier_share, list)
+        encoded = bytes()
+        encoded += eval_proof
+        if len(verifier_share) > 0:
+            encoded += self.field.encode_vec(verifier_share)
+        if joint_rand is not None:
+            encoded += joint_rand
+        return encoded
 
     def test_vec_encode_prep_msg(
             self, prep_message: MasticPrepMessage) -> bytes:
-        raise NotImplementedError("pick an encoding of prep msg")
+        encoded = bytes()
+        if prep_message is not None:
+            encoded += prep_message
+        return encoded
+
+
+##
+# INSTANTIATIONS
+#
+
+class MasticCount(Mastic):
+    ID = 0xFFFF0001
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticCount'
+
+    def __init__(self, bits: int):
+        super().__init__(bits, Count(Field64))
+
+
+class MasticSum(Mastic):
+    ID = 0xFFFF0002
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticSum'
+
+    def __init__(self, bits: int, max_measurement: int):
+        super().__init__(bits, Sum(Field64, max_measurement))
+
+
+class MasticSumVec(Mastic):
+    ID = 0xFFFF0003
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticSumVec'
+
+    def __init__(self, bits: int, length: int, sum_vec_bits: int, chunk_length: int):
+        super().__init__(bits, SumVec(Field128, length, sum_vec_bits, chunk_length))
+
+
+class MasticHistogram(Mastic):
+    ID = 0xFFFF0004
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticHistogram'
+
+    def __init__(self, bits: int, length: int, chunk_length: int):
+        super().__init__(bits, Histogram(Field128, length, chunk_length))
+
+
+class MasticMultihotCountVec(Mastic):
+    ID = 0xFFFF0005
+
+    # Name of the VDAF, for use in test vector filenames.
+    test_vec_name = 'MasticMultihotCountVec'
+
+    def __init__(self, bits: int, length: int, max_weight: int, chunk_length: int):
+        super().__init__(bits, MultihotCountVec(Field128, length, max_weight, chunk_length))

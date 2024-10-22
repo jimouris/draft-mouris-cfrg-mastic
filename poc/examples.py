@@ -4,12 +4,10 @@ import hashlib
 import math
 
 from vdaf_poc.common import gen_rand
-from vdaf_poc.field import Field64, Field128
-from vdaf_poc.flp_bbcggi19 import Count, Histogram, Sum
 from vdaf_poc.vdaf_poplar1 import Poplar1
 from vdaf_poc.vdaf_prio3 import Prio3Histogram
 
-from mastic import Mastic
+from mastic import MasticCount, MasticHistogram, MasticSum
 
 
 def get_reports_from_measurements(mastic, ctx, measurements):
@@ -96,7 +94,7 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
 def example_weighted_heavy_hitters_mode():
     bits = 4
     ctx = b'example_weighted_heavy_hitters_mode'
-    mastic = Mastic(bits, Count(Field64))
+    mastic = MasticCount(bits)
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -131,7 +129,7 @@ def example_weighted_heavy_hitters_mode():
 def example_weighted_heavy_hitters_mode_with_different_thresholds():
     bits = 4
     ctx = b'example_weighted_heavy_hitters_mode_with_different_thresholds'
-    mastic = Mastic(bits, Count(Field64))
+    mastic = MasticCount(bits)
 
     # Clients shard their measurements. Each measurement is comprised of
     # `(alpha, beta)` where `alpha` is the payload string and `beta` is its
@@ -174,7 +172,7 @@ def example_weighted_heavy_hitters_mode_with_different_thresholds():
 def example_attribute_based_metrics_mode():
     bits = 8
     ctx = b'example_attribute_based_metrics_mode'
-    mastic = Mastic(bits, Sum(Field64, 3))
+    mastic = MasticSum(bits, 3)
     verify_key = gen_rand(16)
 
     def h(attr):
@@ -282,7 +280,7 @@ def example_poplar1_overhead():
     print('Poplar1(256) input share 1 len:', p)
     poplar1_bytes_uploaded = b
 
-    cls = Mastic(256, Count(Field64))
+    cls = MasticCount(256)
     (public_share, input_shares) = cls.shard(b'mastic_count',
                                              ((False,)*256, 0),
                                              nonce,
@@ -299,7 +297,7 @@ def example_poplar1_overhead():
     print('Mastic(256,Count()) input share 1 len:', p)
     mastic_count_bytes_uploaded = b
 
-    cls = Mastic(256, Sum(Field64, 8))
+    cls = MasticSum(256, 8)
     (public_share, input_shares) = cls.shard(b'mastic_sum_8',
                                              ((False,)*256, 0),
                                              nonce,
@@ -321,7 +319,7 @@ def example_poplar1_overhead():
     print('Mastic(256,Sum(8)) overhead for Mastic(256,Count()): {:.2f}%'.format(
         mastic_sum8_bytes_uploaded / mastic_count_bytes_uploaded * 100))
 
-    cls = Mastic(32, Histogram(Field128, 100, 10))
+    cls = MasticHistogram(32, 100, 10)
     (public_share, input_shares) = cls.shard(b'mastic_histogram_100',
                                              ((False,)*32, 0),
                                              nonce,
