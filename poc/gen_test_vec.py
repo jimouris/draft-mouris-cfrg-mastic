@@ -4,7 +4,8 @@ import os
 
 from vdaf_poc.test_utils import gen_test_vec_for_vdaf
 
-from mastic import F, Mastic, MasticAggParam, MasticCount, MasticSum, W
+from mastic import (F, Mastic, MasticAggParam, MasticCount, MasticHistogram,
+                    MasticMultihotCountVec, MasticSum, MasticSumVec, W)
 
 # # The path where test vectors are generated.
 TEST_VECTOR_PATH = os.environ.get('TEST_VECTOR_PATH', '../test_vec/')
@@ -26,7 +27,6 @@ if __name__ == '__main__':
     vdaf_test_vec_path = TEST_VECTOR_PATH + "/mastic/"
 
     # Count Test Vectors
-    # Test Vector 0
     mastic_count = MasticCount(2)
     gen_test_vec_for_mastic(
         vdaf_test_vec_path,
@@ -44,7 +44,6 @@ if __name__ == '__main__':
         test_vec_instance=0,
     )
 
-    # Test Vector 1
     gen_test_vec_for_mastic(
         vdaf_test_vec_path,
         mastic_count,
@@ -62,7 +61,6 @@ if __name__ == '__main__':
     )
 
     # Sum Test Vectors
-    # Test Vector 2
     mastic_sum = MasticSum(2, 2**3 - 1)
     gen_test_vec_for_mastic(
         vdaf_test_vec_path,
@@ -86,7 +84,6 @@ if __name__ == '__main__':
         test_vec_instance=0,
     )
 
-    # Test Vector 3
     mastic_sum = MasticSum(2, 2**2 - 1)
     gen_test_vec_for_mastic(
         vdaf_test_vec_path,
@@ -108,4 +105,77 @@ if __name__ == '__main__':
             (mastic_sum.vidpf.test_index_from_int(0b01, 2), 2)
         ],
         test_vec_instance=1,
+    )
+
+    # SumVec Test Vectors
+    mastic_sum_vec = MasticSumVec(16, 3, 1, 1)
+    gen_test_vec_for_mastic(
+        vdaf_test_vec_path,
+        mastic_sum_vec,
+        (
+            14,
+            (mastic_sum_vec.vidpf.test_index_from_int(0b111100001111000, 15),),
+            True
+        ),
+        context,
+        measurements=[
+            (
+                mastic_sum_vec.vidpf.test_index_from_int(
+                    0b1111000011110000, 16
+                ),
+                [0, 0, 1]
+            ),
+            (
+                mastic_sum_vec.vidpf.test_index_from_int(
+                    0b1111000011110001, 16
+                ),
+                [0, 1, 0]
+            )
+        ],
+        test_vec_instance=0,
+    )
+
+    # Histogram Test Vectors
+    mastic_histogram = MasticHistogram(2, 4, 2)
+    gen_test_vec_for_mastic(
+        vdaf_test_vec_path,
+        mastic_histogram,
+        (
+            1,
+            (
+                mastic_histogram.vidpf.test_index_from_int(0b00, 2),
+                mastic_histogram.vidpf.test_index_from_int(0b01, 2)
+            ),
+            True,
+        ),
+        context,
+        measurements=[
+            (mastic_histogram.vidpf.test_index_from_int(0b10, 2), 1),
+            (mastic_histogram.vidpf.test_index_from_int(0b01, 2), 2),
+            (mastic_histogram.vidpf.test_index_from_int(0b00, 2), 3)
+        ],
+        test_vec_instance=0,
+    )
+
+    # Histogram Test Vectors
+    mastic_multi_hot = MasticMultihotCountVec(2, 4, 2, 2)
+    gen_test_vec_for_mastic(
+        vdaf_test_vec_path,
+        mastic_multi_hot,
+        (
+            1,
+            (
+                mastic_multi_hot.vidpf.test_index_from_int(0b00, 2),
+                mastic_multi_hot.vidpf.test_index_from_int(0b01, 2)
+            ),
+            True,
+        ),
+        context,
+        measurements=[
+            (mastic_multi_hot.vidpf.test_index_from_int(
+                0b10, 2), [False, True, True, False]),
+            (mastic_multi_hot.vidpf.test_index_from_int(
+                0b01, 2), [False, True, True, False])
+        ],
+        test_vec_instance=0,
     )

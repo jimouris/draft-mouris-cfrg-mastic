@@ -21,9 +21,9 @@ R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
-    int,                      # level
-    tuple[tuple[bool, ...], ...],  # prefixes
-    bool,                     # whether to do the weight check
+    int,                            # level
+    tuple[tuple[bool, ...], ...],   # prefixes
+    bool,                           # whether to do the weight check
 ]
 
 MasticPublicShare: TypeAlias = tuple[
@@ -510,7 +510,7 @@ class Mastic(
 #
 
 class MasticCount(Mastic):
-    ID = 0x00000001
+    ID = 0xFFFF0001
 
     # Name of the VDAF, for use in test vector filenames.
     test_vec_name = 'MasticCount'
@@ -520,7 +520,7 @@ class MasticCount(Mastic):
 
 
 class MasticSum(Mastic):
-    ID = 0x00000002
+    ID = 0xFFFF0002
 
     # Name of the VDAF, for use in test vector filenames.
     test_vec_name = 'MasticSum'
@@ -530,7 +530,7 @@ class MasticSum(Mastic):
 
 
 class MasticSumVec(Mastic):
-    ID = 0x00000003
+    ID = 0xFFFF0003
 
     # Name of the VDAF, for use in test vector filenames.
     test_vec_name = 'MasticSumVec'
@@ -540,7 +540,7 @@ class MasticSumVec(Mastic):
 
 
 class MasticHistogram(Mastic):
-    ID = 0x00000004
+    ID = 0xFFFF0004
 
     # Name of the VDAF, for use in test vector filenames.
     test_vec_name = 'MasticHistogram'
@@ -550,7 +550,7 @@ class MasticHistogram(Mastic):
 
 
 class MasticMultihotCountVec(Mastic):
-    ID = 0x00000005
+    ID = 0xFFFF0005
 
     # Name of the VDAF, for use in test vector filenames.
     test_vec_name = 'MasticMultihotCountVec'
