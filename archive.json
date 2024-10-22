@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-20T00:52:26.205966+00:00",
+  "timestamp": "2024-10-22T00:48:05.963036+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -1015,17 +1015,17 @@
       "id": "I_kwDOJmRsfc6ajxBX",
       "title": "Upgrade to draft-irtf-cfrg-vdaf-13",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/87",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
         "jimouris"
       ],
       "labels": [],
-      "body": "This draft has not been cut as of this writing, but it will include at least the following features:\r\n* [ ] Change to the aggregation API to make it streaming\r\n* [x] Removal of `sage` as a dependency",
+      "body": "This draft has not been cut as of this writing, but it will include at least the following features:\r\n* [x] Change to the aggregation API to make it streaming\r\n* [x] Removal of `sage` as a dependency",
       "createdAt": "2024-10-16T21:11:50Z",
-      "updatedAt": "2024-10-19T11:57:44Z",
-      "closedAt": null,
+      "updatedAt": "2024-10-21T16:22:46Z",
+      "closedAt": "2024-10-21T16:22:32Z",
       "comments": [
         {
           "author": "jimouris",
@@ -7111,7 +7111,7 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2024-10-19T05:10:35Z",
+      "updatedAt": "2024-10-22T00:41:14Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
@@ -7123,33 +7123,495 @@
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6OBIPP",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:44:12Z",
+          "updatedAt": "2024-10-21T16:52:59Z",
+          "comments": [
+            {
+              "originalPosition": 10,
+              "body": "Wrap all lines at 80 columns",
+              "createdAt": "2024-10-21T16:44:14Z",
+              "updatedAt": "2024-10-21T16:53:18Z"
+            },
+            {
+              "originalPosition": 28,
+              "body": "I don't think it's necessary to list functions for APIs we use. For example, it's sufficient to say something like \"Mastic is defined in terms of the `Flp` interface specified in {{Section XXX of !VDAF}}. Likewise for `Field` here.",
+              "createdAt": "2024-10-21T16:45:37Z",
+              "updatedAt": "2024-10-21T16:52:59Z"
+            },
+            {
+              "originalPosition": 35,
+              "body": "I don't think we use this in the Mastic spec, but worth double checking.",
+              "createdAt": "2024-10-21T16:46:02Z",
+              "updatedAt": "2024-10-21T16:52:59Z"
+            },
+            {
+              "originalPosition": 43,
+              "body": "likewise here: we don't need to list the `Xof` APi.",
+              "createdAt": "2024-10-21T16:46:47Z",
+              "updatedAt": "2024-10-21T16:52:59Z"
+            },
+            {
+              "originalPosition": 64,
+              "body": "I'm not quite sure why `MEAS_LEN` and `OUTPUT_LEN` are relevant to VIDPF. Also, why add `Field.MODULUS` here?",
+              "createdAt": "2024-10-21T16:48:38Z",
+              "updatedAt": "2024-10-21T16:52:59Z"
+            },
+            {
+              "originalPosition": 75,
+              "body": "nit: A little more concise of an instruction for IANA would be the following (avoids giving the registry more than one name):\r\n```suggestion\r\nThe new requested entry to the registry is as follows:\r\n```",
+              "createdAt": "2024-10-21T16:50:53Z",
+              "updatedAt": "2024-10-21T16:52:59Z"
+            },
+            {
+              "originalPosition": 81,
+              "body": "This still needs discussion, but we may not want to have a single code point for each Mastic variant. Here the \"variant\" is determined by the circuit that defines weight validity: `MasticCount`, `MasticSum`, etc.",
+              "createdAt": "2024-10-21T16:52:56Z",
+              "updatedAt": "2024-10-21T16:53:00Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OBl43",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T17:14:35Z",
+          "updatedAt": "2024-10-21T17:14:35Z",
+          "comments": [
+            {
+              "originalPosition": 75,
+              "body": "Oops, forgot this is what we called it in the base draft. Disregard.",
+              "createdAt": "2024-10-21T17:14:35Z",
+              "updatedAt": "2024-10-21T17:14:35Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OCsUC",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T18:52:17Z",
+          "updatedAt": "2024-10-21T18:52:17Z",
+          "comments": [
+            {
+              "originalPosition": 35,
+              "body": "!VDAF also lists basic functions (like range)",
+              "createdAt": "2024-10-21T18:52:17Z",
+              "updatedAt": "2024-10-21T18:52:17Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OCsd0",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T18:52:39Z",
+          "updatedAt": "2024-10-21T18:52:40Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "We are listing all the functions we use so the description is self contained (most are also in the !VDAF). ",
+              "createdAt": "2024-10-21T18:52:39Z",
+              "updatedAt": "2024-10-21T18:52:40Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OCs3E",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T18:53:33Z",
+          "updatedAt": "2024-10-21T18:53:33Z",
+          "comments": [
+            {
+              "originalPosition": 43,
+              "body": "We are listing all the functions we use so the description is self contained. ",
+              "createdAt": "2024-10-21T18:53:33Z",
+              "updatedAt": "2024-10-21T18:53:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OCtML",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T18:54:17Z",
+          "updatedAt": "2024-10-21T18:54:18Z",
+          "comments": [
+            {
+              "originalPosition": 64,
+              "body": "We mention MEAS_LEN on L725 and OUTPUT_LEN on L1175. Since they are mentioned in the draft text, we need to define. Where are we defining field.MODULUS?",
+              "createdAt": "2024-10-21T18:54:17Z",
+              "updatedAt": "2024-10-21T18:54:18Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OCtaL",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T18:54:48Z",
+          "updatedAt": "2024-10-21T18:54:48Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "Should we reserve a range? Say, starting at 20?",
+              "createdAt": "2024-10-21T18:54:48Z",
+              "updatedAt": "2024-10-21T18:54:48Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OC1rv",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T19:14:17Z",
+          "updatedAt": "2024-10-21T19:19:58Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "I don't think the document needs to be completely self-contained. For example, we don't describe how `Flp` is implemented, i.e., how the ZKPs are constructed.\r\n\r\nMoreover I think it's counter-productive if we try to make things self-contained. {{!VDAF}} is not yet complete and is subject to change, so the less we try to copy and paste from there, the less work we have to do to keep them in-sync.",
+              "createdAt": "2024-10-21T19:14:17Z",
+              "updatedAt": "2024-10-21T19:19:58Z"
+            },
+            {
+              "originalPosition": 35,
+              "body": "My point is that we don't need to define it  unless we actually use it. Do we?",
+              "createdAt": "2024-10-21T19:15:10Z",
+              "updatedAt": "2024-10-21T19:19:59Z"
+            },
+            {
+              "originalPosition": 64,
+              "body": "`MEAS_LEN` and `OUTPUT_LEN` are parameters of `flp`, not of `vidpf`, which is why they're not relevant here.",
+              "createdAt": "2024-10-21T19:15:55Z",
+              "updatedAt": "2024-10-21T19:19:59Z"
+            },
+            {
+              "originalPosition": 81,
+              "body": "We should pick a range from the \"reserved for private use\" range.\r\n\r\nHowever, I don't think we should include this table in this PR. We first need to pick some Mastic variants: see #91.",
+              "createdAt": "2024-10-21T19:19:54Z",
+              "updatedAt": "2024-10-21T19:19:59Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6ODUh9",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T20:22:58Z",
+          "updatedAt": "2024-10-21T20:22:58Z",
+          "comments": [
+            {
+              "originalPosition": 35,
+              "body": "Sure we do (using 8fa0a9c):\r\nappend: L458\r\ncopy: L382\r\nrange: L385\r\nset: L500\r\n!VDAF also defines [basic functions](https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/bd983637a87a7fa8353db5771c184585b2550271/draft-irtf-cfrg-vdaf.md?plain=1#L858)",
+              "createdAt": "2024-10-21T20:22:58Z",
+              "updatedAt": "2024-10-21T20:54:38Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6ODXHM",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T20:29:09Z",
+          "updatedAt": "2024-10-21T20:29:09Z",
+          "comments": [
+            {
+              "originalPosition": 64,
+              "body": "I think this depends on how we want to reference them; someone reading the draft should either see a pointer, or a definition. These are also defined [here.](https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/bd983637a87a7fa8353db5771c184585b2550271/draft-irtf-cfrg-vdaf.md?plain=1#L2520)",
+              "createdAt": "2024-10-21T20:29:09Z",
+              "updatedAt": "2024-10-21T20:56:34Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6ODap1",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T20:37:07Z",
+          "updatedAt": "2024-10-21T20:37:08Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "Well, we are addressing a TODO that says _\"List all functions we use in alphabetical order.\"_ We just need to define what is \"all functions\". I think every function that we explicitly use in `draft-mouris-cfrg-mastic.md` satisfies this definition (unless a function is defined elsewhere in the text, like `gen` for example). Otherwise, where do you draw the line of what is copied here vs. referenced in !VDAF. I am open to alternative views of what \"all functions\" should be here. ",
+              "createdAt": "2024-10-21T20:37:07Z",
+              "updatedAt": "2024-10-21T20:37:08Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6ODfFd",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T20:48:03Z",
+          "updatedAt": "2024-10-21T20:48:03Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "Hmm, the current guidance in !VDAF is _'The \"Reserved for Private Use\" code points should thus be used judiciously, because they provide no defense against such collisions'_ which may not be applicable here. Since we are proposing new VDAF variants, shouldn't we continue the numbering past `0x00000006` (i.e., just like Prio3* uses five identifies in the regular range)?",
+              "createdAt": "2024-10-21T20:48:03Z",
+              "updatedAt": "2024-10-21T20:48:03Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEAQH",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T22:30:00Z",
+          "updatedAt": "2024-10-21T22:48:01Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "I was thinking a subset of the functions in [this list](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-2-11). Note that the TODO says \"{{Section 2 of !VDAF}}\", i.e., refers to the conventions in {{!VDAF}}.",
+              "createdAt": "2024-10-21T22:30:00Z",
+              "updatedAt": "2024-10-21T22:48:01Z"
+            },
+            {
+              "originalPosition": 35,
+              "body": "Ack, thanks for verifying.",
+              "createdAt": "2024-10-21T22:30:21Z",
+              "updatedAt": "2024-10-21T22:48:01Z"
+            },
+            {
+              "originalPosition": 64,
+              "body": "I guess I'm not clear on what we're trying to accomplish. Currently this table lists the parameters of VIDPF; if we also want to have a table of FLP parameters, then we either need to change the caption of this table or create a new table elsewhere.\r\n\r\nThere is already a paragraph in {{conventions}} in our draft with a rather terse description of FLP syntax. Perhaps we should just expand on that?\r\n",
+              "createdAt": "2024-10-21T22:37:37Z",
+              "updatedAt": "2024-10-21T22:48:01Z"
+            },
+            {
+              "originalPosition": 81,
+              "body": "Great question.\r\n\r\nThe point I'm trying to make is that we don't have that much control over which codepoint gets assigned to Mastic. Besides the base draft and Mastic, there are two other documents floating around describing VDAFs, and each will need a codepoint or a set of codepoints. Which document gets `0x00000007` depends largely on who gets to RFC first.\r\n\r\nOf course, we could just pick codepoints in the IANA range and change them if they get allocated by someone else, but it's better for everyone if we can avoid the collision altogether.\r\n\r\nFor the moment, the only we reason we need codepoints is to generate test vectors. My suggestion would be to choose from the private range; as we get closer to finishing, we can ask IANA for new codepoints from the standardized range.\r\n\r\nBut again, I think it's too early to create this table.",
+              "createdAt": "2024-10-21T22:47:29Z",
+              "updatedAt": "2024-10-21T22:48:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEdgV",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T00:41:14Z",
+          "updatedAt": "2024-10-22T00:41:14Z",
+          "comments": [
+            {
+              "originalPosition": 64,
+              "body": "Sure, these parameters can be listed under conventions, likely in a table. OK?",
+              "createdAt": "2024-10-22T00:41:14Z",
+              "updatedAt": "2024-10-22T00:41:14Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 90,
       "id": "PR_kwDOJmRsfc5_LLwI",
       "title": "Make aggregate API streaming",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/90",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "* Replace `aggregate()` with streaming API\r\n* Update VDAF upstream to https://github.com/cfrg/draft-irtf-cfrg-vdaf/commit/8bbac2ea217ca4c980dceec9af6a99ffcc30deb3\r\n* Update CODEOWNERS\r\n\r\nCloses https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/87\r\n",
       "createdAt": "2024-10-19T12:53:08Z",
-      "updatedAt": "2024-10-19T12:59:36Z",
+      "updatedAt": "2024-10-21T16:30:31Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/streaming",
       "headRefOid": "c53e2756b06ada69d00c9b39b5bdf3c18b249981",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-10-21T16:22:31Z",
+      "mergedAt": "2024-10-21T16:22:31Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "8fa0a9ce7619383bc509a1fbe3fc35a3f2a372f7"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6OAhAw",
+          "commit": {
+            "abbreviatedOid": "c53e275"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T15:36:14Z",
+          "updatedAt": "2024-10-21T15:36:15Z",
+          "comments": [
+            {
+              "originalPosition": 19,
+              "body": "No need to cast?",
+              "createdAt": "2024-10-21T15:36:15Z",
+              "updatedAt": "2024-10-21T15:36:15Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OA5Bv",
+          "commit": {
+            "abbreviatedOid": "c53e275"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "Nice work.",
+          "createdAt": "2024-10-21T16:15:17Z",
+          "updatedAt": "2024-10-21T16:17:17Z",
+          "comments": [
+            {
+              "originalPosition": 19,
+              "body": "cast what into what?",
+              "createdAt": "2024-10-21T16:15:17Z",
+              "updatedAt": "2024-10-21T16:17:17Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "Suggestion: `agg_init()` and `empty_agg()` are functionally equivalent, so we should just get rid of `empty_agg()` and inline it here.",
+              "createdAt": "2024-10-21T16:16:33Z",
+              "updatedAt": "2024-10-21T16:17:17Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OA-_g",
+          "commit": {
+            "abbreviatedOid": "c53e275"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:25:30Z",
+          "updatedAt": "2024-10-21T16:25:30Z",
+          "comments": [
+            {
+              "originalPosition": 19,
+              "body": "the return value to list[F], as in merge ",
+              "createdAt": "2024-10-21T16:25:30Z",
+              "updatedAt": "2024-10-21T16:25:30Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OBA77",
+          "commit": {
+            "abbreviatedOid": "c53e275"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:29:18Z",
+          "updatedAt": "2024-10-21T16:29:18Z",
+          "comments": [
+            {
+              "originalPosition": 13,
+              "body": "fixed in the next PR: https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/91",
+              "createdAt": "2024-10-21T16:29:18Z",
+              "updatedAt": "2024-10-21T16:29:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OBBh9",
+          "commit": {
+            "abbreviatedOid": "c53e275"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:30:31Z",
+          "updatedAt": "2024-10-21T16:30:31Z",
+          "comments": [
+            {
+              "originalPosition": 19,
+              "body": "no need",
+              "createdAt": "2024-10-21T16:30:31Z",
+              "updatedAt": "2024-10-21T16:30:31Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 91,
@@ -7163,19 +7625,80 @@
       "labels": [],
       "body": "Note: on top of https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/90 so review in order\r\n\r\nAddresses: https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/72",
       "createdAt": "2024-10-19T13:20:09Z",
-      "updatedAt": "2024-10-19T13:53:04Z",
+      "updatedAt": "2024-10-21T16:55:37Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
+      "baseRefOid": "8fa0a9ce7619383bc509a1fbe3fc35a3f2a372f7",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/test-vectors",
-      "headRefOid": "50c5864e8e1be7a1050697c13bebf17f898080de",
+      "headRefOid": "928419fea38acbfd66d11246f3eb677d2abb359e",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6OBH6n",
+          "commit": {
+            "abbreviatedOid": "928419f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:43:32Z",
+          "updatedAt": "2024-10-21T16:43:43Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "I suspect mypy is complaining because it can't infer the types of generic parameters, i.e., `Measurement`, `AggResult`, and `F`. You probably need a subclass in which all the generic parameters are specified explicitly. Here's how we specify variants of Prio3:\r\n\r\nhttps://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/bd983637a87a7fa8353db5771c184585b2550271/poc/vdaf_poc/vdaf_prio3.py#L578-L590\r\n\r\nIn fact, we'll want to do something similar for Mastic so that we can at least specify an algorithm ID for each instance.",
+              "createdAt": "2024-10-21T16:43:32Z",
+              "updatedAt": "2024-10-21T16:43:43Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OBLUP",
+          "commit": {
+            "abbreviatedOid": "928419f"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:49:09Z",
+          "updatedAt": "2024-10-21T16:49:09Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "Yeah, I tried different tricks but couldn't get past `mypy`. \r\n\r\nAh, I see, good idea. I'll follow our examples and define:\r\n* `MasticSum`\r\n* `MasticCount`\r\n* `MasticHistogram`\r\nin `mastic.py`.",
+              "createdAt": "2024-10-21T16:49:09Z",
+              "updatedAt": "2024-10-21T16:49:09Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OBQIG",
+          "commit": {
+            "abbreviatedOid": "928419f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-21T16:55:37Z",
+          "updatedAt": "2024-10-21T16:55:37Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "I'd go with MasticMultihotCountVec instead of MasticHistogram because it's turning out to be the measurement type that's more useful to folks.\r\n",
+              "createdAt": "2024-10-21T16:55:37Z",
+              "updatedAt": "2024-10-21T16:55:37Z"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
