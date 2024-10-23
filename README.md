@@ -37,11 +37,11 @@ Command line usage requires that you have the necessary software installed.  See
 
 ## Implementations
 
-| Implementation                                                                      | Language | Version | Dependencies |
-|:------------------------------------------------------------------------------------|:---------|:--------|:-------------|
-| [**Reference**](https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc) | Python   | main    | [draft-irtf-cfrg-vdaf](https://github.com/cfrg/draft-irtf-cfrg-vdaf)         |
-| [mastic](https://github.com/TrustworthyComputing/mastic) (PoPETS'25 artifact)                           | Rust     | main    | N/A          |
-| [libprio-rs](https://github.com/divviup/libprio-rs)                                 | Rust     | [v0.16.7+](https://docs.rs/prio/0.16.7/prio/vdaf/mastic/index.html)    | N/A          |
+| Implementation                                                                      | Language | Version | Dependencies | Description |
+|:------------------------------------------------------------------------------------|:---------|:--------|:-------------|:----|
+| [**Reference**](https://github.com/jimouris/draft-mouris-cfrg-mastic/tree/main/poc) | Python   | main    | [draft-irtf-cfrg-vdaf](https://github.com/cfrg/draft-irtf-cfrg-vdaf)         | Reference Implementation |
+| [mastic](https://github.com/TrustworthyComputing/mastic)                           | Rust     | main    | N/A          | Research Prototype (PoPETS’25) |
+| [libprio-rs](https://github.com/divviup/libprio-rs)                                 | Rust     | [v0.16.7+](https://docs.rs/prio/0.16.7/prio/vdaf/mastic/index.html)    | N/A          | Implementation of [draft-mouris-cfrg-mastic-01](https://www.ietf.org/archive/id/draft-mouris-cfrg-mastic-01.html) |
 
 ## Contributing
 
