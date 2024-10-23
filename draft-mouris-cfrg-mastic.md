@@ -22,25 +22,36 @@ venue:
 
 author:
  -
+    ins: H. Davis
     fullname: Hannah Davis
     organization: Seagate
     email: hannah.e.davis@seagate.com
  -
+    ins: D. Mouris
     fullname: Dimitris Mouris
     organization: Nillion
     email: dimitris@nillion.com
  -
-    name: Christopher Patton
+    ins: C. Patton
+    fullname: Christopher Patton
     organization: Cloudflare
     email: chrispatton+ietf@gmail.com
+ -
+    ins: N. G. Tsoutsos
+    fullname: Nektarios G. Tsoutsos
+    organization: University of Delaware
+    email: tsoutsos@udel.edu
+
+contributor:
  -
     fullname: Pratik Sarkar
     organization: Supra Research
     email: pratik93@bu.edu
  -
-    fullname: Nektarios G. Tsoutsos
-    organization: University of Delaware
-    email: tsoutsos@udel.edu
+    fullname: David Cook
+    org: ISRG
+    email: dcook@divviup.org
+
 
 normative:
 
@@ -75,13 +86,13 @@ informative:
     seriesinfo: PETS 2024
     target: https://ia.cr/2023/080
 
-  MPDST24:
+  MPDST25:
     title: "Mastic: Private Weighted Heavy-Hitters and Attribute-Based Metrics"
     author:
       - ins: D. Mouris
       - ins: C. Patton
       - ins: H. Davis
-      - ins: P.Sarkar
+      - ins: P. Sarkar
       - ins: N.G. Tsoutsos
     date: 2025
     seriesinfo: PETS 2025
@@ -141,7 +152,7 @@ as one server is honest, no individual's input is observed in the clear. At the
 same time, Poplar1 allows the servers to detect and remove any invalid
 measurements that would otherwise corrupt the computation.
 
-This document describes Mastic {{MPDST24}}, a VDAF for the following, more
+This document describes Mastic {{MPDST25}}, a VDAF for the following, more
 general functionality: each client holds an input and an associated weight, and
 the data collector's goal is, for each candidate prefix, to aggregate the
 weights of all clients whose inputs have the prefix in common. This
@@ -1097,7 +1108,7 @@ VIDPF prefixes and whether to verify the FLP. In particular, it is only safe to
 consume the FLP once; and it is only safe to evaluate the VIDPF at most once at
 any given level of the tree.
 
-> NOTE By "safe" we mean "covered by the analysis of {{MPDST24}}". It could be
+> NOTE By "safe" we mean "covered by the analysis of {{MPDST25}}". It could be
 > that we have a little more wiggle room, but we're not certain. If we find
 > matching attacks, we should mention them in {{security-considerations}}.
 
@@ -1262,7 +1273,7 @@ def query_rand(self,
 # Security Considerations
 
 Mastic inherits its security considerations from {{Section 9 of !VDAF}}. A
-security analysis of Mastic is provided in {{MPDST24}}.
+security analysis of Mastic is provided in {{MPDST25}}.
 
 > TODO Contrast with Poplar1, especially {{Section 9.4.2 of !VDAF}} ("Safe
 > Usage of IDPF Outputs"). In particular it's perfectly safe to use Mastic's
