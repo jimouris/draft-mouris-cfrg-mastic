@@ -8,7 +8,6 @@
 <meta content="Hannah Davis" name="author">
 <meta content="Dimitris Mouris" name="author">
 <meta content="Christopher Patton" name="author">
-<meta content="Pratik Sarkar" name="author">
 <meta content="Nektarios G. Tsoutsos" name="author">
 <meta content="
        This document describes Mastic, a two-party VDAF for the following secure
@@ -1039,7 +1038,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Davis, et al.</td>
-<td class="center">Expires 25 April 2025</td>
+<td class="center">Expires 27 April 2025</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1052,12 +1051,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-mouris-cfrg-mastic-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2024-10-22" class="published">22 October 2024</time>
+<time datetime="2024-10-24" class="published">24 October 2024</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2025-04-25">25 April 2025</time></dd>
+<dd class="expires"><time datetime="2025-04-27">27 April 2025</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1071,10 +1070,6 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <div class="author">
       <div class="author-name">C. Patton</div>
 <div class="org">Cloudflare</div>
-</div>
-<div class="author">
-      <div class="author-name">P. Sarkar</div>
-<div class="org">Supra Research</div>
 </div>
 <div class="author">
       <div class="author-name">N. G. Tsoutsos</div>
@@ -1129,7 +1124,7 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 25 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 27 April 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1255,7 +1250,10 @@ inputs that have the highest total weight.<a href="#section-abstract-1" class="p
             <p id="section-toc.1-1.11.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-test-vectors" class="internal xref">Test Vectors</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+            <p id="section-toc.1-1.12.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-contributors" class="internal xref">Contributors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -1283,7 +1281,7 @@ distribute this computation amongst two aggregation servers such that, as long
 as one server is honest, no individual's input is observed in the clear. At the
 same time, Poplar1 allows the servers to detect and remove any invalid
 measurements that would otherwise corrupt the computation.<a href="#section-1-4" class="pilcrow">¶</a></p>
-<p id="section-1-5">This document describes Mastic <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>, a VDAF for the following, more
+<p id="section-1-5">This document describes Mastic <span>[<a href="#MPDST25" class="cite xref">MPDST25</a>]</span>, a VDAF for the following, more
 general functionality: each client holds an input and an associated weight, and
 the data collector's goal is, for each candidate prefix, to aggregate the
 weights of all clients whose inputs have the prefix in common. This
@@ -2381,7 +2379,7 @@ consume the FLP once; and it is only safe to evaluate the VIDPF at most once at
 any given level of the tree.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-4.3-2.1">
-            <p id="section-4.3-2.1.1">NOTE By "safe" we mean "covered by the analysis of <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>". It could be
+            <p id="section-4.3-2.1.1">NOTE By "safe" we mean "covered by the analysis of <span>[<a href="#MPDST25" class="cite xref">MPDST25</a>]</span>". It could be
 that we have a little more wiggle room, but we're not certain. If we find
 matching attacks, we should mention them in <a href="#security-considerations" class="auto internal xref">Section 5</a>.<a href="#section-4.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -2573,7 +2571,7 @@ def query_rand(self,
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
 <p id="section-5-1">Mastic inherits its security considerations from <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-9" class="relref">Section 9</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. A
-security analysis of Mastic is provided in <span>[<a href="#MPDST24" class="cite xref">MPDST24</a>]</span>.<a href="#section-5-1" class="pilcrow">¶</a></p>
+security analysis of Mastic is provided in <span>[<a href="#MPDST25" class="cite xref">MPDST25</a>]</span>.<a href="#section-5-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-5-2.1">
           <p id="section-5-2.1.1">TODO Contrast with Poplar1, especially <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-12#section-9.4.2" class="relref">Section 9.4.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> ("Safe
@@ -2635,7 +2633,7 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
         <dd>
 <span class="refAuthor">Geoghegan, T.</span>, <span class="refAuthor">Patton, C.</span>, <span class="refAuthor">Rescorla, E.</span>, and <span class="refAuthor">C. A. Wood</span>, <span class="refTitle">"Distributed Aggregation Protocol for Privacy Preserving Measurement"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-ppm-dap-07</span>, <time datetime="2023-09-14" class="refDate">14 September 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07">https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-07</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="MPDST24">[MPDST24]</dt>
+<dt id="MPDST25">[MPDST25]</dt>
         <dd>
 <span class="refAuthor">Mouris, D.</span>, <span class="refAuthor">Patton, C.</span>, <span class="refAuthor">Davis, H.</span>, <span class="refAuthor">Sarkar, P.</span>, and <span class="refAuthor">N. G. Tsoutsos</span>, <span class="refTitle">"Mastic: Private Weighted Heavy-Hitters and Attribute-Based Metrics"</span>, <span class="seriesInfo">PETS 2025 </span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://ia.cr/2024/221">https://ia.cr/2024/221</a>&gt;</span>. </dd>
 <dd class="break"></dd>
@@ -3089,8 +3087,31 @@ malicious Aggregator.<a href="#appendix-C.4-4" class="pilcrow">¶</a></p>
 <p id="appendix-D-1">TODO<a href="#appendix-D-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="authors-addresses">
+<div id="contributors">
 <section id="appendix-E">
+      <h2 id="name-contributors">
+<a href="#name-contributors" class="section-name selfRef">Contributors</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Pratik Sarkar</span></div>
+<div dir="auto" class="left"><span class="org">Supra Research</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:pratik93@bu.edu" class="email">pratik93@bu.edu</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">David Cook</span></div>
+<div dir="auto" class="left"><span class="org">ISRG</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:dcook@divviup.org" class="email">dcook@divviup.org</a>
+</div>
+</address>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-F">
       <h2 id="name-authors-addresses">
 <a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
       </h2>
@@ -3116,14 +3137,6 @@ malicious Aggregator.<a href="#appendix-C.4-4" class="pilcrow">¶</a></p>
 <div class="email">
 <span>Email:</span>
 <a href="mailto:chrispatton+ietf@gmail.com" class="email">chrispatton+ietf@gmail.com</a>
-</div>
-</address>
-<address class="vcard">
-        <div dir="auto" class="left"><span class="fn nameRole">Pratik Sarkar</span></div>
-<div dir="auto" class="left"><span class="org">Supra Research</span></div>
-<div class="email">
-<span>Email:</span>
-<a href="mailto:pratik93@bu.edu" class="email">pratik93@bu.edu</a>
 </div>
 </address>
 <address class="vcard">

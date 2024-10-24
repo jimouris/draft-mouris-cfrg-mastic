@@ -5,14 +5,12 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 25 April 2025                                           Nillion
+Expires: 27 April 2025                                           Nillion
                                                                C. Patton
                                                               Cloudflare
-                                                               P. Sarkar
-                                                          Supra Research
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         22 October 2024
+                                                         24 October 2024
 
 
                             The Mastic VDAF
@@ -60,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 25 April 2025.
+   This Internet-Draft will expire on 27 April 2025.
 
 Copyright Notice
 
@@ -104,6 +102,7 @@ Table of Contents
      Plain Heavy-Hitters with VIDPF-Proof Aggregation
      Robustness Against a Malicious Aggregator
    Test Vectors
+   Contributors
    Authors' Addresses
 
 1.  Introduction
@@ -131,7 +130,7 @@ Table of Contents
    to detect and remove any invalid measurements that would otherwise
    corrupt the computation.
 
-   This document describes Mastic [MPDST24], a VDAF for the following,
+   This document describes Mastic [MPDST25], a VDAF for the following,
    more general functionality: each client holds an input and an
    associated weight, and the data collector's goal is, for each
    candidate prefix, to aggregate the weights of all clients whose
@@ -1121,7 +1120,7 @@ Table of Contents
    safe to evaluate the VIDPF at most once at any given level of the
    tree.
 
-      NOTE By "safe" we mean "covered by the analysis of [MPDST24]".  It
+      NOTE By "safe" we mean "covered by the analysis of [MPDST25]".  It
       could be that we have a little more wiggle room, but we're not
       certain.  If we find matching attacks, we should mention them in
       Section 5.
@@ -1281,7 +1280,7 @@ Table of Contents
 5.  Security Considerations
 
    Mastic inherits its security considerations from Section 9 of [VDAF].
-   A security analysis of Mastic is provided in [MPDST24].
+   A security analysis of Mastic is provided in [MPDST25].
 
       TODO Contrast with Poplar1, especially Section 9.4.2 of [VDAF]
       ("Safe Usage of IDPF Outputs").  In particular it's perfectly safe
@@ -1329,7 +1328,7 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-ppm-dap-
               07>.
 
-   [MPDST24]  Mouris, D., Patton, C., Davis, H., Sarkar, P., and N. G.
+   [MPDST25]  Mouris, D., Patton, C., Davis, H., Sarkar, P., and N. G.
               Tsoutsos, "Mastic: Private Weighted Heavy-Hitters and
               Attribute-Based Metrics", PETS 2025 , 2025,
               <https://ia.cr/2024/221>.
@@ -1728,6 +1727,18 @@ Test Vectors
 
    TODO
 
+Contributors
+
+   Pratik Sarkar
+   Supra Research
+   Email: pratik93@bu.edu
+
+
+   David Cook
+   ISRG
+   Email: dcook@divviup.org
+
+
 Authors' Addresses
 
    Hannah Davis
@@ -1743,11 +1754,6 @@ Authors' Addresses
    Christopher Patton
    Cloudflare
    Email: chrispatton+ietf@gmail.com
-
-
-   Pratik Sarkar
-   Supra Research
-   Email: pratik93@bu.edu
 
 
    Nektarios G. Tsoutsos
