@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-22T00:48:05.963036+00:00",
+  "timestamp": "2024-10-24T00:46:58.803158+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -861,7 +861,7 @@
       "id": "I_kwDOJmRsfc6W6FlL",
       "title": "Generate test vectors",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/72",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -870,8 +870,8 @@
       "labels": [],
       "body": "Define a few variants of Mastic, perhaps for Count, Sum, and Histogram. Add script for generating test vectors, similar to https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/main/poc/gen_test_vec.py, and use it to add test vectors to the repo.",
       "createdAt": "2024-09-17T18:21:47Z",
-      "updatedAt": "2024-10-04T18:55:49Z",
-      "closedAt": null,
+      "updatedAt": "2024-10-22T22:00:44Z",
+      "closedAt": "2024-10-22T22:00:44Z",
       "comments": []
     },
     {
@@ -928,9 +928,17 @@
       "labels": [],
       "body": "Each call to `vidpf.eval_next()` updates the onehot proof as follows (excerpted from the spec):\r\n\r\n```\r\n# Compute and correct the node proof and update the onehot proof.\r\n# Each update resembles a step of Merkle-Damgard compression. The\r\n# main difference is that we XOR each block (i.e., corrected node\r\n# proof) with the previous hash (or IV) rather than compress.\r\n#\r\n#             corrected node proof\r\n#                 |\r\n#                 |\r\n#                 v\r\n# current      +-----+     +------+     +-----+      updated\r\n# proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof\r\n#          |   +-----+     +------+     +-----+\r\n#          |                               ^\r\n#          |                               |\r\n#          +-------------------------------+\r\n#\r\n# [MST24]: \\tilde\\pi = H_1(x^{\\leq i} || s^\\i)\r\n#          \\pi = \\tilde \\pi \\xor\r\n#             H_2(\\pi \\xor (\\tilde\\pi \\xor t^\\i \\cdot \\cs^\\i)\r\n```\r\n\r\nThis is Merkle-Damgard-ish: the difference is that we XOR the next block (i.e., the node proof) with the current state (i.e., the current proof) then hash to get the next state, rather than compress the next block and the current state to get the next state. This comes from [CP22], but why do they do this? If we can get away with plain Merkle-Damgard, then it might be a good idea to use it here.",
       "createdAt": "2024-09-27T00:32:38Z",
-      "updatedAt": "2024-10-04T18:57:04Z",
+      "updatedAt": "2024-10-22T20:09:47Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I reached out to the [CP22] authors about this is and here's what I heard back:\r\n\r\n> In general, there\u2019s nothing special that is required from the hash function to make this construction work. If I recall correctly, the two hash functions were defined simply to differentiate the output sizes and support the smallest possible communication between the servers. Regarding the hashing technique, any method of hashing a vector that is safe against permutation attacks should be fine to use. In particular, I don\u2019t see an issue with using Merkel-Damgard, and I believe the only reason we didn\u2019t use this is to cut down on the number of hash function calls.\r\n\r\nI'm not sure what's meant by \"permutations attacks\", but otherwise I think it's clear we have some freedom here. All we're doing is hashing the node proofs.",
+          "createdAt": "2024-10-22T20:09:45Z",
+          "updatedAt": "2024-10-22T20:09:45Z"
+        }
+      ]
     },
     {
       "number": 80,
@@ -1035,6 +1043,22 @@
           "updatedAt": "2024-10-19T11:57:30Z"
         }
       ]
+    },
+    {
+      "number": 92,
+      "id": "I_kwDOJmRsfc6bNqpo",
+      "title": "Idea: Compute the onehot and path consistency checks in one pass",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/92",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "At the moment we compute `onehot_proof` in the first traversal of the prefix tree, then compute `payload_check` in a second traversal. Then `onehot_proof || payload_check` is hashed to get `eval_proof`.\r\n\r\nBoth the `onehot_proof` and `payload_check` are made up of components, where each component corresponds to a node visited in the prefix tree. We could instead interleave these components, i.e., compute the hash of `node_proof_1 || payload_check_1 || node_proof_2 || payload_check_2 || ... || node_proof_i || payload_check_i || ...` where `i` is the index of the `i`th noted visited during traversal of the prefix tree. `node_proof` means the \"node proof\", that is, the proof that IDPF invariant holds for the node. (The onehotness proof is essentially the hash of the node proofs: see #79.)",
+      "createdAt": "2024-10-22T02:20:06Z",
+      "updatedAt": "2024-10-22T21:18:08Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -7111,10 +7135,10 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2024-10-22T00:41:14Z",
+      "updatedAt": "2024-10-23T16:03:51Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "c00df0839806b6766a15348ebecf840dd76991f7",
+      "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "nekt/draft-edits-2",
       "headRefOid": "89608ef6527e90081bc5297b8f3fe37ed7b4710e",
@@ -7475,6 +7499,146 @@
               "updatedAt": "2024-10-22T00:41:14Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEk8C",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T01:16:09Z",
+          "updatedAt": "2024-10-22T01:16:09Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "I guess it is a bit unclear what are the criteria for inclusion in [this list](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-2-11). For example, it can be any function that needs to be imported from `common.py`. Or is it more subjective (i.e., _here are some functions that we often use_)?\r\n\r\nIn our case, I think it is reasonable to list the imported functions that are referenced in our text (along with basic functionalities). As a reader, I find it useful to have these definitions in one place (but personal preferences can differ on this). If it makes more sense, we can split the list to basic functions and APIs.",
+              "createdAt": "2024-10-22T01:16:09Z",
+              "updatedAt": "2024-10-22T19:57:42Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEnHA",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T01:27:37Z",
+          "updatedAt": "2024-10-22T01:27:37Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "Alright, I think we can use `0xFFFF0001`, `0xFFFF0002` and `0xFFFF0003` as placeholders for the first 3 Mastic variants. If we settle on these variants, I don't think there is a downside to include the range table (assuming we will use these points in the test vectors).",
+              "createdAt": "2024-10-22T01:27:37Z",
+              "updatedAt": "2024-10-22T01:27:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEz6H",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T02:23:57Z",
+          "updatedAt": "2024-10-22T02:23:57Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "Works for me.\r\n\r\nNote: it looks like you've copy-pasted the table from the *.txt file. The table will need to be formatted properly so that `xml2rfc` formats it properly for other targets, like html.\r\n\r\nYou can copy and paste from here: https://github.com/cfrg/draft-irtf-cfrg-vdaf/blob/bd983637a87a7fa8353db5771c184585b2550271/draft-irtf-cfrg-vdaf.md?plain=1#L5905-L5916",
+              "createdAt": "2024-10-22T02:23:57Z",
+              "updatedAt": "2024-10-22T02:23:57Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OEz-q",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T02:24:17Z",
+          "updatedAt": "2024-10-22T02:24:17Z",
+          "comments": [
+            {
+              "originalPosition": 64,
+              "body": "Works for me.",
+              "createdAt": "2024-10-22T02:24:17Z",
+              "updatedAt": "2024-10-22T02:24:17Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OM7Fa",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T16:36:42Z",
+          "updatedAt": "2024-10-22T16:36:42Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "ok, will wait for #91 to be resolved regarding the variants.",
+              "createdAt": "2024-10-22T16:36:42Z",
+              "updatedAt": "2024-10-22T16:36:42Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OOfaC",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T19:57:19Z",
+          "updatedAt": "2024-10-22T19:57:19Z",
+          "comments": [
+            {
+              "originalPosition": 28,
+              "body": "> I guess it is a bit unclear what are the criteria for inclusion in [this list](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-2-11). For example, it can be any function that needs to be imported from `common.py`. Or is it more subjective (i.e., _here are some functions that we often use_)?\r\n\r\nThis is the complete list of basic functions that the specifications of Prio3 and Poplar1 use, but we don't explicitly define in full detail. What they do _should_ be clear from the description; if anything is unclear, let me know :)\r\n\r\n> In our case, I think it is reasonable to list the imported functions that are referenced in our text (along with basic functionalities). As a reader, I find it useful to have these definitions in one place (but personal preferences can differ on this). If it makes more sense, we can split the list to basic functions and APIs.\r\n\r\nAt a minimum, we should split the basic functions and APIs into separate lists. If we're going to re-define the APIs (by this I mean the `Field`, `Xof`, and `Flp` classes defined in {{!VDAF}}), then they also need to be more complete then they are currently. Each API is consists not just of instance methods, e.g., `flp.encode()`, but potentially class methods or constructors, e.g., `XofTurboShake128()`. They also define constants, e.g., `flp.MEAS_LEN` and have generic parameters, e.g., `F`.\r\n\r\nBut again, I don't think we should be re-defining APIs. Not only does this make our jobs harder in the short term, I don't think it helps much with an RFC. These documents are not meant to be self-contained as long as dependencies have clear refernces.",
+              "createdAt": "2024-10-22T19:57:19Z",
+              "updatedAt": "2024-10-22T19:57:19Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OQDMz",
+          "commit": {
+            "abbreviatedOid": "89608ef"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T23:18:13Z",
+          "updatedAt": "2024-10-22T23:18:13Z",
+          "comments": [
+            {
+              "originalPosition": 81,
+              "body": "#91 is merged, we have five variants: https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/main/poc/mastic.py#L512",
+              "createdAt": "2024-10-22T23:18:13Z",
+              "updatedAt": "2024-10-22T23:18:13Z"
+            }
+          ]
         }
       ]
     },
@@ -7618,24 +7782,26 @@
       "id": "PR_kwDOJmRsfc5_LPrq",
       "title": "Add initial test vectors",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/91",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "Note: on top of https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/90 so review in order\r\n\r\nAddresses: https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/72",
       "createdAt": "2024-10-19T13:20:09Z",
-      "updatedAt": "2024-10-21T16:55:37Z",
+      "updatedAt": "2024-10-22T22:00:47Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "8fa0a9ce7619383bc509a1fbe3fc35a3f2a372f7",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/test-vectors",
-      "headRefOid": "928419fea38acbfd66d11246f3eb677d2abb359e",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "865408255bdc497f59efe99e8af5600bec0b2762",
+      "closedAt": "2024-10-22T22:00:43Z",
+      "mergedAt": "2024-10-22T22:00:43Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "ba88fa5d1880b9b0b711be55e00019e388ade686"
+      },
       "comments": [],
       "reviews": [
         {
@@ -7697,8 +7863,153 @@
               "updatedAt": "2024-10-21T16:55:37Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OOYvY",
+          "commit": {
+            "abbreviatedOid": "928419f"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T19:43:20Z",
+          "updatedAt": "2024-10-22T19:43:20Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "Added both, in the same order as Prio3 does so we're consistent.",
+              "createdAt": "2024-10-22T19:43:20Z",
+              "updatedAt": "2024-10-22T19:43:20Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OOZN_",
+          "commit": {
+            "abbreviatedOid": "61e82e8"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-22T19:44:16Z",
+          "updatedAt": "2024-10-22T19:44:16Z",
+          "comments": [
+            {
+              "originalPosition": 17,
+              "body": "@cjpatton double check this as I needed to change it for `mypy` to work. ",
+              "createdAt": "2024-10-22T19:44:16Z",
+              "updatedAt": "2024-10-22T19:44:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OOgKv",
+          "commit": {
+            "abbreviatedOid": "61e82e8"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "Nice!",
+          "createdAt": "2024-10-22T19:59:06Z",
+          "updatedAt": "2024-10-22T20:00:33Z",
+          "comments": [
+            {
+              "originalPosition": 101,
+              "body": "Let's start counting at `0xFFFF0000` as suggested by @TrustworthyComputing here: https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89#discussion_r1809721879\r\n```suggestion\r\n    ID = 0xFFFF0001\r\n```",
+              "createdAt": "2024-10-22T19:59:06Z",
+              "updatedAt": "2024-10-22T20:00:33Z"
+            },
+            {
+              "originalPosition": 1,
+              "body": "Let's add at least one variant that uses joint randomness, such as MasticSumVec.",
+              "createdAt": "2024-10-22T20:00:27Z",
+              "updatedAt": "2024-10-22T20:00:33Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OPa0m",
+          "commit": {
+            "abbreviatedOid": "8654082"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-22T21:20:37Z",
+          "updatedAt": "2024-10-22T21:20:37Z",
+          "comments": []
         }
       ]
+    },
+    {
+      "number": 93,
+      "id": "PR_kwDOJmRsfc5_pGbw",
+      "title": "Update README",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/93",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "* Added some more info about Mastic.\r\n* Added implementations section in readme",
+      "createdAt": "2024-10-23T16:05:08Z",
+      "updatedAt": "2024-10-23T18:29:59Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/readme",
+      "headRefOid": "17b8556739400154d9da3b40255666db15bf2f5f",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6OcDY8",
+          "commit": {
+            "abbreviatedOid": "17b8556"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-23T18:29:59Z",
+          "updatedAt": "2024-10-23T18:29:59Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 94,
+      "id": "PR_kwDOJmRsfc5_qeNg",
+      "title": "Update authors and contributors",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/94",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-10-23T18:41:10Z",
+      "updatedAt": "2024-10-23T18:43:11Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "jimouris/authors",
+      "headRefOid": "bcf213f9685c6f58af91ca5dcb324f510f7a3483",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
