@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-24T00:46:58.803158+00:00",
+  "timestamp": "2024-10-27T00:52:02.986801+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -7950,24 +7950,26 @@
       "id": "PR_kwDOJmRsfc5_pGbw",
       "title": "Update README",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/93",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "* Added some more info about Mastic.\r\n* Added implementations section in readme",
       "createdAt": "2024-10-23T16:05:08Z",
-      "updatedAt": "2024-10-23T18:29:59Z",
+      "updatedAt": "2024-10-24T16:19:20Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
+      "baseRefOid": "a65380772ceb828f503b8c2c97f0fe86f9119d35",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/readme",
-      "headRefOid": "17b8556739400154d9da3b40255666db15bf2f5f",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "898ab6f46b591b3a2c9c6889ef111c9fc5baabfd",
+      "closedAt": "2024-10-24T16:19:17Z",
+      "mergedAt": "2024-10-24T16:19:17Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "482903a99a52cfb61ec06d979ade2fc0512e8c3f"
+      },
       "comments": [],
       "reviews": [
         {
@@ -7982,6 +7984,90 @@
           "createdAt": "2024-10-23T18:29:59Z",
           "updatedAt": "2024-10-23T18:29:59Z",
           "comments": []
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Ooc2_",
+          "commit": {
+            "abbreviatedOid": "17b8556"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "nit city",
+          "createdAt": "2024-10-24T14:57:51Z",
+          "updatedAt": "2024-10-24T15:04:01Z",
+          "comments": [
+            {
+              "originalPosition": 48,
+              "body": "Worth noting here whether we plan to keep compatibility with the spec.",
+              "createdAt": "2024-10-24T14:57:51Z",
+              "updatedAt": "2024-10-24T15:04:01Z"
+            },
+            {
+              "originalPosition": 49,
+              "body": "Worth nothing that the implementation is incomplete, although we do plan to be compatible with the spec.",
+              "createdAt": "2024-10-24T14:58:10Z",
+              "updatedAt": "2024-10-24T15:04:01Z"
+            },
+            {
+              "originalPosition": 46,
+              "body": "Annoyingly, the table format for the IETF tools (that turn draft-mouris-cfrg-mastic.md into xml, txt, html, etc.) might not be the same as standard markdown.\u00a0Once we push, github might not render this proprely.",
+              "createdAt": "2024-10-24T14:59:41Z",
+              "updatedAt": "2024-10-24T15:04:01Z"
+            },
+            {
+              "originalPosition": 7,
+              "body": "Break lines at 80 columns.",
+              "createdAt": "2024-10-24T15:01:21Z",
+              "updatedAt": "2024-10-24T15:04:01Z"
+            },
+            {
+              "originalPosition": 11,
+              "body": "```suggestion\r\nMastic is a new two-party VDAF for the following secure aggregation task: each client holds an *input* and an *associated weight*, and the data collector wants to aggregate the weights of all clients whose inputs begin with a prefix of its choosing.\r\n```",
+              "createdAt": "2024-10-24T15:02:00Z",
+              "updatedAt": "2024-10-24T15:04:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OpM1n",
+          "commit": {
+            "abbreviatedOid": "17b8556"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-24T16:15:22Z",
+          "updatedAt": "2024-10-24T16:15:23Z",
+          "comments": [
+            {
+              "originalPosition": 46,
+              "body": "I checked, it renders it correctly: https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/17b8556739400154d9da3b40255666db15bf2f5f/README.md#implementations",
+              "createdAt": "2024-10-24T16:15:22Z",
+              "updatedAt": "2024-10-24T16:15:23Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OpOVH",
+          "commit": {
+            "abbreviatedOid": "17b8556"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-24T16:18:16Z",
+          "updatedAt": "2024-10-24T16:18:16Z",
+          "comments": [
+            {
+              "originalPosition": 48,
+              "body": "added \"(incompatible to the spec)\"",
+              "createdAt": "2024-10-24T16:18:16Z",
+              "updatedAt": "2024-10-24T16:18:16Z"
+            }
+          ]
         }
       ]
     },
@@ -7990,26 +8076,55 @@
       "id": "PR_kwDOJmRsfc5_qeNg",
       "title": "Update authors and contributors",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/94",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "",
       "createdAt": "2024-10-23T18:41:10Z",
-      "updatedAt": "2024-10-23T18:43:11Z",
+      "updatedAt": "2024-10-24T16:12:29Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "jimouris/authors",
       "headRefOid": "bcf213f9685c6f58af91ca5dcb324f510f7a3483",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2024-10-24T16:12:26Z",
+      "mergedAt": "2024-10-24T16:12:26Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "a65380772ceb828f503b8c2c97f0fe86f9119d35"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6OgtxQ",
+          "commit": {
+            "abbreviatedOid": "bcf213f"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-24T00:52:19Z",
+          "updatedAt": "2024-10-24T00:52:19Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6OohWF",
+          "commit": {
+            "abbreviatedOid": "bcf213f"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2024-10-24T15:04:39Z",
+          "updatedAt": "2024-10-24T15:04:39Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
