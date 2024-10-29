@@ -364,8 +364,77 @@ def example_poplar1_overhead():
     print(prio3_hist_bytes_uploaded / mastic_hist_bytes_uploaded)
 
 
+def benchmarkMasticSumVsPrio3Histogram():
+    def benchmark(length: int):
+        nonce = gen_rand(16)
+
+        chunk_length = math.floor(math.sqrt(length))
+        cls = Prio3Histogram(2, length, chunk_length)
+        print('Prio3Histogram(length={}, chunk_length={})'.format(length, chunk_length))
+        (public_share, input_shares) = cls.shard(b'prio3_histogram',
+                                                0,
+                                                nonce,
+                                                gen_rand(cls.RAND_SIZE))
+        b = 0
+        p = len(cls.test_vec_encode_public_share(public_share))
+        b += p
+        print('  public share len:', p)
+        p = len(cls.test_vec_encode_input_share(input_shares[0]))
+        b += p
+        print('  input share 0 len:', p)
+        p = len(cls.test_vec_encode_input_share(input_shares[1]))
+        b += p
+        print('  input share 1 len:', p)
+        print('  total upload len:', b)
+        prio3_hist_bytes_uploaded = b
+        print()
+
+
+        num_bits = math.floor(math.log2(length))
+        max_measurement = 10
+        cls = MasticSum(num_bits, max_measurement=max_measurement)
+        print('MasticSum(num_bits={}, max_measurement={})'.format(num_bits, max_measurement))
+        (public_share, input_shares) = cls.shard(b'mastic_sum',
+                                                ((False,)*num_bits, 0),
+                                                nonce,
+                                                gen_rand(cls.RAND_SIZE))
+        b = 0
+        p = len(cls.test_vec_encode_public_share(public_share))
+        b += p
+        print('  public share len:', p)
+        p = len(cls.test_vec_encode_input_share(input_shares[0]))
+        b += p
+        print('  input share 0 len:', p)
+        p = len(cls.test_vec_encode_input_share(input_shares[1]))
+        b += p
+        print('  input share 1 len:', p)
+        print('  total upload len:', b)
+        mastic_hist_bytes_uploaded = b
+
+        print('Prio3 overhead over Mastic:', prio3_hist_bytes_uploaded / mastic_hist_bytes_uploaded)
+
+    print('Prio3Histogram(length, chunk_length)')
+    print(' * length: the number of histogram buckets.')
+    print(' * chunk_length: it is used by a circuit optimization described (set near the square root of length).')
+    print('see: https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.4')
+    print()
+    print('MasticSum(num_bits, max_measurement)')
+    print(' * num_bits: used to encode attributes.')
+    print(' * max_measurement: Each measurement is an integer in range [0, max_measurement].')
+    print('Supports summing integers in range [0, `max_measurement`] for attributes with `num_bits`.')
+    print('see: https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.2 and https://jimouris.github.io/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.html#name-attribute-based-metrics')
+    print()
+
+    for length in [10, 100, 1000, 10000]:
+        print()
+        print('====================')
+        print()
+        benchmark(length)
+
+
 if __name__ == '__main__':
     example_weighted_heavy_hitters_mode()
     example_attribute_based_metrics_mode()
     example_weighted_heavy_hitters_mode_with_different_thresholds()
     example_poplar1_overhead()
+    benchmarkMasticSumVsPrio3Histogram()
