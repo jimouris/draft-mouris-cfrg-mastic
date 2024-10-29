@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-27T00:52:02.986801+00:00",
+  "timestamp": "2024-10-29T00:49:26.355831+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -7135,13 +7135,13 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2024-10-23T16:03:51Z",
+      "updatedAt": "2024-10-28T21:21:43Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "nekt/draft-edits-2",
-      "headRefOid": "89608ef6527e90081bc5297b8f3fe37ed7b4710e",
+      "headRefOid": "f96af51519238ad7a8ff15f02f3ef28ef0c903b1",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
