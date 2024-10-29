@@ -1492,7 +1492,7 @@ Table of Contents
        +============+========================+======+=============+
        | Value      | Scheme                 | Type | Reference   |
        +============+========================+======+=============+
-       | 0xFFFF0001 | MasticCount            | n/a  | Section 4   |
+       | 0xFFFF0001 | MasticCount            | VDAF | Section 4   |
        |            |                        |      | of RFC XXXX |
        +------------+------------------------+------+-------------+
        | 0xFFFF0002 | MasticSum              | VDAF | Section 4   |
