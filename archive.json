@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-29T00:49:26.355831+00:00",
+  "timestamp": "2024-10-31T00:48:36.991807+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -906,11 +906,13 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [],
+      "assignees": [
+        "jimouris"
+      ],
       "labels": [],
       "body": "The FLP is run on the encoded measurement, which in general is longer than the truncated measurement. In some cases it might be much longer, e.g., for the `Sum` circuit, the encoded measurement is several field elements, while the truncated measurement is just one.\r\n\r\nThe encoded measurement is only needed when we verify the FLP. Suppose we modified Mastic as follows: \r\n\r\n1. Include shares of the encoded measurement, i.e., `flp.encode(weight)`,  in the input shares.\r\n2. Instead of setting `beta` to be the encoded measurement share, set `beta` to be the truncated measurement, i.e., `beta = flp.truncate(flp.encode(weight))`.\r\n3. Extend the path consistency check to make sure the left and right children of the root sum up to the encoded measurement.",
       "createdAt": "2024-09-26T23:26:36Z",
-      "updatedAt": "2024-09-30T18:34:39Z",
+      "updatedAt": "2024-10-30T19:49:00Z",
       "closedAt": null,
       "comments": []
     },
@@ -990,7 +992,7 @@
       "labels": [],
       "body": "During the call with Google folks on 2024/10/3, @csharrison suggested it would nice to support a \"multihot histogram\" functionality, similar to [Prio3MultihotCountVec](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.5), where there are multiple non-zero paths in the VIDPF tree. This is interesting for example when combining the VDAF with a local DP mechanism, where the client might probabilistically set a bounded number of buckets in the histogram.\r\n\r\n[[CP22]](https://eprint.iacr.org/2021/580) describe \"distributed, multi-point functions\", which might be suitable here. (Thanks @jimouris for pointing this out.)\r\n\r\nConsider extending VIDPF to be multi-point.",
       "createdAt": "2024-10-03T20:33:19Z",
-      "updatedAt": "2024-10-04T18:48:29Z",
+      "updatedAt": "2024-10-30T17:41:13Z",
       "closedAt": null,
       "comments": [
         {
@@ -999,6 +1001,13 @@
           "body": "Questions from 2024/10/4:\r\n* @jimouris: We have multiple inputs: do we need a distinct weight for each, or is it sufficient to have one weight? We can definitely do the second, but not sure about the first.\r\n* Nektarios: If the requirement is to compose with local DP mechanisms, then perhaps there's something else we can do that doesn't require the multiple inputs feature.",
           "createdAt": "2024-10-04T18:48:24Z",
           "updatedAt": "2024-10-04T18:48:24Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "2024/10/14 call with Erik (Meta): This feature may yield an alternative to [Prio3L1BoundSum](https://martinthomson.github.io/prio-l1-bound-sum/draft-thomson-ppm-l1-bound-sum.html) for ([PPA](https://github.com/patcg/ppa-api).",
+          "createdAt": "2024-10-30T17:41:11Z",
+          "updatedAt": "2024-10-30T17:41:11Z"
         }
       ]
     },
@@ -7135,13 +7144,13 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2024-10-28T21:21:43Z",
+      "updatedAt": "2024-10-30T22:04:09Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "ba88fa5d1880b9b0b711be55e00019e388ade686",
+      "baseRefOid": "482903a99a52cfb61ec06d979ade2fc0512e8c3f",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "nekt/draft-edits-2",
-      "headRefOid": "f96af51519238ad7a8ff15f02f3ef28ef0c903b1",
+      "headRefOid": "954b626ff3b844c5161163fc7c07d20509c8255c",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -7637,6 +7646,614 @@
               "body": "#91 is merged, we have five variants: https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/main/poc/mastic.py#L512",
               "createdAt": "2024-10-22T23:18:13Z",
               "updatedAt": "2024-10-22T23:18:13Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PawmD",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T19:52:42Z",
+          "updatedAt": "2024-10-30T19:59:49Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "why change this? was it > 80?",
+              "createdAt": "2024-10-30T19:52:42Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 16,
+              "body": "same",
+              "createdAt": "2024-10-30T19:52:48Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 30,
+              "body": "Do we need to list all these (bool, byte, etc)? My impression was that we wanted just the API functions. @cjpatton WDYT?",
+              "createdAt": "2024-10-30T19:54:31Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 89,
+              "body": "there is an odd indent here.",
+              "createdAt": "2024-10-30T19:54:47Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 113,
+              "body": "fix indent",
+              "createdAt": "2024-10-30T19:55:24Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 133,
+              "body": "I'm also in favor of not listing these as they're subject to change in VDAF so we'd also need to update accordingly. I like what you have above:\r\n```\r\nMastic uses Extendable Output Functions (XOFs) as specified in {{Section 6.2 of !VDAF}}. \r\n```\r\n",
+              "createdAt": "2024-10-30T19:56:54Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 144,
+              "body": "remove indent",
+              "createdAt": "2024-10-30T19:57:02Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 288,
+              "body": "why change these?",
+              "createdAt": "2024-10-30T19:58:51Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 306,
+              "body": "we need the indent here to keep the enumeration",
+              "createdAt": "2024-10-30T19:59:12Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            },
+            {
+              "originalPosition": 343,
+              "body": "why change these?",
+              "createdAt": "2024-10-30T19:59:41Z",
+              "updatedAt": "2024-10-30T19:59:49Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa5r1",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:08:58Z",
+          "updatedAt": "2024-10-30T20:08:59Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "over 80",
+              "createdAt": "2024-10-30T20:08:58Z",
+              "updatedAt": "2024-10-30T20:17:06Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa5wc",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:09:08Z",
+          "updatedAt": "2024-10-30T20:09:08Z",
+          "comments": [
+            {
+              "originalPosition": 16,
+              "body": "over 80",
+              "createdAt": "2024-10-30T20:09:08Z",
+              "updatedAt": "2024-10-30T20:17:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa6bC",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:10:47Z",
+          "updatedAt": "2024-10-30T20:10:47Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "We use them in this .md. We list basic function like !VDAF does",
+              "createdAt": "2024-10-30T20:10:47Z",
+              "updatedAt": "2024-10-30T20:10:47Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa8HM",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:14:35Z",
+          "updatedAt": "2024-10-30T20:14:35Z",
+          "comments": [
+            {
+              "originalPosition": 133,
+              "body": "If the API changes, so will our code that references them in this .md. With >12 iterations already, are you expecting major changes in the !VDAF API soon? ",
+              "createdAt": "2024-10-30T20:14:35Z",
+              "updatedAt": "2024-10-30T20:14:36Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa8LE",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:14:43Z",
+          "updatedAt": "2024-10-30T20:14:43Z",
+          "comments": [
+            {
+              "originalPosition": 288,
+              "body": "over 80",
+              "createdAt": "2024-10-30T20:14:43Z",
+              "updatedAt": "2024-10-30T20:17:43Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa8k9",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:15:01Z",
+          "updatedAt": "2024-10-30T20:15:02Z",
+          "comments": [
+            {
+              "originalPosition": 343,
+              "body": "over 80",
+              "createdAt": "2024-10-30T20:15:01Z",
+              "updatedAt": "2024-10-30T20:17:55Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pa8rw",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:15:12Z",
+          "updatedAt": "2024-10-30T20:18:43Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "Ah, sorry I could have been more clear about this. This part of the file is YAML, so long lines shouldn't be wrapped. My suggestion was about the markdown part of the file, where it's conventional to wrap at 80 characters. (This makes it easier to review PRs.)",
+              "createdAt": "2024-10-30T20:15:13Z",
+              "updatedAt": "2024-10-30T20:18:44Z"
+            },
+            {
+              "originalPosition": 30,
+              "body": "I agree with @jimouris. Yes, we use `bool`'s constructor, but if you understand what `bool` is, then I think think you know what `bool(x)` means since it's a primitive type in python.",
+              "createdAt": "2024-10-30T20:18:07Z",
+              "updatedAt": "2024-10-30T20:18:44Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbBBw",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "Still working on my first pass, more comnents to come",
+          "createdAt": "2024-10-30T20:22:54Z",
+          "updatedAt": "2024-10-30T20:30:24Z",
+          "comments": [
+            {
+              "originalPosition": 36,
+              "body": "Similar to https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89/files?diff=unified&w=0#r1823303860, I don't think we need to define all Python functions we use. It's sufficient to say \"algorithms in this document are specified in Python version 3.12\".\r\n\r\nNote that we make a few exceptions to this in the base draft, where folks have specifically asked to clarify something.\r\n\r\nLikewise below.",
+              "createdAt": "2024-10-30T20:22:54Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            },
+            {
+              "originalPosition": 42,
+              "body": "This is a function we define in this document. Why list it here?\r\n\r\nLikewise below.",
+              "createdAt": "2024-10-30T20:23:11Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            },
+            {
+              "originalPosition": 96,
+              "body": "* This has been changed to `int()` in the upcoming draft.\r\n* We use capitalization to distinguish between different types of Python object: `Field` indicates this is a class; `field` would indicate an instance of that class. (Though `elem` may be better variable name)",
+              "createdAt": "2024-10-30T20:26:28Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            },
+            {
+              "originalPosition": 93,
+              "body": "Why `Field` here but `Self` below?",
+              "createdAt": "2024-10-30T20:26:43Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            },
+            {
+              "originalPosition": 109,
+              "body": "What's the purpose of this table? I don't see how its contents relate to one another. For example, `field` is an attribute of a validity circuit, for instance.",
+              "createdAt": "2024-10-30T20:28:59Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            },
+            {
+              "originalPosition": 132,
+              "body": "`xof` since this is an intance and not a class.",
+              "createdAt": "2024-10-30T20:29:24Z",
+              "updatedAt": "2024-10-30T20:30:24Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbHiH",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:33:30Z",
+          "updatedAt": "2024-10-30T20:33:30Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "where do you draw the line on what the reader knows? Why define range() in !VDAF?",
+              "createdAt": "2024-10-30T20:33:30Z",
+              "updatedAt": "2024-10-30T20:33:44Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbIK4",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:34:55Z",
+          "updatedAt": "2024-10-30T20:34:55Z",
+          "comments": [
+            {
+              "originalPosition": 306,
+              "body": "Does it affect rendering? https://jimouris.github.io/draft-mouris-cfrg-mastic/nekt/draft-edits-2/draft-mouris-cfrg-mastic.html",
+              "createdAt": "2024-10-30T20:34:55Z",
+              "updatedAt": "2024-10-30T20:34:56Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbMkJ",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:43:51Z",
+          "updatedAt": "2024-10-30T20:43:51Z",
+          "comments": [
+            {
+              "originalPosition": 42,
+              "body": "In which line is this function defined? Are you referring to the text description of what the domain separation tag is?",
+              "createdAt": "2024-10-30T20:43:51Z",
+              "updatedAt": "2024-10-30T20:43:52Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbOcS",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:47:50Z",
+          "updatedAt": "2024-10-30T20:47:50Z",
+          "comments": [
+            {
+              "originalPosition": 93,
+              "body": "Will switch to Field",
+              "createdAt": "2024-10-30T20:47:50Z",
+              "updatedAt": "2024-10-30T20:47:50Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbO8t",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:49:01Z",
+          "updatedAt": "2024-10-30T20:49:01Z",
+          "comments": [
+            {
+              "originalPosition": 30,
+              "body": "We added that one because someone asked for it.",
+              "createdAt": "2024-10-30T20:49:01Z",
+              "updatedAt": "2024-10-30T20:49:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbQoU",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:52:46Z",
+          "updatedAt": "2024-10-30T20:52:46Z",
+          "comments": [
+            {
+              "originalPosition": 42,
+              "body": "I mean that it doesn't belong in preliminaries because it is a function that's defined in our document.\r\n\r\nIn other words, we need to list this function somewhere in the document: https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/main/poc/dst.py#L25-L30",
+              "createdAt": "2024-10-30T20:52:46Z",
+              "updatedAt": "2024-10-30T20:52:46Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbV50",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T21:02:50Z",
+          "updatedAt": "2024-10-30T21:02:50Z",
+          "comments": [
+            {
+              "originalPosition": 42,
+              "body": "Sounds good, we can include later in the doc",
+              "createdAt": "2024-10-30T21:02:50Z",
+              "updatedAt": "2024-10-30T21:02:50Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbR1E",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T20:54:28Z",
+          "updatedAt": "2024-10-30T21:03:52Z",
+          "comments": [
+            {
+              "originalPosition": 133,
+              "body": "It's true that this API is unlikely to change. But again, a reference to the document would be sufficient; there's no reason to duplicate the API here.",
+              "createdAt": "2024-10-30T20:54:28Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 125,
+              "body": "Reference needed for TurboSHAKE128",
+              "createdAt": "2024-10-30T20:55:38Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 123,
+              "body": "A few issues here:\r\n\r\n* \"The length of `seed` will typically be `SEED_SIZE`: XofFixedKeyAes128 does not support variable length seed size\r\n* `XofTurboShake128` -> `XofFixedKeyAes128`.",
+              "createdAt": "2024-10-30T20:57:16Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 118,
+              "body": "I don't think we should get into details here of the construction, especially without defining \"circular\" here or providing a reference for it.",
+              "createdAt": "2024-10-30T20:58:34Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 127,
+              "body": "\"some XOFs may support multiple sizes\": We're defining the API for a particular XOF, so we probably want to say whether this XOF supports multiple seed sizes.",
+              "createdAt": "2024-10-30T20:59:40Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 129,
+              "body": "We say the same thing for the XOF above.",
+              "createdAt": "2024-10-30T21:00:04Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            },
+            {
+              "originalPosition": 115,
+              "body": "There's lots of redundancy in the text below. (Also, there are some errors induced by copy-pasting.) One way we might resolve them is to define the generic `Xof` API and then say that XofFixedKeyAes128 and XofTurboShake128 are instances of that API.",
+              "createdAt": "2024-10-30T21:01:52Z",
+              "updatedAt": "2024-10-30T21:03:52Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbXro",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T21:06:20Z",
+          "updatedAt": "2024-10-30T21:06:20Z",
+          "comments": [
+            {
+              "originalPosition": 141,
+              "body": "As in https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89/files#r1823348916, I'm not sure what purpose this table serves.",
+              "createdAt": "2024-10-30T21:06:20Z",
+              "updatedAt": "2024-10-30T21:06:20Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbX5H",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T21:06:52Z",
+          "updatedAt": "2024-10-30T21:15:13Z",
+          "comments": [
+            {
+              "originalPosition": 148,
+              "body": "nit: Use the Python type\r\n```suggestion\r\n    of a verifier that takes as input a verifier message and outputs a `bool`\r\n```",
+              "createdAt": "2024-10-30T21:06:52Z",
+              "updatedAt": "2024-10-30T21:15:13Z"
+            },
+            {
+              "originalPosition": 148,
+              "body": "\"algorithm of a verifier that takes as input a verifier message\": does the first \"verifier\" refer to a party in the protocol or the verifier message? If you mean the former, then I think we need to define this; if you mean the latter, then this might grammatically problematic.",
+              "createdAt": "2024-10-30T21:08:03Z",
+              "updatedAt": "2024-10-30T21:15:13Z"
+            },
+            {
+              "originalPosition": 155,
+              "body": "Who is the prover?",
+              "createdAt": "2024-10-30T21:12:07Z",
+              "updatedAt": "2024-10-30T21:15:13Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pbc2L",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T21:17:59Z",
+          "updatedAt": "2024-10-30T21:18:01Z",
+          "comments": [
+            {
+              "originalPosition": 178,
+              "body": "This is only a subset of the FLP parameters.\r\n\r\nWhy  list `field: type[F]` here and in https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89/files#r1823348916?\r\n\r\n",
+              "createdAt": "2024-10-30T21:17:59Z",
+              "updatedAt": "2024-10-30T21:18:01Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6PbdQI",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2024-10-30T21:19:07Z",
+          "updatedAt": "2024-10-30T21:30:31Z",
+          "comments": [
+            {
+              "originalPosition": 250,
+              "body": "nit: remove the second blank line\r\n```suggestion\r\n```",
+              "createdAt": "2024-10-30T21:19:07Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            },
+            {
+              "originalPosition": 236,
+              "body": "I don't think this is needed. (Also, note that we've updated in this text in the latest version: https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-10-10.)\r\n\r\n```suggestion\r\n!VDAF}}.\r\n```",
+              "createdAt": "2024-10-30T21:22:06Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            },
+            {
+              "originalPosition": 204,
+              "body": "Why remove this?",
+              "createdAt": "2024-10-30T21:27:42Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            },
+            {
+              "originalPosition": 248,
+              "body": "```suggestion\r\n{: #codepoints title=\"Additional codepoints for the VDAF Identifier Registry.\"}\r\n```",
+              "createdAt": "2024-10-30T21:28:18Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            },
+            {
+              "originalPosition": 240,
+              "body": "nit: Remove double blank line\r\n```suggestion\r\n```",
+              "createdAt": "2024-10-30T21:28:41Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            },
+            {
+              "originalPosition": 228,
+              "body": "Let's add a TODO to this section to track replacing the codepoints with ones we actually want to request from IANA. Something like\r\n\r\n```\r\n> TODO The codepoints in this section are from the private codepoint range and are used for testing purposes. We will update this table with the codepoints assigned by IANA.\r\n```",
+              "createdAt": "2024-10-30T21:30:17Z",
+              "updatedAt": "2024-10-30T21:30:31Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Pb5kG",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2024-10-30T22:04:09Z",
+          "updatedAt": "2024-10-30T22:04:09Z",
+          "comments": [
+            {
+              "originalPosition": 266,
+              "body": "Suggestion: I'd list your full names here!",
+              "createdAt": "2024-10-30T22:04:09Z",
+              "updatedAt": "2024-10-30T22:04:09Z"
             }
           ]
         }
