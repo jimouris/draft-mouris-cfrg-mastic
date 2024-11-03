@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-31T00:48:36.991807+00:00",
+  "timestamp": "2024-11-03T00:52:06.551121+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -912,9 +912,66 @@
       "labels": [],
       "body": "The FLP is run on the encoded measurement, which in general is longer than the truncated measurement. In some cases it might be much longer, e.g., for the `Sum` circuit, the encoded measurement is several field elements, while the truncated measurement is just one.\r\n\r\nThe encoded measurement is only needed when we verify the FLP. Suppose we modified Mastic as follows: \r\n\r\n1. Include shares of the encoded measurement, i.e., `flp.encode(weight)`,  in the input shares.\r\n2. Instead of setting `beta` to be the encoded measurement share, set `beta` to be the truncated measurement, i.e., `beta = flp.truncate(flp.encode(weight))`.\r\n3. Extend the path consistency check to make sure the left and right children of the root sum up to the encoded measurement.",
       "createdAt": "2024-09-26T23:26:36Z",
-      "updatedAt": "2024-10-30T19:49:00Z",
+      "updatedAt": "2024-10-31T22:30:41Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "How about:\r\n1. `vidpf.gen` takes both `beta` and `beta_truncated` and sets `beta` at level 0, and `beta_truncated` at all other levels.\r\n2. `vidpf.eval`:\r\n    * `level > 0`: normal path checks (this would now check `beta_truncated` though)\r\n    * `level = 0`: truncate `beta` to get `beta_truncated` and then perform the check.",
+          "createdAt": "2024-10-31T13:36:58Z",
+          "updatedAt": "2024-10-31T13:37:07Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I think that works. I believe we'll need to invoke `flp.truncate()` from `vidpf.eval()` in order to compute the path checks correctly. Alternatively, we could just pass `beta` to `gen()` and have it call `flp.truncate()` as well, which would be a little simpler.\r\n\r\nIt's sad that this means `vidpf` is no longer \"black box\" in the sense that its functionality depends on the details of `flp`. It would be nice if we could avoid this.\r\n\r\nI wonder if we could do something like this: include shares of `beta` in the VDAF input shares and pass `beta_trucnated` to `gen()` and `eval()`? We would need to connect these somehow to make sure the `beta` in the input shares is consistent with the payload of the VIDPF output.",
+          "createdAt": "2024-10-31T17:09:42Z",
+          "updatedAt": "2024-10-31T17:09:42Z"
+        },
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "> I wonder if we could do something like this: include shares of `beta` in the VDAF input shares and pass `beta_trucnated` to `gen()` and `eval()`? We would need to connect these somehow to make sure the `beta` in the input shares is consistent with the payload of the VIDPF output.\r\n\r\nJust to rephrase, the VIDPF `beta` will be the truncated one (at all levels) and then the VDAF will be responsible for checking if `truncate(beta)` is equal to the truncated `beta` from VIDPF at level 0?\r\n\r\nTheoretically, this could work and keep VIDPF as a black box but we need to be sure we cannot find `beta` and `beta'` such that `truncate(beta) == truncate(beta')`. I guess this is important to be able to guarantee regardless of which of the two options we choose.",
+          "createdAt": "2024-10-31T17:20:55Z",
+          "updatedAt": "2024-10-31T17:20:55Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Excellent point. I think this property ought to hold for all weight types we're considering so far.",
+          "createdAt": "2024-10-31T17:26:55Z",
+          "updatedAt": "2024-10-31T17:26:55Z"
+        },
+        {
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "body": "Almost done but I ran into an issue. In `prep_init` we have access to both [`beta_share`](https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/jimouris/truncate/poc/mastic.py#L226) (from input share) and [`truncated_beta_share`](https://github.com/jimouris/draft-mouris-cfrg-mastic/blob/jimouris/truncate/poc/mastic.py#L231) (from VIDPF) but these are shares, not the whole values. So how can we check that `truncate(beta) == truncated_beta`? Given access only to shares it won't work (e.g., `truncate(beta_share) != truncated_beta_share`).\r\n",
+          "createdAt": "2024-10-31T19:47:17Z",
+          "updatedAt": "2024-10-31T19:47:17Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Hmmmm yeah you're right. I don't think that quite works.",
+          "createdAt": "2024-10-31T20:58:16Z",
+          "updatedAt": "2024-10-31T20:58:16Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I'm not sure we should closet his -- It seems like we can't make this black box, but I think it might still worth doing.",
+          "createdAt": "2024-10-31T22:20:11Z",
+          "updatedAt": "2024-10-31T22:20:11Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "(I'd like to keep this open until I've had time to think it through.)",
+          "createdAt": "2024-10-31T22:30:39Z",
+          "updatedAt": "2024-10-31T22:30:39Z"
+        }
+      ]
     },
     {
       "number": 79,
@@ -924,13 +981,11 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [
-        "cjpatton"
-      ],
+      "assignees": [],
       "labels": [],
       "body": "Each call to `vidpf.eval_next()` updates the onehot proof as follows (excerpted from the spec):\r\n\r\n```\r\n# Compute and correct the node proof and update the onehot proof.\r\n# Each update resembles a step of Merkle-Damgard compression. The\r\n# main difference is that we XOR each block (i.e., corrected node\r\n# proof) with the previous hash (or IV) rather than compress.\r\n#\r\n#             corrected node proof\r\n#                 |\r\n#                 |\r\n#                 v\r\n# current      +-----+     +------+     +-----+      updated\r\n# proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof\r\n#          |   +-----+     +------+     +-----+\r\n#          |                               ^\r\n#          |                               |\r\n#          +-------------------------------+\r\n#\r\n# [MST24]: \\tilde\\pi = H_1(x^{\\leq i} || s^\\i)\r\n#          \\pi = \\tilde \\pi \\xor\r\n#             H_2(\\pi \\xor (\\tilde\\pi \\xor t^\\i \\cdot \\cs^\\i)\r\n```\r\n\r\nThis is Merkle-Damgard-ish: the difference is that we XOR the next block (i.e., the node proof) with the current state (i.e., the current proof) then hash to get the next state, rather than compress the next block and the current state to get the next state. This comes from [CP22], but why do they do this? If we can get away with plain Merkle-Damgard, then it might be a good idea to use it here.",
       "createdAt": "2024-09-27T00:32:38Z",
-      "updatedAt": "2024-10-22T20:09:47Z",
+      "updatedAt": "2024-10-31T17:11:30Z",
       "closedAt": null,
       "comments": [
         {
@@ -986,13 +1041,11 @@
       "state": "OPEN",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
-      "assignees": [
-        "cjpatton"
-      ],
+      "assignees": [],
       "labels": [],
       "body": "During the call with Google folks on 2024/10/3, @csharrison suggested it would nice to support a \"multihot histogram\" functionality, similar to [Prio3MultihotCountVec](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.5), where there are multiple non-zero paths in the VIDPF tree. This is interesting for example when combining the VDAF with a local DP mechanism, where the client might probabilistically set a bounded number of buckets in the histogram.\r\n\r\n[[CP22]](https://eprint.iacr.org/2021/580) describe \"distributed, multi-point functions\", which might be suitable here. (Thanks @jimouris for pointing this out.)\r\n\r\nConsider extending VIDPF to be multi-point.",
       "createdAt": "2024-10-03T20:33:19Z",
-      "updatedAt": "2024-10-30T17:41:13Z",
+      "updatedAt": "2024-10-31T17:11:17Z",
       "closedAt": null,
       "comments": [
         {
