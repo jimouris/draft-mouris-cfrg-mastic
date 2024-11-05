@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-11-03T00:52:06.551121+00:00",
+  "timestamp": "2024-11-05T00:46:18.932976+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -1119,6 +1119,22 @@
       "body": "At the moment we compute `onehot_proof` in the first traversal of the prefix tree, then compute `payload_check` in a second traversal. Then `onehot_proof || payload_check` is hashed to get `eval_proof`.\r\n\r\nBoth the `onehot_proof` and `payload_check` are made up of components, where each component corresponds to a node visited in the prefix tree. We could instead interleave these components, i.e., compute the hash of `node_proof_1 || payload_check_1 || node_proof_2 || payload_check_2 || ... || node_proof_i || payload_check_i || ...` where `i` is the index of the `i`th noted visited during traversal of the prefix tree. `node_proof` means the \"node proof\", that is, the proof that IDPF invariant holds for the node. (The onehotness proof is essentially the hash of the node proofs: see #79.)",
       "createdAt": "2024-10-22T02:20:06Z",
       "updatedAt": "2024-10-22T21:18:08Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 95,
+      "id": "I_kwDOJmRsfc6c-MzR",
+      "title": "Align to VDAF 13",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/95",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-11-04T18:31:42Z",
+      "updatedAt": "2024-11-04T18:31:42Z",
       "closedAt": null,
       "comments": []
     }
