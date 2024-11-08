@@ -113,11 +113,11 @@ class Vidpf(Generic[F]):
         The VIDPF key generation algorithm.
 
         Returns the public share (i.e., the correction word for each
-        level of the tree) and two keys, one fore each aggregator.
+        level of the tree) and two keys, one for each aggregator.
 
         Implementation note: for clarity, this algorithm has not been
         written in a manner that is side-channel resistant. To avoid
-        leading `alpha` via a side-channel, implementations should avoid
+        leaking `alpha` via a side-channel, implementations should avoid
         branching or indexing into arrays in a data-dependent manner.
         '''
         if len(alpha) != self.BITS:
@@ -158,7 +158,7 @@ class Vidpf(Generic[F]):
             # control bit. Our goal is to maintain the following
             # invariant, after correction:
             #
-            # * If evaluation is on path, then each aggregator's will
+            # * If evaluation is on path, then each aggregator will
             #   compute a different seed and their control bits will be
             #   secret shares of one.
             #
@@ -278,7 +278,7 @@ class Vidpf(Generic[F]):
         # equal to 1.
         #
         # Each aggregator holds an additive share of the counter, so we
-        # aggregator 1 negate its share and add 1 so that they both
+        # have aggregator 1 negate its share and add 1 so that they both
         # compute the same value for `counter`.
         counter_check = self.field.encode_vec(
             [w0[0] + w1[0] + self.field(agg_id)])
