@@ -371,11 +371,11 @@ def gen(self,
     The VIDPF key generation algorithm.
 
     Returns the public share (i.e., the correction word for each
-    level of the tree) and two keys, one fore each aggregator.
+    level of the tree) and two keys, one for each aggregator.
 
     Implementation note: for clarity, this algorithm has not been
     written in a manner that is side-channel resistant. To avoid
-    leading `alpha` via a side-channel, implementations should avoid
+    leaking `alpha` via a side-channel, implementations should avoid
     branching or indexing into arrays in a data-dependent manner.
     '''
     if len(alpha) != self.BITS:
@@ -416,7 +416,7 @@ def gen(self,
         # control bit. Our goal is to maintain the following
         # invariant, after correction:
         #
-        # * If evaluation is on path, then each aggregator's will
+        # * If evaluation is on path, then each aggregator will
         #   compute a different seed and their control bits will be
         #   secret shares of one.
         #
@@ -550,7 +550,7 @@ def eval(self,
     # equal to 1.
     #
     # Each aggregator holds an additive share of the counter, so we
-    # aggregator 1 negate its share and add 1 so that they both
+    # have aggregator 1 negate its share and add 1 so that they both
     # compute the same value for `counter`.
     counter_check = self.field.encode_vec(
         [w0[0] + w1[0] + self.field(agg_id)])
@@ -1394,7 +1394,7 @@ immediately. Consider the following parameters for Mastic, in its
 attribute-based metrics mode of operation {{attribute-based-metrics}}:
 
 * Attributes: Two-letter country codes can easily be encoded in 2 bytes.
-  Likewise, the number of distinct browser versions is easily less than 216, so
+  Likewise, the number of distinct browser versions is easily less than 2^16, so
   2 bytes are sufficient. Therefore, each attribute can be encoded with just
   `32` bits.
 
@@ -1518,7 +1518,7 @@ The Aggregators MAY aggregate a report any number times, but:
 ## Plain Heavy-Hitters with VIDPF-Proof Aggregation {#plain-heavy-hitters-with-proof-aggregation}
 {:numbered="false"}
 
-> TODO Account for "silently verifiable proofs" from {{RZCGP24}} into account
+> TODO Take "silently verifiable proofs" from {{RZCGP24}} into account
 > here, which allows us to aggregate the FLPs as well.
 
 The total communication cost of using Mastic (or Poplar1 {{!VDAF}}) for heavy
@@ -1545,7 +1545,7 @@ from the batch.
 > messages exchanged between the Aggregators.
 
 In the worst case, isolating invalid reports requires `O(num_measurements *
-Vidpf.BITS)` bits of communication and many `Vidpf.BITS` rounds of communication
+Vidpf.BITS)` bits of communication and `Vidpf.BITS` many rounds of communication
 between the Aggregators. However, this behavior would only be observed under
 attack conditions in which the vast majority of Clients are malicious.
 
