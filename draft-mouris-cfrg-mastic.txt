@@ -5,12 +5,12 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 27 April 2025                                           Nillion
+Expires: 13 May 2025                                             Nillion
                                                                C. Patton
                                                               Cloudflare
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                         24 October 2024
+                                                         9 November 2024
 
 
                             The Mastic VDAF
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 27 April 2025.
+   This Internet-Draft will expire on 13 May 2025.
 
 Copyright Notice
 
@@ -379,11 +379,11 @@ Table of Contents
        The VIDPF key generation algorithm.
 
        Returns the public share (i.e., the correction word for each
-       level of the tree) and two keys, one fore each aggregator.
+       level of the tree) and two keys, one for each aggregator.
 
        Implementation note: for clarity, this algorithm has not been
        written in a manner that is side-channel resistant. To avoid
-       leading `alpha` via a side-channel, implementations should avoid
+       leaking `alpha` via a side-channel, implementations should avoid
        branching or indexing into arrays in a data-dependent manner.
        '''
        if len(alpha) != self.BITS:
@@ -424,7 +424,7 @@ Table of Contents
            # control bit. Our goal is to maintain the following
            # invariant, after correction:
            #
-           # * If evaluation is on path, then each aggregator's will
+           # * If evaluation is on path, then each aggregator will
            #   compute a different seed and their control bits will be
            #   secret shares of one.
            #
@@ -556,7 +556,7 @@ Table of Contents
        # equal to 1.
        #
        # Each aggregator holds an additive share of the counter, so we
-       # aggregator 1 negate its share and add 1 so that they both
+       # have aggregator 1 negate its share and add 1 so that they both
        # compute the same value for `counter`.
        counter_check = self.field.encode_vec(
            [w0[0] + w1[0] + self.field(agg_id)])
@@ -1473,7 +1473,7 @@ Attribute-Based Browser Telemetry
 
    *  Attributes: Two-letter country codes can easily be encoded in 2
       bytes.  Likewise, the number of distinct browser versions is
-      easily less than 216, so 2 bytes are sufficient.  Therefore, each
+      easily less than 2^16, so 2 bytes are sufficient.  Therefore, each
       attribute can be encoded with just 32 bits.
 
    *  Values: Similar to private NEL, each weight is a 0-vector except
@@ -1600,8 +1600,8 @@ Attribute-based Metrics
 
 Plain Heavy-Hitters with VIDPF-Proof Aggregation
 
-      TODO Account for "silently verifiable proofs" from [RZCGP24] into
-      account here, which allows us to aggregate the FLPs as well.
+      TODO Take "silently verifiable proofs" from [RZCGP24] into account
+      here, which allows us to aggregate the FLPs as well.
 
    The total communication cost of using Mastic (or Poplar1 [VDAF]) for
    heavy hitters is O(num_measurements * Vidpf.BITS) bits exchanged
@@ -1627,10 +1627,10 @@ Plain Heavy-Hitters with VIDPF-Proof Aggregation
       messages exchanged between the Aggregators.
 
    In the worst case, isolating invalid reports requires
-   O(num_measurements * Vidpf.BITS) bits of communication and many
-   Vidpf.BITS rounds of communication between the Aggregators.  However,
-   this behavior would only be observed under attack conditions in which
-   the vast majority of Clients are malicious.
+   O(num_measurements * Vidpf.BITS) bits of communication and Vidpf.BITS
+   many rounds of communication between the Aggregators.  However, this
+   behavior would only be observed under attack conditions in which the
+   vast majority of Clients are malicious.
 
    In the simple case where the beta value is a constant (e.g., 1) we
    can replace the FLP check with a simpler check.  FLPs are not
