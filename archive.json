@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-11-07T00:46:30.074726+00:00",
+  "timestamp": "2024-11-10T00:50:41.318478+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -383,7 +383,7 @@
       "comments": [
         {
           "author": "divergentdave",
-          "authorAssociation": "CONTRIBUTOR",
+          "authorAssociation": "COLLABORATOR",
           "body": "Agreed, an encoding for prefixes will be needed eventually for the aggregation parameter, and we may as well use it here. Plus, using ASCII may require implementations to use a bigint library for sufficiently long inputs.",
           "createdAt": "2023-12-07T20:53:49Z",
           "updatedAt": "2023-12-07T20:53:49Z"
@@ -653,7 +653,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/48",
       "state": "CLOSED",
       "author": "divergentdave",
-      "authorAssociation": "CONTRIBUTOR",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [
         "hannahdaviscrypto"
       ],
@@ -679,7 +679,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/49",
       "state": "CLOSED",
       "author": "divergentdave",
-      "authorAssociation": "CONTRIBUTOR",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [
         "cjpatton"
       ],
@@ -712,7 +712,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/51",
       "state": "CLOSED",
       "author": "divergentdave",
-      "authorAssociation": "CONTRIBUTOR",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Currently, the proof of concept branches on `next_ctrl.as_unsigned()` when computing `pi_proof`. This should be changed to use `correct()` or `next_ctrl.conditional_select()`, and we should add an implementation note comment, advising to avoid sidechannels, as with other uses of `next_ctrl`.",
@@ -5055,7 +5055,7 @@
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/50",
       "state": "MERGED",
       "author": "divergentdave",
-      "authorAssociation": "CONTRIBUTOR",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "This makes a few editorial changes from my first read-through of the document and proof of concept implementation. See the individual commit messages for explanations.",
@@ -8808,6 +8808,48 @@
           "body": "",
           "createdAt": "2024-10-24T15:04:39Z",
           "updatedAt": "2024-10-24T15:04:39Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 96,
+      "id": "PR_kwDOJmRsfc6BX0iV",
+      "title": "Editorial fixes",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/96",
+      "state": "MERGED",
+      "author": "divergentdave",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This makes a handful of editorial fixes in the spec and in comments.",
+      "createdAt": "2024-11-08T21:25:19Z",
+      "updatedAt": "2024-11-09T16:37:17Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "482903a99a52cfb61ec06d979ade2fc0512e8c3f",
+      "headRepository": "divergentdave/draft-mouris-cfrg-mastic",
+      "headRefName": "david/copyedit",
+      "headRefOid": "383b53ae91058841316d86351aac2c428b501970",
+      "closedAt": "2024-11-09T16:37:17Z",
+      "mergedAt": "2024-11-09T16:37:17Z",
+      "mergedBy": "jimouris",
+      "mergeCommit": {
+        "oid": "b69c86d420786af1ba1aced7ebadda62ec4cc071"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6QizTp",
+          "commit": {
+            "abbreviatedOid": "383b53a"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "Thanks a lot, David!",
+          "createdAt": "2024-11-08T22:59:22Z",
+          "updatedAt": "2024-11-08T22:59:22Z",
           "comments": []
         }
       ]
