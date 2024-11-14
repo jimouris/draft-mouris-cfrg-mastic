@@ -434,14 +434,9 @@ class Vidpf(Generic[F]):
     def encode_public_share(
             self,
             public_share: list[CorrectionWord]) -> bytes:
-        from vdaf_poc.field import Field2
         (seeds, ctrl, payloads, proofs) = zip(*public_share)
         encoded = bytes()
-        encoded += pack_bits(list(
-            # `pack_bits()` expects a `list[Field2]`, so we need to
-            # convert from `bool` to `Field2` here.
-            map(lambda bit: Field2(int(bit)),
-                itertools.chain.from_iterable(ctrl))))
+        encoded += pack_bits(list(itertools.chain.from_iterable(ctrl)))
         for seed in seeds:
             encoded += seed
         for payload in payloads:

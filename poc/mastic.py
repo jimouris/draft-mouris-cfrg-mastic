@@ -347,7 +347,7 @@ class Mastic(
         agg_result = []
         while len(agg) > 0:
             (chunk, agg) = front(self.flp.OUTPUT_LEN + 1, agg)
-            meas_count = chunk[0].as_unsigned()
+            meas_count = chunk[0].int()
             agg_result.append(self.flp.decode(chunk[1:], meas_count))
         return agg_result
 
