@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-11-12T00:45:43.854124+00:00",
+  "timestamp": "2024-11-14T00:46:56.426556+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -8853,6 +8853,32 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 97,
+      "id": "PR_kwDOJmRsfc6B2pVf",
+      "title": "Align with VDAF-13",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/97",
+      "state": "OPEN",
+      "author": "jimouris",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Remove `field2` and `as_unsigned`\r\n\r\nCloses #95",
+      "createdAt": "2024-11-14T00:21:20Z",
+      "updatedAt": "2024-11-14T00:31:28Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "b69c86d420786af1ba1aced7ebadda62ec4cc071",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "feat/vdaf-13",
+      "headRefOid": "8defe43a088842841a4308735c1f7515799038b3",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
