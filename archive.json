@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-11-14T00:46:56.426556+00:00",
+  "timestamp": "2024-11-17T00:53:46.735613+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -907,12 +907,13 @@
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
+        "cjpatton",
         "jimouris"
       ],
       "labels": [],
       "body": "The FLP is run on the encoded measurement, which in general is longer than the truncated measurement. In some cases it might be much longer, e.g., for the `Sum` circuit, the encoded measurement is several field elements, while the truncated measurement is just one.\r\n\r\nThe encoded measurement is only needed when we verify the FLP. Suppose we modified Mastic as follows: \r\n\r\n1. Include shares of the encoded measurement, i.e., `flp.encode(weight)`,  in the input shares.\r\n2. Instead of setting `beta` to be the encoded measurement share, set `beta` to be the truncated measurement, i.e., `beta = flp.truncate(flp.encode(weight))`.\r\n3. Extend the path consistency check to make sure the left and right children of the root sum up to the encoded measurement.",
       "createdAt": "2024-09-26T23:26:36Z",
-      "updatedAt": "2024-10-31T22:30:41Z",
+      "updatedAt": "2024-11-14T01:04:16Z",
       "closedAt": null,
       "comments": [
         {
