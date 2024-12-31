@@ -4,7 +4,7 @@ from random import randrange
 from vdaf_poc.common import gen_rand, vec_add
 from vdaf_poc.field import Field128
 
-from vidpf import ONEHOT_PROOF_INIT, PrefixTreeEntry, PrefixTreeIndex, Vidpf
+from vidpf import PrefixTreeEntry, PrefixTreeIndex, Vidpf
 
 
 class Test(unittest.TestCase):
@@ -22,13 +22,10 @@ class Test(unittest.TestCase):
             PrefixTreeEntry.root(keys[0], False),
             PrefixTreeEntry.root(keys[1], True),
         ]
-        proof = [ONEHOT_PROOF_INIT, ONEHOT_PROOF_INIT]
         for i in range(vidpf.BITS):
             idx = PrefixTreeIndex(alpha[:i+1])
-            (node[0], proof[0]) = vidpf.eval_next(
-                node[0], proof[0], pub[i], ctx, nonce, idx)
-            (node[1], proof[1]) = vidpf.eval_next(
-                node[1], proof[1], pub[i], ctx, nonce, idx)
+            node[0] = vidpf.eval_next(node[0], pub[i], ctx, nonce, idx)
+            node[1] = vidpf.eval_next(node[1], pub[i], ctx, nonce, idx)
 
             # Each aggregator should end up with a different seed.
             self.assertTrue(node[0].seed != node[1].seed)
@@ -40,22 +37,19 @@ class Test(unittest.TestCase):
 
             # One of the aggregators corrects the node proof, which means both
             # should compute the same node proof.
-            self.assertEqual(proof[0], proof[1])
+            self.assertEqual(node[0].proof, node[1].proof)
 
         # Off path
         node = [
             PrefixTreeEntry.root(keys[0], False),
             PrefixTreeEntry.root(keys[1], True),
         ]
-        proof = [ONEHOT_PROOF_INIT, ONEHOT_PROOF_INIT]
         for i in range(vidpf.BITS):
             # We want an off-path index. The sibling of the on-path prefix is
             # an off-path prefix.
             idx = PrefixTreeIndex(alpha[:i+1]).sibling()
-            (node[0], proof[0]) = vidpf.eval_next(
-                node[0], proof[0], pub[i], ctx, nonce, idx)
-            (node[1], proof[1]) = vidpf.eval_next(
-                node[1], proof[1], pub[i], ctx, nonce, idx)
+            node[0] = vidpf.eval_next(node[0], pub[i], ctx, nonce, idx)
+            node[1] = vidpf.eval_next(node[1], pub[i], ctx, nonce, idx)
 
             # The aggregators should compute the same seed.
             self.assertEqual(node[0].seed, node[1].seed)
@@ -65,12 +59,12 @@ class Test(unittest.TestCase):
             self.assertTrue(node[0].ctrl == node[1].ctrl)
 
             # Either both aggregators correct their node proof or neither does.
-            self.assertEqual(proof[0], proof[1])
+            self.assertEqual(node[0].proof, node[1].proof)
 
     def test(self):
-        vidpf = Vidpf(Field128, 2, 1)
+        vidpf = Vidpf(Field128, 2, 2)
         self.assertEqual(vidpf.BITS, 2)
-        self.assertEqual(vidpf.VALUE_LEN, 1)
+        self.assertEqual(vidpf.VALUE_LEN, 2)
 
         ctx = b'some cool application'
         nonce = gen_rand(vidpf.NONCE_SIZE)
@@ -82,11 +76,11 @@ class Test(unittest.TestCase):
             vidpf.test_index_from_int(0b01, vidpf.BITS),
             vidpf.test_index_from_int(0b11, vidpf.BITS),
         ]
-        beta = [vidpf.field(2)]
+        beta = [vidpf.field(1), vidpf.field(2)]
         prefixes = ((False,), (True,))
         level = 0
 
-        out = [Field128.zeros(vidpf.VALUE_LEN + 1)] * len(prefixes)
+        out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
         for alpha in alphas:
             rand = gen_rand(vidpf.RAND_SIZE)
             (correction_words, keys) = vidpf.gen(
@@ -94,7 +88,7 @@ class Test(unittest.TestCase):
 
             proofs = []
             for agg_id in range(2):
-                (_beta_share, out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.eval(
                     agg_id,
                     correction_words,
                     keys[agg_id],
@@ -114,14 +108,14 @@ class Test(unittest.TestCase):
             [Field128(3), Field128(6)],
         ])
 
-        vidpf = Vidpf(Field128, 16, 1)
+        vidpf = Vidpf(Field128, 16, 2)
         alphas = [
             vidpf.test_index_from_int(0b1111000011110000, vidpf.BITS),
             vidpf.test_index_from_int(0b1111000011110001, vidpf.BITS),
             vidpf.test_index_from_int(0b1111000011110010, vidpf.BITS),
             vidpf.test_index_from_int(0b0000010011110010, vidpf.BITS),
         ]
-        beta = [Field128(1)]
+        beta = [Field128(1), Field128(1)]
         level = 5
         prefixes = [
             vidpf.test_index_from_int(0b000001, level+1),
@@ -129,7 +123,7 @@ class Test(unittest.TestCase):
             vidpf.test_index_from_int(0b111101, level+1),
         ]
 
-        out = [Field128.zeros(vidpf.VALUE_LEN + 1)] * len(prefixes)
+        out = [Field128.zeros(vidpf.VALUE_LEN)] * len(prefixes)
         for alpha in alphas:
             rand = gen_rand(vidpf.RAND_SIZE)
             (correction_words, keys) = vidpf.gen(
@@ -137,7 +131,7 @@ class Test(unittest.TestCase):
 
             proofs = []
             for agg_id in range(2):
-                (_beta_share, out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.eval(
                     agg_id,
                     correction_words,
                     keys[agg_id],
@@ -163,19 +157,20 @@ class Test(unittest.TestCase):
         Evaluate all possible prefixes and ensure the on-path prefixes (and
         only those prefixes) evaluate to `beta`.
         """
-        vidpf = Vidpf(Field128, 5, 1)
+        vidpf = Vidpf(Field128, 5, 2)
         alpha = vidpf.test_input_rand()
         ctx = b'some application'
         nonce = gen_rand(vidpf.NONCE_SIZE)
         rand = gen_rand(vidpf.RAND_SIZE)
-        (pub, keys) = vidpf.gen(alpha, [Field128(13)], ctx, nonce, rand)
+        (pub, keys) = vidpf.gen(
+            alpha, [Field128(1), Field128(13)], ctx, nonce, rand)
 
         for level in range(vidpf.BITS):
             prefixes = vidpf.prefixes_for_level(level)
             out_shares = []
             proofs = []
             for agg_id in range(2):
-                (_beta_share, out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.eval(
                     agg_id,
                     pub,
                     keys[agg_id],
@@ -213,7 +208,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_beta_share, _out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -246,7 +241,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_beta_share, _out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -280,7 +275,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_beta_share, _out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -313,7 +308,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_beta_share, _out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -347,9 +342,9 @@ class Test(unittest.TestCase):
             for prefix in prefixes:
                 valid = vidpf.verify(
                     vidpf.eval(0, pub, keys[0], level,
-                               (prefix,), ctx, nonce)[2],
+                               (prefix,), ctx, nonce)[1],
                     vidpf.eval(1, pub, keys[1], level,
-                               (prefix,), ctx, nonce)[2],
+                               (prefix,), ctx, nonce)[1],
                 )
 
                 # If the prefix is on path, then we expect the proofs to be

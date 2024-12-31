@@ -1,5 +1,5 @@
 {
-    "agg_param": "000100000002010040",
+    "agg_param": "000100000002004001",
     "agg_result": [
         0,
         0
@@ -20,7 +20,7 @@
                     true,
                     false
                 ],
-                1
+                true
             ],
             "nonce": "000102030405060708090a0b0c0d0e0f",
             "out_shares": [
@@ -42,8 +42,8 @@
             ],
             "prep_shares": [
                 [
-                    "c5e4e18e6759012048ff31811117a2d921d4dfaa56d9bb67e0e037e7b828796accfbe6874465df6bcef64f43dd61f5661d79048f5c8f6e8e89270f2007e119ac",
-                    "c5e4e18e6759012048ff31811117a2d921d4dfaa56d9bb67e0e037e7b828796a35041978ba9a2094c5edb5255d1187395e03bc1b36416ce932d8e39152ce8955"
+                    "ac13211f48dcf0c9201df67ebc4979661b9a705d18ea377bf940d7c40895df80ccfbe6874465df6bcef64f43dd61f5661d79048f5c8f6e8e89270f2007e119ac",
+                    "ac13211f48dcf0c9201df67ebc4979661b9a705d18ea377bf940d7c40895df8035041978ba9a2094c5edb5255d1187395e03bc1b36416ce932d8e39152ce8955"
                 ]
             ],
             "public_share": "0b40eac2eab18af3ac91184d5f466dc0fe1e9b00a994e6abffb9486a9d48a9623b3101fa6350e7a9831bfb7cf323506e335d928f520ed8fbfe0056b2dbdc41b30abc9bfeb20525cc0ce8771086a16c39a00aa20a65d67590d601d29a78e295828074afb0c0c610f3d0139e2c7e5f1762a72cc1bd0036307bce53dc15c49d419ac4",
@@ -51,5 +51,6 @@
         }
     ],
     "shares": 2,
-    "verify_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    "verify_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "vidpf_bits": 2
 }
