@@ -1,10 +1,10 @@
 '''The Mastic VDAF'''
 
 import itertools
-from typing import Optional, TypeAlias, TypeVar, cast
+from typing import Any, Optional, TypeAlias, TypeVar, cast
 
-from vdaf_poc.common import (byte, concat, front, to_be_bytes, to_le_bytes,
-                             vec_add, vec_sub, zeros)
+from vdaf_poc.common import (concat, front, to_be_bytes, to_le_bytes, vec_add,
+                             vec_sub, zeros)
 from vdaf_poc.field import Field64, Field128, NttField
 from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
                                    MultihotCountVec, Sum, SumVec, Valid)
@@ -21,20 +21,16 @@ R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
 
 MasticAggParam: TypeAlias = tuple[
-    int,                            # level
-    tuple[tuple[bool, ...], ...],   # prefixes
-    bool,                           # whether to do the weight check
-]
-
-MasticPublicShare: TypeAlias = tuple[
-    list[CorrectionWord],   # VIDPF correction words
-    Optional[list[bytes]],  # FLP joint randomness parts
+    int,                           # level
+    tuple[tuple[bool, ...], ...],  # prefixes
+    bool,                          # whether to do the weight check
 ]
 
 MasticInputShare: TypeAlias = tuple[
     bytes,              # VIDPF key
     Optional[list[F]],  # FLP leader proof share
     Optional[bytes],    # FLP seed
+    Optional[bytes],    # FLP peer joint rand part
 ]
 
 MasticPrepState: TypeAlias = tuple[
@@ -55,7 +51,7 @@ class Mastic(
         Vdaf[
             tuple[tuple[bool, ...], W],  # W
             MasticAggParam,
-            MasticPublicShare,
+            list[CorrectionWord],  # PublicShare
             MasticInputShare,
             list[F],  # OutShare
             list[F],  # AggShare
@@ -85,7 +81,7 @@ class Mastic(
                  valid: Valid[W, R, F]):
         self.field = valid.field
         self.flp = FlpBBCGGI19(valid)
-        self.vidpf = Vidpf(valid.field, bits, valid.MEAS_LEN)
+        self.vidpf = Vidpf(valid.field, bits, 1 + valid.MEAS_LEN)
         self.RAND_SIZE = self.vidpf.RAND_SIZE + 2 * self.xof.SEED_SIZE
         if self.flp.JOINT_RAND_LEN > 0:  # FLP leader seed
             self.RAND_SIZE += self.xof.SEED_SIZE
@@ -95,7 +91,7 @@ class Mastic(
               measurement: tuple[tuple[bool, ...], W],
               nonce: bytes,
               rand: bytes,
-              ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+              ) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
         if self.flp.JOINT_RAND_LEN > 0:
             return self.shard_with_joint_rand(
                 ctx, measurement, nonce, rand)
@@ -108,14 +104,16 @@ class Mastic(
             measurement: tuple[tuple[bool, ...], W],
             nonce: bytes,
             rand: bytes,
-    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+    ) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
         (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
         (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
         (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
         assert len(rand) == 0  # REMOVE ME
 
+        # Encode the inputs to VIDPF key generation. The output, denoted
+        # `beta`, is a counter concatenated with the encoded weight.
         (alpha, weight) = measurement
-        beta = self.flp.encode(weight)
+        beta = [self.field(1)] + self.flp.encode(weight)
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
@@ -123,16 +121,15 @@ class Mastic(
 
         # Generate FLP and split it into shares.
         prove_rand = self.prove_rand(ctx, prove_rand_seed)
-        proof = self.flp.prove(beta, prove_rand, [])
+        proof = self.flp.prove(beta[1:], prove_rand, [])
         helper_proof_share = self.helper_proof_share(ctx, helper_seed)
         leader_proof_share = vec_sub(proof, helper_proof_share)
 
-        public_share = (correction_words, None)
-        input_shares = [
-            (keys[0], leader_proof_share, None),
-            (keys[1], None, helper_seed),
+        input_shares: list[MasticInputShare] = [
+            (keys[0], leader_proof_share, None, None),
+            (keys[1], None, helper_seed, None),
         ]
-        return (public_share, input_shares)
+        return (correction_words, input_shares)
 
     def shard_with_joint_rand(
             self,
@@ -140,42 +137,50 @@ class Mastic(
             measurement: tuple[tuple[bool, ...], W],
             nonce: bytes,
             rand: bytes,
-    ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+    ) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
         (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
         (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
-        (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
         (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+        (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
         assert len(rand) == 0  # REMOVE ME
 
+        # Encode the inputs to VIDPF key generation. The output, denoted
+        # `beta`, is a counter concatenated with the encoded weight.
         (alpha, weight) = measurement
-        beta = self.flp.encode(weight)
+        beta = [self.field(1)] + self.flp.encode(weight)
 
         # Generate VIDPF keys.
         (correction_words, keys) = \
             self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
         # Generate FLP joint randomness.
+        leader_beta_share = self.vidpf.get_beta_share(0, correction_words,
+                                                      keys[0], ctx, nonce)
+        helper_beta_share = self.vidpf.get_beta_share(1, correction_words,
+                                                      keys[1], ctx, nonce)
         joint_rand_parts = [
-            self.joint_rand_part(
-                ctx, 0, leader_seed, keys[0], correction_words, nonce),
-            self.joint_rand_part(
-                ctx, 1, helper_seed, keys[1], correction_words, nonce),
+            self.joint_rand_part(ctx, leader_seed, leader_beta_share[1:],
+                                 nonce),
+            self.joint_rand_part(ctx, helper_seed, helper_beta_share[1:],
+                                 nonce),
         ]
         joint_rand = self.joint_rand(
             ctx, self.joint_rand_seed(ctx, joint_rand_parts))
 
         # Generate FLP and split it into shares.
         prove_rand = self.prove_rand(ctx, prove_rand_seed)
-        proof = self.flp.prove(beta, prove_rand, joint_rand)
+        proof = self.flp.prove(beta[1:], prove_rand, joint_rand)
         helper_proof_share = self.helper_proof_share(ctx, helper_seed)
         leader_proof_share = vec_sub(proof, helper_proof_share)
 
-        public_share = (correction_words, joint_rand_parts)
+        leader_joint_rand_part: Optional[bytes] = joint_rand_parts[0]
+        helper_joint_rand_part: Optional[bytes] = joint_rand_parts[1]
         input_shares = [
-            (keys[0], leader_proof_share, leader_seed),
-            (keys[1], None, cast(Optional[bytes], helper_seed)),
+            (keys[0], leader_proof_share, leader_seed, helper_joint_rand_part),
+            (keys[1], None, cast(Optional[bytes],
+             helper_seed), leader_joint_rand_part),
         ]
-        return (public_share, input_shares)
+        return (correction_words, input_shares)
 
     def is_valid(self,
                  agg_param: MasticAggParam,
@@ -202,16 +207,15 @@ class Mastic(
             agg_id: int,
             agg_param: MasticAggParam,
             nonce: bytes,
-            public_share: MasticPublicShare,
+            correction_words: list[CorrectionWord],
             input_share: MasticInputShare,
     ) -> tuple[MasticPrepState, MasticPrepShare]:
         (level, prefixes, do_weight_check) = agg_param
-        (key, proof_share, seed) = \
+        (key, proof_share, seed, peer_joint_rand_part) = \
             self.expand_input_share(ctx, agg_id, input_share)
-        (correction_words, joint_rand_parts) = public_share
 
         # Evaluate the VIDPF.
-        (beta_share, out_share, eval_proof) = self.vidpf.eval(
+        (out_share, eval_proof) = self.vidpf.eval(
             agg_id,
             correction_words,
             key,
@@ -226,20 +230,23 @@ class Mastic(
         joint_rand_seed = None
         verifier_share = None
         if do_weight_check:
+            beta_share = self.vidpf.get_beta_share(agg_id, correction_words,
+                                                   key, ctx, nonce)
             query_rand = self.query_rand(verify_key, ctx, nonce, level)
             joint_rand = []
             if self.flp.JOINT_RAND_LEN > 0:
                 assert seed is not None
-                assert joint_rand_parts is not None
-                joint_rand_part = self.joint_rand_part(
-                    ctx, agg_id, seed, key, correction_words, nonce)
-                joint_rand_parts[agg_id] = joint_rand_part
-                joint_rand_seed = self.joint_rand_seed(
-                    ctx, joint_rand_parts)
-                joint_rand = self.joint_rand(
-                    ctx, self.joint_rand_seed(ctx, joint_rand_parts))
+                assert peer_joint_rand_part is not None
+                joint_rand_part = self.joint_rand_part(ctx, seed,
+                                                       beta_share[1:], nonce)
+                if agg_id == 0:
+                    joint_rand_parts = [joint_rand_part, peer_joint_rand_part]
+                else:
+                    joint_rand_parts = [peer_joint_rand_part, joint_rand_part]
+                joint_rand_seed = self.joint_rand_seed(ctx, joint_rand_parts)
+                joint_rand = self.joint_rand(ctx, joint_rand_seed)
             verifier_share = self.flp.query(
-                beta_share,
+                beta_share[1:],
                 proof_share,
                 query_rand,
                 joint_rand,
@@ -360,9 +367,6 @@ class Mastic(
         encoded = bytes()
         encoded += to_be_bytes(level, 2)
         encoded += to_be_bytes(len(prefixes), 4)
-        # NOTE: The do_weight_check is the only difference between Mastic's and
-        # Poplar1's `encode_agg_param``
-        encoded += to_be_bytes(int(do_weight_check), 1)
         prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
         encoded_prefixes = bytearray()
         for prefix in prefixes:
@@ -373,6 +377,9 @@ class Mastic(
                 encoded_prefixes.append(byte_out)
         assert len(encoded_prefixes) == prefixes_len
         encoded += encoded_prefixes
+        # NOTE: The do_weight_check is the only difference between
+        # Mastic's and Poplar1's `encode_agg_param`.
+        encoded += to_be_bytes(int(do_weight_check), 1)
         return encoded
 
     def expand_input_share(
@@ -380,15 +387,15 @@ class Mastic(
             ctx: bytes,
             agg_id: int,
             input_share: MasticInputShare,
-    ) -> tuple[bytes, list[F], Optional[bytes]]:
+    ) -> tuple[bytes, list[F], Optional[bytes], Optional[bytes]]:
         if agg_id == 0:
-            (key, proof_share, seed) = input_share
+            (key, proof_share, seed, peer_joint_rand_part) = input_share
             assert proof_share is not None
         else:
-            (key, _leader_proof_share, seed) = input_share
+            (key, _leader_proof_share, seed, peer_joint_rand_part) = input_share
             assert seed is not None
             proof_share = self.helper_proof_share(ctx, seed)
-        return (key, proof_share, seed)
+        return (key, proof_share, seed, peer_joint_rand_part)
 
     def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
         return self.xof.expand_into_vec(
@@ -411,17 +418,14 @@ class Mastic(
     def joint_rand_part(
             self,
             ctx: bytes,
-            agg_id: int,
             seed: bytes,
-            key: bytes,
-            correction_words: list[CorrectionWord],
+            weight_share: list[F],
             nonce: bytes,
     ) -> bytes:
-        pub = self.vidpf.encode_public_share(correction_words)
         return self.xof.derive_seed(
             seed,
             dst(ctx, USAGE_JOINT_RAND_PART),
-            byte(agg_id) + nonce + key + pub,
+            nonce + self.field.encode_vec(weight_share),
         )
 
     def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
@@ -453,30 +457,30 @@ class Mastic(
             self.flp.QUERY_RAND_LEN,
         )
 
+    def test_vec_set_type_param(self, test_vec: dict[str, Any]) -> list[str]:
+        test_vec['vidpf_bits'] = int(self.vidpf.BITS)
+        return ['vidpf_bits'] + self.flp.test_vec_set_type_param(test_vec)
+
     def test_vec_encode_input_share(
         self,
         input_share: MasticInputShare,
     ) -> bytes:
-        (init_seed, proof_share, seed) = input_share
+        (init_seed, proof_share, seed, peer_joint_rand_part) = input_share
         encoded = bytes()
         encoded += init_seed
         if proof_share is not None:
             encoded += self.field.encode_vec(proof_share)
         if seed is not None:
             encoded += seed
+        if peer_joint_rand_part is not None:
+            encoded += peer_joint_rand_part
         return encoded
 
     def test_vec_encode_public_share(
         self,
-        public_share: MasticPublicShare,
+        correction_words: list[CorrectionWord],
     ) -> bytes:
-        (correction_words, joint_rand_parts) = public_share
-        encoded = bytes()
-        encoded += self.vidpf.encode_public_share(correction_words)
-        if joint_rand_parts is not None:
-            for seed in joint_rand_parts:
-                encoded += seed
-        return encoded
+        return self.vidpf.encode_public_share(correction_words)
 
     def test_vec_encode_agg_share(self, agg_share: list[F]) -> bytes:
         encoded = bytes()
@@ -486,15 +490,15 @@ class Mastic(
 
     def test_vec_encode_prep_share(
             self, prep_share: MasticPrepShare) -> bytes:
-        (eval_proof, verifier_share, joint_rand) = prep_share
+        (eval_proof, verifier_share, joint_rand_part) = prep_share
         assert verifier_share is not None
         assert isinstance(verifier_share, list)
         encoded = bytes()
         encoded += eval_proof
+        if joint_rand_part is not None:
+            encoded += joint_rand_part
         if len(verifier_share) > 0:
             encoded += self.field.encode_vec(verifier_share)
-        if joint_rand is not None:
-            encoded += joint_rand
         return encoded
 
     def test_vec_encode_prep_msg(

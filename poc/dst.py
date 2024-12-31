@@ -20,6 +20,7 @@ USAGE_NODE_PROOF: int = 8
 USAGE_EVAL_PROOF: int = 9
 USAGE_EXTEND: int = 10
 USAGE_CONVERT: int = 11
+USAGE_PAYLOAD_CHECK: int = 12
 
 
 def dst(ctx: bytes, usage: int) -> bytes:

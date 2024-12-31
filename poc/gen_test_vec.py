@@ -40,7 +40,7 @@ if __name__ == '__main__':
             True,
         ),
         context,
-        measurements=[(mastic_count.vidpf.test_index_from_int(0b10, 2), 1)],
+        measurements=[(mastic_count.vidpf.test_index_from_int(0b10, 2), True)],
         test_vec_instance=0,
     )
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
             True,
         ),
         context,
-        measurements=[(mastic_count.vidpf.test_index_from_int(0b10, 2), 1)],
+        measurements=[(mastic_count.vidpf.test_index_from_int(0b10, 2), True)],
         test_vec_instance=1,
     )
 

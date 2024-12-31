@@ -11,7 +11,7 @@ from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 from dst import (USAGE_CONVERT, USAGE_EVAL_PROOF, USAGE_EXTEND,
                  USAGE_NODE_PROOF, USAGE_ONEHOT_PROOF_HASH,
-                 USAGE_ONEHOT_PROOF_INIT, dst)
+                 USAGE_ONEHOT_PROOF_INIT, USAGE_PAYLOAD_CHECK, dst)
 
 F = TypeVar("F", bound=NttField)
 
@@ -51,11 +51,11 @@ class PrefixTreeIndex:
     def sibling(self) -> Self:
         return self.__class__(self.path[:-1] + (not self.path[-1],))
 
-    def left_child(self) -> Self:
-        return self.__class__(self.path + (False,))
+    def left_sibling(self) -> Self:
+        return self.__class__(self.path[:-1] + (False,))
 
-    def right_child(self) -> Self:
-        return self.left_child().sibling()
+    def right_sibling(self) -> Self:
+        return self.__class__(self.path[:-1] + (True,))
 
     def __hash__(self):
         return hash(self.path)
@@ -65,22 +65,27 @@ class PrefixTreeIndex:
 
 
 class PrefixTreeEntry(Generic[F]):
-    seed: bytes  # selected seed
-    ctrl: bool   # selected control bit
-    w: list[F]   # payload
+    seed: bytes   # selected seed
+    ctrl: bool    # selected control bit
+    w: list[F]    # weight
+    proof: bytes  # node proof
 
     def __init__(self,
                  seed: bytes,
                  ctrl: bool,
-                 w: list[F]):
+                 w: list[F],
+                 proof: bytes):
         self.seed = seed
         self.ctrl = ctrl
         self.w = w
+        self.proof = proof
+        self.left_child = None
+        self.right_child = None
 
     @classmethod
     def root(cls, seed: bytes, ctrl: bool):
-        # The payload won't be used, so don't bother setting it.
-        return cls(seed, ctrl, [])
+        # The weight and node proof won't be used.
+        return cls(seed, ctrl, [], bytes())
 
 
 class Vidpf(Generic[F]):
@@ -141,7 +146,7 @@ class Vidpf(Generic[F]):
 
             # [MST24]: if x = 0 then keep <- L, lose <- R
             #
-            # Implementation note: the value of `bits` is
+            # Implementation note: the value of `bit` is
             # `alpha`-dependent.
             (keep, lose) = (1, 0) if bit else (0, 1)
 
@@ -193,7 +198,7 @@ class Vidpf(Generic[F]):
             # Compute the correction word for this level's payload.
             #
             # Implementation note: `ctrl` is `alpha`-dependent.
-            w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
+            w_cw = vec_add(vec_sub(beta, w0), w1)
             if ctrl[1]:
                 w_cw = vec_neg(w_cw)
 
@@ -220,12 +225,12 @@ class Vidpf(Generic[F]):
              prefixes: tuple[tuple[bool, ...], ...],
              ctx: bytes,
              nonce: bytes,
-             ) -> tuple[list[F], list[list[F]], bytes]:
+             ) -> tuple[list[list[F]], bytes]:
         """
         The VIDPF key evaluation algorithm.
 
-        Return the aggregator's share of `beta`, its output share for
-        each prefix, and its evaluation proof.
+        Return the aggregator's output share for each prefix, and its
+        evaluation proof.
         """
         if agg_id not in range(2):
             raise ValueError("invalid aggregator ID")
@@ -239,84 +244,110 @@ class Vidpf(Generic[F]):
         if len(set(prefixes)) != len(prefixes):
             raise ValueError("candidate prefixes are non-unique")
 
-        # Evaluate our share of the prefix tree and compute the path
-        # proof.
+        # Evaluate our share of the prefix tree, including the sibling of each
+        # node we visit.
         #
-        # Implementation note: we can save computation by storing
-        # `prefix_tree_share` across `eval()` calls for the same report.
-        prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
+        # Implementation note: we can save computation by storing the tree
+        # across `eval()` calls for the same report.
         root = PrefixTreeEntry.root(key, bool(agg_id))
+        out_share = []
+        for prefix in prefixes:
+            n = root
+            for (i, bit) in enumerate(prefix):
+                idx = PrefixTreeIndex(prefix[:i+1])
+                if n.left_child is None:
+                    n.left_child = self.eval_next(n, correction_words[i], ctx,
+                                                  nonce, idx.left_sibling())
+                if n.right_child is None:
+                    n.right_child = self.eval_next(n, correction_words[i], ctx,
+                                                   nonce, idx.right_sibling())
+                n = n.right_child if bit else n.left_child
+            out_share.append(n.w if agg_id == 0 else vec_neg(n.w))
+
+        # Payload and onehot checks.
+        payload_check_binder = b''
         onehot_proof = ONEHOT_PROOF_INIT
-        for i in range(level+1):
-            for prefix in prefixes:
-                # Compute the entry for `prefix`. Set `idx` to the
-                # index of its parent.
-                idx = PrefixTreeIndex(prefix[:i])
-                node = prefix_tree_share.setdefault(idx, root)
-                for child_idx in [idx.left_child(), idx.right_child()]:
-                    # Compute the entry for `prefix` and its sibling. The
-                    # sibling is used for the counter and payload checks.
-                    if not prefix_tree_share.get(child_idx):
-                        (child, onehot_proof) = self.eval_next(
-                            node,
-                            onehot_proof,
-                            correction_words[i],
-                            ctx,
-                            nonce,
-                            child_idx,
-                        )
-                        prefix_tree_share[child_idx] = child
+        q = [root.left_child, root.right_child]
+        while len(q) > 0:
+            (n, q) = (q[0], q[1:])
 
-        # Compute the aggregator's share of `beta`.
-        w0 = prefix_tree_share[PrefixTreeIndex((False,))].w
-        w1 = prefix_tree_share[PrefixTreeIndex((True,))].w
-        beta_share = vec_add(w0, w1)[1:]
-        if agg_id == 1:
-            beta_share = vec_neg(beta_share)
+            if n.left_child is not None and n.right_child is not None:
+                # Update payload check. The weight of each node should equal
+                # the sum of its children.
+                payload_check_binder += self.field.encode_vec(
+                    vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
+                q += [n.left_child, n.right_child]
 
-        # Counter check: check that the first element of the payload is
-        # equal to 1.
+            # Update the onehot check, consisting of the hash of the
+            # node proofs in breadth-first order. Each update
+            # resembles a step of Merkle-Damgard compression. The main
+            # difference is that we XOR each block (i.e., corrected
+            # node proof) with the previous hash (or IV) rather than
+            # compress.
+            #
+            #                node proof
+            #                 |
+            #                 v
+            # current     +-----+     +------+     +-----+    updated
+            # proof --+-->| XOR |---->| Hash |---->| XOR |--> proof
+            #         |   +-----+     +------+     +-----+
+            #         |                               ^
+            #         |                               |
+            #         +-------------------------------+
+            #
+            # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
+            #          \pi = \tilde \pi \xor
+            #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
+            onehot_proof = xor(
+                onehot_proof, hash_proof(ctx, xor(onehot_proof, n.proof)))
+
+        payload_check = XofTurboShake128(
+            zeros(XofTurboShake128.SEED_SIZE),
+            dst(ctx, USAGE_PAYLOAD_CHECK),
+            payload_check_binder).next(PROOF_SIZE)
+
+        # Counter check: the first element of beta should equal 1.
         #
-        # Each aggregator holds an additive share of the counter, so we
-        # have aggregator 1 negate its share and add 1 so that they both
-        # compute the same value for `counter`.
+        # Each aggregator holds an additive share of the counter, so
+        # we have aggregator 1 negate its share and add 1 so that they
+        # both compute the same value for `counter`.
+        w0 = root.left_child.w
+        w1 = root.right_child.w
         counter_check = self.field.encode_vec(
             [w0[0] + w1[0] + self.field(agg_id)])
 
-        # Payload check: for each node, check that the payload is equal
-        # to the sum of its children.
-        payload_check = b''
-        for prefix in prefixes:
-            for i in range(level):
-                idx = PrefixTreeIndex(prefix[:i+1])
-                w = prefix_tree_share[idx].w
-                w0 = prefix_tree_share[idx.left_child()].w
-                w1 = prefix_tree_share[idx.right_child()].w
-                payload_check += self.field.encode_vec(
-                    vec_sub(w, vec_add(w0, w1)))
-
-        # Compute the Aggregator's output share.
-        out_share = []
-        for prefix in prefixes:
-            idx = PrefixTreeIndex(prefix)
-            w = prefix_tree_share[idx].w
-            out_share.append(w if agg_id == 0 else vec_neg(w))
-
-        # Compute the evaluation proof. If both aggregators compute the
-        # same value, then they agree on the onehot proof, the counter,
-        # and the payload.
+        # Evaluation proof: if both aggregators compute the same
+        # value, then they agree on the onehot proof, the counter, and
+        # the payload.
         proof = eval_proof(
             ctx, onehot_proof, counter_check, payload_check)
-        return (beta_share, out_share, proof)
+        return (out_share, proof)
+
+    def get_beta_share(
+            self,
+            agg_id: int,
+            correction_words: list[CorrectionWord],
+            key: bytes,
+            ctx: bytes,
+            nonce: bytes,
+    ) -> list[F]:
+        root = PrefixTreeEntry.root(key, bool(agg_id))
+        left = self.eval_next(root, correction_words[0], ctx, nonce,
+                              PrefixTreeIndex((False,)))
+        right = self.eval_next(root, correction_words[0], ctx, nonce,
+                               PrefixTreeIndex((True,)))
+        beta_share = vec_add(left.w, right.w)
+        if agg_id == 1:
+            beta_share = vec_neg(beta_share)
+        return beta_share
 
     def eval_next(self,
                   node: PrefixTreeEntry,
-                  onehot_proof: bytes,
                   correction_word: CorrectionWord,
                   ctx: bytes,
                   nonce: bytes,
                   idx: PrefixTreeIndex,
-                  ) -> tuple[PrefixTreeEntry, bytes]:
+                  ) -> PrefixTreeEntry:
         """
         Extend a node in the tree, select and correct one of its
         children, then convert it into a payload and the next seed.
@@ -347,34 +378,14 @@ class Vidpf(Generic[F]):
         if next_ctrl:
             w = vec_add(w, w_cw)
 
-        # Compute and correct the node proof and update the onehot proof.
-        # Each update resembles a step of Merkle-Damgard compression. The
-        # main difference is that we XOR each block (i.e., corrected node
-        # proof) with the previous hash (or IV) rather than compress.
-        #
-        #             corrected node proof
-        #                 |
-        #                 |
-        #                 v
-        # current      +-----+     +------+     +-----+      updated
-        # proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof
-        #          |   +-----+     +------+     +-----+
-        #          |                               ^
-        #          |                               |
-        #          +-------------------------------+
-        #
-        # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
-        #          \pi = \tilde \pi \xor
-        #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
+        # Compute and correct the node proof.
         #
         # Implementation note: avoid branching on the control bit here.
         node_proof = self.node_proof(next_seed, ctx, idx)
         if next_ctrl:
             node_proof = xor(node_proof, proof_cw)
-        onehot_proof = xor(
-            onehot_proof, hash_proof(ctx, xor(onehot_proof, node_proof)))
 
-        return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
+        return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
 
     def verify(self, proof0: bytes, proof1: bytes) -> bool:
         return proof0 == proof1
@@ -412,7 +423,7 @@ class Vidpf(Generic[F]):
         '''
         xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
-        payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
+        payload = xof.next_vec(self.field, self.VALUE_LEN)
         return (next_seed, payload)
 
     def node_proof(self,
@@ -490,6 +501,8 @@ def eval_proof(ctx: bytes,
                onehot_proof: bytes,
                counter_check: bytes,
                payload_check: bytes) -> bytes:
-    binder = onehot_proof + counter_check + payload_check
-    xof = XofTurboShake128(b'', dst(ctx, USAGE_EVAL_PROOF), binder)
-    return xof.next(PROOF_SIZE)
+    return XofTurboShake128(
+        zeros(XofTurboShake128.SEED_SIZE),
+        dst(ctx, USAGE_EVAL_PROOF),
+        onehot_proof + counter_check + payload_check
+    ).next(PROOF_SIZE)
