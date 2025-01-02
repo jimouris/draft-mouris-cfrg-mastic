@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-12-31T00:47:19.697001+00:00",
+  "timestamp": "2025-01-02T00:47:14.700488+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -1164,6 +1164,38 @@
           "updatedAt": "2024-12-13T23:11:24Z"
         }
       ]
+    },
+    {
+      "number": 99,
+      "id": "I_kwDOJmRsfc6kx52I",
+      "title": "Add algorithm ID to domain separation tag",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/99",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-12-31T17:00:51Z",
+      "updatedAt": "2024-12-31T17:00:51Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 100,
+      "id": "I_kwDOJmRsfc6kx7CT",
+      "title": "VIDPF should be independent of Mastic",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/100",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Specify VIDPF so that it can be used easily in an application other than Mastic. In particular:\r\n\r\n1. The onehot, path, and counter checks should be moved into Mastic. VIDPF should just compute the prefix tree, including the weight and proof for each node.\r\n2. The domain separation tag should not include the word \"mastic\". ",
+      "createdAt": "2024-12-31T17:08:08Z",
+      "updatedAt": "2024-12-31T17:08:08Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
