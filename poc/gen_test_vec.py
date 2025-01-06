@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 
 from vdaf_poc.test_utils import gen_test_vec_for_vdaf
@@ -58,6 +56,69 @@ if __name__ == '__main__':
         context,
         measurements=[(mastic_count.vidpf.test_index_from_int(0b10, 2), True)],
         test_vec_instance=1,
+    )
+
+    # Try a set of candidate prefixes that exercise the breadth-first tree
+    # traversal involved in evaluation proof computation.
+    gen_test_vec_for_mastic(
+        vdaf_test_vec_path,
+        MasticCount(5),
+        (
+            4,
+            (
+                (False, False, False, False, False),
+                (False, False, True, True, False),
+                (False, False, True, True, True),
+                (False, True, True, False, False),
+                (False, True, True, True, True),
+                (True, False, False, False, False),
+                (True, True, True, True, True),
+            ),
+            True,
+        ),
+        context,
+        measurements=[
+            ((False, False, False, False, False), True),
+            ((False, False, False, False, False), True),
+            ((False, False, True, True, True), True),
+            ((False, False, True, True, False), True),
+            ((False, True, True, True, True), True),
+            ((False, True, True, False, False), True),
+            ((False, True, True, False, False), True),
+            ((False, True, True, False, False), True),
+        ],
+        test_vec_instance=2,
+    )
+
+    # Try one without the weight check.
+    gen_test_vec_for_mastic(
+        vdaf_test_vec_path,
+        MasticCount(5),
+        (
+            4,
+            (
+                (False, False, False, False, False),
+                (False, False, True, True, False),
+                (False, False, True, True, True),
+                (False, True, True, False, False),
+                (False, True, True, True, True),
+                (True, False, False, False, False),
+                (True, True, True, True, True),
+            ),
+            False,
+        ),
+        context,
+        measurements=[
+            ((False, False, False, False, False), True),
+            ((False, False, False, False, False), True),
+            ((False, False, True, True, True), True),
+            ((False, False, True, True, False), True),
+            ((False, True, True, True, True), True),
+            ((False, True, True, False, False), True),
+            ((False, True, True, False, False), True),
+            ((False, True, True, False, False), True),
+        ],
+        test_vec_instance=3,
     )
 
     # Sum Test Vectors

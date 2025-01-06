@@ -491,13 +491,11 @@ class Mastic(
     def test_vec_encode_prep_share(
             self, prep_share: MasticPrepShare) -> bytes:
         (eval_proof, verifier_share, joint_rand_part) = prep_share
-        assert verifier_share is not None
-        assert isinstance(verifier_share, list)
         encoded = bytes()
         encoded += eval_proof
         if joint_rand_part is not None:
             encoded += joint_rand_part
-        if len(verifier_share) > 0:
+        if verifier_share is not None:
             encoded += self.field.encode_vec(verifier_share)
         return encoded
 
