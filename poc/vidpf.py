@@ -4,23 +4,16 @@ import itertools
 from random import randrange
 from typing import Generic, Self, TypeAlias, TypeVar
 
-from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor, zeros
+from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor
 from vdaf_poc.field import NttField
 from vdaf_poc.idpf_bbcggi21 import pack_bits
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
-from dst import (USAGE_CONVERT, USAGE_EVAL_PROOF, USAGE_EXTEND,
-                 USAGE_NODE_PROOF, USAGE_ONEHOT_PROOF_HASH,
-                 USAGE_ONEHOT_PROOF_INIT, USAGE_PAYLOAD_CHECK, dst)
+from dst import USAGE_CONVERT, USAGE_EXTEND, USAGE_NODE_PROOF, dst
 
 F = TypeVar("F", bound=NttField)
 
 PROOF_SIZE: int = 32
-
-# Walk proof for an empty tree.
-ONEHOT_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                                     dst(b'', USAGE_ONEHOT_PROOF_INIT),
-                                     b'').next(PROOF_SIZE)
 
 Ctrl: TypeAlias = list[bool]
 
@@ -217,20 +210,21 @@ class Vidpf(Generic[F]):
 
         return (correction_words, keys)
 
-    def eval(self,
-             agg_id: int,
-             correction_words: list[CorrectionWord],
-             key: bytes,
-             level: int,
-             prefixes: tuple[tuple[bool, ...], ...],
-             ctx: bytes,
-             nonce: bytes,
-             ) -> tuple[list[list[F]], bytes]:
+    def eval_with_siblings(self,
+                           agg_id: int,
+                           correction_words: list[CorrectionWord],
+                           key: bytes,
+                           level: int,
+                           prefixes: tuple[tuple[bool, ...], ...],
+                           ctx: bytes,
+                           nonce: bytes,
+                           ) -> tuple[list[list[F]], PrefixTreeEntry]:
         """
         The VIDPF key evaluation algorithm.
 
-        Return the aggregator's output share for each prefix, and its
-        evaluation proof.
+        The return value consists of the weights for each candidate prefix and
+        the root of the prefix tree. The prefix tree includes the prefixes and
+        the siblings of each node visited.
         """
         if agg_id not in range(2):
             raise ValueError("invalid aggregator ID")
@@ -264,64 +258,7 @@ class Vidpf(Generic[F]):
                 n = n.right_child if bit else n.left_child
             out_share.append(n.w if agg_id == 0 else vec_neg(n.w))
 
-        # Payload and onehot checks.
-        payload_check_binder = b''
-        onehot_proof = ONEHOT_PROOF_INIT
-        q = [root.left_child, root.right_child]
-        while len(q) > 0:
-            (n, q) = (q[0], q[1:])
-
-            if n.left_child is not None and n.right_child is not None:
-                # Update payload check. The weight of each node should equal
-                # the sum of its children.
-                payload_check_binder += self.field.encode_vec(
-                    vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
-                q += [n.left_child, n.right_child]
-
-            # Update the onehot check, consisting of the hash of the
-            # node proofs in breadth-first order. Each update
-            # resembles a step of Merkle-Damgard compression. The main
-            # difference is that we XOR each block (i.e., corrected
-            # node proof) with the previous hash (or IV) rather than
-            # compress.
-            #
-            #                node proof
-            #                 |
-            #                 v
-            # current     +-----+     +------+     +-----+    updated
-            # proof --+-->| XOR |---->| Hash |---->| XOR |--> proof
-            #         |   +-----+     +------+     +-----+
-            #         |                               ^
-            #         |                               |
-            #         +-------------------------------+
-            #
-            # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
-            #          \pi = \tilde \pi \xor
-            #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
-            onehot_proof = xor(
-                onehot_proof, hash_proof(ctx, xor(onehot_proof, n.proof)))
-
-        payload_check = XofTurboShake128(
-            zeros(XofTurboShake128.SEED_SIZE),
-            dst(ctx, USAGE_PAYLOAD_CHECK),
-            payload_check_binder).next(PROOF_SIZE)
-
-        # Counter check: the first element of beta should equal 1.
-        #
-        # Each aggregator holds an additive share of the counter, so
-        # we have aggregator 1 negate its share and add 1 so that they
-        # both compute the same value for `counter`.
-        w0 = root.left_child.w
-        w1 = root.right_child.w
-        counter_check = self.field.encode_vec(
-            [w0[0] + w1[0] + self.field(agg_id)])
-
-        # Evaluation proof: if both aggregators compute the same
-        # value, then they agree on the onehot proof, the counter, and
-        # the payload.
-        proof = eval_proof(
-            ctx, onehot_proof, counter_check, payload_check)
-        return (out_share, proof)
+        return (out_share, root)
 
     def get_beta_share(
             self,
@@ -489,20 +426,45 @@ class Vidpf(Generic[F]):
             self.test_index_from_int(value, level+1) for value in range(2**level)
         )
 
+    def test_eval(self,
+                  agg_id: int,
+                  correction_words: list[CorrectionWord],
+                  key: bytes,
+                  level: int,
+                  prefixes: tuple[tuple[bool, ...], ...],
+                  ctx: bytes,
+                  nonce: bytes,
+                  ) -> tuple[list[list[F]], bytes]:
+        """
+        Evaluate the VIDPF on the given prefixes and compute the hash of the
+        node proofs.
 
-def hash_proof(ctx: bytes, proof: bytes) -> bytes:
-    xof = XofTurboShake128(b'',
-                           dst(ctx, USAGE_ONEHOT_PROOF_HASH),
-                           proof)
-    return xof.next(PROOF_SIZE)
+        This functionality is not used by Mastic. It is intended for testing
+        VIDPF.
+        """
+        import hashlib
 
+        (out_share, root) = self.eval_with_siblings(
+            agg_id,
+            correction_words,
+            key,
+            level,
+            prefixes,
+            ctx,
+            nonce,
+        )
 
-def eval_proof(ctx: bytes,
-               onehot_proof: bytes,
-               counter_check: bytes,
-               payload_check: bytes) -> bytes:
-    return XofTurboShake128(
-        zeros(XofTurboShake128.SEED_SIZE),
-        dst(ctx, USAGE_EVAL_PROOF),
-        onehot_proof + counter_check + payload_check
-    ).next(PROOF_SIZE)
+        h = hashlib.sha3_256()
+        q: list[PrefixTreeEntry] = []
+        if root.left_child is not None:
+            q.append(root.left_child)
+        if root.right_child is not None:
+            q.append(root.right_child)
+        while len(q) > 0:
+            (n, q) = (q[0], q[1:])
+            h.update(n.proof)
+            if n.left_child is not None:
+                q.append(n.left_child)
+            if n.right_child is not None:
+                q.append(n.right_child)
+        return (out_share, h.digest())
