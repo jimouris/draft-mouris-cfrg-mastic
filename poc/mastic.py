@@ -14,7 +14,8 @@ from vdaf_poc.xof import XofTurboShake128
 from dst import (USAGE_EVAL_PROOF, USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
                  USAGE_JOINT_RAND_SEED, USAGE_ONEHOT_PROOF_HASH,
                  USAGE_ONEHOT_PROOF_INIT, USAGE_PAYLOAD_CHECK,
-                 USAGE_PROOF_SHARE, USAGE_PROVE_RAND, USAGE_QUERY_RAND, dst)
+                 USAGE_PROOF_SHARE, USAGE_PROVE_RAND, USAGE_QUERY_RAND, dst,
+                 dst_alg)
 from vidpf import PROOF_SIZE, CorrectionWord, Vidpf
 
 W = TypeVar("W")
@@ -302,7 +303,7 @@ class Mastic(
 
         payload_check = self.xof(
             zeros(self.xof.SEED_SIZE),
-            dst(ctx, USAGE_PAYLOAD_CHECK),
+            dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
             payload_check_binder,
         ).next(PROOF_SIZE)
 
@@ -321,7 +322,7 @@ class Mastic(
         # the payload.
         eval_proof = self.xof(
             zeros(self.xof.SEED_SIZE),
-            dst(ctx, USAGE_EVAL_PROOF),
+            dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
             onehot_proof + counter_check + payload_check,
         ).next(PROOF_SIZE)
 
@@ -473,7 +474,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(ctx, USAGE_PROOF_SHARE),
+            dst_alg(ctx, USAGE_PROOF_SHARE, self.ID),
             b'',
             self.flp.PROOF_LEN,
         )
@@ -482,7 +483,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(ctx, USAGE_PROVE_RAND),
+            dst_alg(ctx, USAGE_PROVE_RAND, self.ID),
             b'',
             self.flp.PROVE_RAND_LEN,
         )
@@ -496,14 +497,14 @@ class Mastic(
     ) -> bytes:
         return self.xof.derive_seed(
             seed,
-            dst(ctx, USAGE_JOINT_RAND_PART),
+            dst_alg(ctx, USAGE_JOINT_RAND_PART, self.ID),
             nonce + self.field.encode_vec(weight_share),
         )
 
     def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
         return self.xof.derive_seed(
             zeros(self.xof.SEED_SIZE),
-            dst(ctx, USAGE_JOINT_RAND_SEED),
+            dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
             concat(parts),
         )
 
@@ -511,7 +512,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             seed,
-            dst(ctx, USAGE_JOINT_RAND),
+            dst_alg(ctx, USAGE_JOINT_RAND, self.ID),
             b'',
             self.flp.JOINT_RAND_LEN,
         )
@@ -524,7 +525,7 @@ class Mastic(
         return self.xof.expand_into_vec(
             self.field,
             verify_key,
-            dst(ctx, USAGE_QUERY_RAND),
+            dst_alg(ctx, USAGE_QUERY_RAND, self.ID),
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
@@ -579,9 +580,11 @@ class Mastic(
         return encoded
 
     def hash_proof(self, ctx: bytes, proof: bytes) -> bytes:
-        return self.xof(b'',
-                        dst(ctx, USAGE_ONEHOT_PROOF_HASH),
-                        proof).next(PROOF_SIZE)
+        return self.xof(
+            b'',
+            dst_alg(ctx, USAGE_ONEHOT_PROOF_HASH, self.ID),
+            proof
+        ).next(PROOF_SIZE)
 
 ##
 # INSTANTIATIONS
