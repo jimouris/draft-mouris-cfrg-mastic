@@ -4,7 +4,7 @@ import itertools
 from typing import Any, Optional, TypeAlias, TypeVar, cast
 
 from vdaf_poc.common import (concat, front, to_be_bytes, to_le_bytes, vec_add,
-                             vec_sub, xor)
+                             vec_sub)
 from vdaf_poc.field import Field64, Field128, NttField
 from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
                                    MultihotCountVec, Sum, SumVec, Valid)
@@ -12,20 +12,14 @@ from vdaf_poc.vdaf import Vdaf
 from vdaf_poc.xof import XofTurboShake128
 
 from dst import (USAGE_EVAL_PROOF, USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
-                 USAGE_JOINT_RAND_SEED, USAGE_ONEHOT_PROOF_HASH,
-                 USAGE_ONEHOT_PROOF_INIT, USAGE_PAYLOAD_CHECK,
-                 USAGE_PROOF_SHARE, USAGE_PROVE_RAND, USAGE_QUERY_RAND, dst,
-                 dst_alg)
+                 USAGE_JOINT_RAND_SEED, USAGE_ONEHOT_CHECK,
+                 USAGE_PAYLOAD_CHECK, USAGE_PROOF_SHARE, USAGE_PROVE_RAND,
+                 USAGE_QUERY_RAND, dst_alg)
 from vidpf import PROOF_SIZE, CorrectionWord, Vidpf
 
 W = TypeVar("W")
 R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
-
-
-# Walk proof for an empty tree.
-ONEHOT_PROOF_INIT = XofTurboShake128(
-    b'', dst(b'', USAGE_ONEHOT_PROOF_INIT), b'').next(PROOF_SIZE)
 
 
 MasticAggParam: TypeAlias = tuple[
@@ -263,7 +257,7 @@ class Mastic(
 
         # Payload and onehot checks.
         payload_check_binder = b''
-        onehot_proof = ONEHOT_PROOF_INIT
+        onehot_check_binder = b''
         assert root.left_child is not None
         assert root.right_child is not None
         q = [root.left_child, root.right_child]
@@ -277,33 +271,19 @@ class Mastic(
                     vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
                 q += [n.left_child, n.right_child]
 
-            # Update the onehot check, consisting of the hash of the
-            # node proofs in breadth-first order. Each update
-            # resembles a step of Merkle-Damgard compression. The main
-            # difference is that we XOR each block (i.e., corrected
-            # node proof) with the previous hash (or IV) rather than
-            # compress.
-            #
-            #                node proof
-            #                 |
-            #                 v
-            # current     +-----+     +------+     +-----+    updated
-            # proof --+-->| XOR |---->| Hash |---->| XOR |--> proof
-            #         |   +-----+     +------+     +-----+
-            #         |                               ^
-            #         |                               |
-            #         +-------------------------------+
-            #
-            # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
-            #          \pi = \tilde \pi \xor
-            #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
-            onehot_proof = xor(
-                onehot_proof, self.hash_proof(ctx, xor(onehot_proof, n.proof)))
+            # Update the onehot check.
+            onehot_check_binder += n.proof
 
         payload_check = self.xof(
             b'',
             dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
             payload_check_binder,
+        ).next(PROOF_SIZE)
+
+        onehot_check = self.xof(
+            b'',
+            dst_alg(ctx, USAGE_ONEHOT_CHECK, self.ID),
+            onehot_check_binder,
         ).next(PROOF_SIZE)
 
         # Counter check: the first element of beta should equal 1.
@@ -322,7 +302,7 @@ class Mastic(
         eval_proof = self.xof(
             b'',
             dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
-            onehot_proof + counter_check + payload_check,
+            onehot_check + counter_check + payload_check,
         ).next(PROOF_SIZE)
 
         # Concatenate the output shares into one aggregatable output,
@@ -578,12 +558,6 @@ class Mastic(
             encoded += prep_message
         return encoded
 
-    def hash_proof(self, ctx: bytes, proof: bytes) -> bytes:
-        return self.xof(
-            b'',
-            dst_alg(ctx, USAGE_ONEHOT_PROOF_HASH, self.ID),
-            proof
-        ).next(PROOF_SIZE)
 
 ##
 # INSTANTIATIONS

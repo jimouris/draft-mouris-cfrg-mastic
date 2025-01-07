@@ -17,22 +17,24 @@ USAGE_QUERY_RAND: int = 2
 USAGE_JOINT_RAND_SEED: int = 3
 USAGE_JOINT_RAND_PART: int = 4
 USAGE_JOINT_RAND: int = 5
+USAGE_ONEHOT_CHECK: int = 6
+USAGE_PAYLOAD_CHECK: int = 7
+USAGE_EVAL_PROOF: int = 8
 
-# Vidpf
-USAGE_ONEHOT_PROOF_INIT: int = 6
-USAGE_ONEHOT_PROOF_HASH: int = 7
-USAGE_NODE_PROOF: int = 8
-USAGE_EVAL_PROOF: int = 9
+# VIDPF
+USAGE_NODE_PROOF: int = 9
 USAGE_EXTEND: int = 10
 USAGE_CONVERT: int = 11
-USAGE_PAYLOAD_CHECK: int = 12
 
 
 def dst(ctx: bytes, usage: int) -> bytes:
+    assert usage in range(12)
     return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
 
 def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
+    assert usage in range(12)
+    assert algorithm_id in range(2 ** 32 - 1)
     return b'mastic'\
         + byte(VERSION) \
         + byte(usage) \
