@@ -300,7 +300,7 @@ class Mastic(
         # value, then they agree on the onehot proof, the counter, and
         # the payload.
         eval_proof = self.xof(
-            b'',
+            verify_key,
             dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
             onehot_check + counter_check + payload_check,
         ).next(PROOF_SIZE)
