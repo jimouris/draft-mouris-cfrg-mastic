@@ -4,7 +4,7 @@ import itertools
 from typing import Any, Optional, TypeAlias, TypeVar, cast
 
 from vdaf_poc.common import (concat, front, to_be_bytes, to_le_bytes, vec_add,
-                             vec_sub, xor, zeros)
+                             vec_sub, xor)
 from vdaf_poc.field import Field64, Field128, NttField
 from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
                                    MultihotCountVec, Sum, SumVec, Valid)
@@ -24,9 +24,8 @@ F = TypeVar("F", bound=NttField)
 
 
 # Walk proof for an empty tree.
-ONEHOT_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
-                                     dst(b'', USAGE_ONEHOT_PROOF_INIT),
-                                     b'').next(PROOF_SIZE)
+ONEHOT_PROOF_INIT = XofTurboShake128(
+    b'', dst(b'', USAGE_ONEHOT_PROOF_INIT), b'').next(PROOF_SIZE)
 
 
 MasticAggParam: TypeAlias = tuple[
@@ -302,7 +301,7 @@ class Mastic(
                 onehot_proof, self.hash_proof(ctx, xor(onehot_proof, n.proof)))
 
         payload_check = self.xof(
-            zeros(self.xof.SEED_SIZE),
+            b'',
             dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
             payload_check_binder,
         ).next(PROOF_SIZE)
@@ -321,7 +320,7 @@ class Mastic(
         # value, then they agree on the onehot proof, the counter, and
         # the payload.
         eval_proof = self.xof(
-            zeros(self.xof.SEED_SIZE),
+            b'',
             dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
             onehot_proof + counter_check + payload_check,
         ).next(PROOF_SIZE)
@@ -503,7 +502,7 @@ class Mastic(
 
     def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
         return self.xof.derive_seed(
-            zeros(self.xof.SEED_SIZE),
+            b'',
             dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
             concat(parts),
         )
