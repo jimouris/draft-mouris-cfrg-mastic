@@ -4,21 +4,29 @@ import itertools
 from typing import Any, Optional, TypeAlias, TypeVar, cast
 
 from vdaf_poc.common import (concat, front, to_be_bytes, to_le_bytes, vec_add,
-                             vec_sub, zeros)
+                             vec_sub, xor, zeros)
 from vdaf_poc.field import Field64, Field128, NttField
 from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
                                    MultihotCountVec, Sum, SumVec, Valid)
 from vdaf_poc.vdaf import Vdaf
 from vdaf_poc.xof import XofTurboShake128
 
-from dst import (USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
-                 USAGE_JOINT_RAND_SEED, USAGE_PROOF_SHARE, USAGE_PROVE_RAND,
-                 USAGE_QUERY_RAND, dst)
-from vidpf import CorrectionWord, Vidpf
+from dst import (USAGE_EVAL_PROOF, USAGE_JOINT_RAND, USAGE_JOINT_RAND_PART,
+                 USAGE_JOINT_RAND_SEED, USAGE_ONEHOT_PROOF_HASH,
+                 USAGE_ONEHOT_PROOF_INIT, USAGE_PAYLOAD_CHECK,
+                 USAGE_PROOF_SHARE, USAGE_PROVE_RAND, USAGE_QUERY_RAND, dst)
+from vidpf import PROOF_SIZE, CorrectionWord, Vidpf
 
 W = TypeVar("W")
 R = TypeVar("R")
 F = TypeVar("F", bound=NttField)
+
+
+# Walk proof for an empty tree.
+ONEHOT_PROOF_INIT = XofTurboShake128(zeros(XofTurboShake128.SEED_SIZE),
+                                     dst(b'', USAGE_ONEHOT_PROOF_INIT),
+                                     b'').next(PROOF_SIZE)
+
 
 MasticAggParam: TypeAlias = tuple[
     int,                           # level
@@ -215,7 +223,7 @@ class Mastic(
             self.expand_input_share(ctx, agg_id, input_share)
 
         # Evaluate the VIDPF.
-        (out_share, eval_proof) = self.vidpf.eval(
+        (out_share, root) = self.vidpf.eval_with_siblings(
             agg_id,
             correction_words,
             key,
@@ -252,6 +260,70 @@ class Mastic(
                 joint_rand,
                 2,
             )
+
+        # Payload and onehot checks.
+        payload_check_binder = b''
+        onehot_proof = ONEHOT_PROOF_INIT
+        assert root.left_child is not None
+        assert root.right_child is not None
+        q = [root.left_child, root.right_child]
+        while len(q) > 0:
+            (n, q) = (q[0], q[1:])
+
+            if n.left_child is not None and n.right_child is not None:
+                # Update payload check. The weight of each node should equal
+                # the sum of its children.
+                payload_check_binder += self.field.encode_vec(
+                    vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
+                q += [n.left_child, n.right_child]
+
+            # Update the onehot check, consisting of the hash of the
+            # node proofs in breadth-first order. Each update
+            # resembles a step of Merkle-Damgard compression. The main
+            # difference is that we XOR each block (i.e., corrected
+            # node proof) with the previous hash (or IV) rather than
+            # compress.
+            #
+            #                node proof
+            #                 |
+            #                 v
+            # current     +-----+     +------+     +-----+    updated
+            # proof --+-->| XOR |---->| Hash |---->| XOR |--> proof
+            #         |   +-----+     +------+     +-----+
+            #         |                               ^
+            #         |                               |
+            #         +-------------------------------+
+            #
+            # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
+            #          \pi = \tilde \pi \xor
+            #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
+            onehot_proof = xor(
+                onehot_proof, self.hash_proof(ctx, xor(onehot_proof, n.proof)))
+
+        payload_check = self.xof(
+            zeros(self.xof.SEED_SIZE),
+            dst(ctx, USAGE_PAYLOAD_CHECK),
+            payload_check_binder,
+        ).next(PROOF_SIZE)
+
+        # Counter check: the first element of beta should equal 1.
+        #
+        # Each aggregator holds an additive share of the counter, so
+        # we have aggregator 1 negate its share and add 1 so that they
+        # both compute the same value for `counter`.
+        w0 = root.left_child.w
+        w1 = root.right_child.w
+        counter_check = self.field.encode_vec(
+            [w0[0] + w1[0] + self.field(agg_id)])
+
+        # Evaluation proof: if both aggregators compute the same
+        # value, then they agree on the onehot proof, the counter, and
+        # the payload.
+        eval_proof = self.xof(
+            zeros(self.xof.SEED_SIZE),
+            dst(ctx, USAGE_EVAL_PROOF),
+            onehot_proof + counter_check + payload_check,
+        ).next(PROOF_SIZE)
 
         # Concatenate the output shares into one aggregatable output,
         # applying the FLP truncation algorithm on each FLP measurement
@@ -506,10 +578,15 @@ class Mastic(
             encoded += prep_message
         return encoded
 
+    def hash_proof(self, ctx: bytes, proof: bytes) -> bytes:
+        return self.xof(b'',
+                        dst(ctx, USAGE_ONEHOT_PROOF_HASH),
+                        proof).next(PROOF_SIZE)
 
 ##
 # INSTANTIATIONS
 #
+
 
 class MasticCount(Mastic):
     ID = 0xFFFF0001

@@ -1,6 +1,8 @@
 import unittest
+from random import randrange
 
-from vdaf_poc.common import from_be_bytes
+from vdaf_poc.common import from_be_bytes, gen_rand
+from vdaf_poc.field import Field64
 from vdaf_poc.test_utils import TestVdaf
 
 from mastic import MasticCount, MasticSum, MasticSumVec
@@ -64,6 +66,113 @@ class TestValidAggParams(unittest.TestCase):
                 (2, ((True, False, False,),), True),
             ],
         ))
+
+
+class TestMalformedReport(unittest.TestCase):
+    bits = 5
+
+    def run_test(self, modify_report, agg_param, expect_success=False):
+        """
+        Generate a report, modify it using `modify_report`, then run
+        preparation.
+        """
+        mastic = MasticCount(self.bits)
+        ctx = b'some application'
+        verify_key = gen_rand(mastic.VERIFY_KEY_SIZE)
+        nonce = gen_rand(mastic.NONCE_SIZE)
+        rand = gen_rand(mastic.RAND_SIZE)
+        measurement = ((True,) * self.bits, True)
+
+        # Generate an invalid report.
+        (public_share, input_shares) = modify_report(
+            mastic,
+            *mastic.shard(
+                ctx,
+                measurement,
+                nonce,
+                rand
+            ),
+        )
+
+        # Attempt preparation w/o the weight check.
+        (_prep_state_0, prep_share_0) = mastic.prep_init(
+            verify_key,
+            ctx,
+            0,
+            agg_param,
+            nonce,
+            public_share,
+            input_shares[0],
+        )
+        (_prep_state_1, prep_share_1) = mastic.prep_init(
+            verify_key,
+            ctx,
+            1,
+            agg_param,
+            nonce,
+            public_share,
+            input_shares[1],
+        )
+
+        def test():
+            return mastic.prep_shares_to_prep(ctx, agg_param,
+                                              [prep_share_0, prep_share_1])
+        if expect_success:
+            test()
+        else:
+            with self.assertRaises(Exception):
+                test()
+
+    def test_malformed_correction_word_payload_counter(self):
+        malformed_level = randrange(self.bits)
+
+        def modify_report(mastic, public_share, input_shares):
+            """
+            Tweak the counter of the payload of some correction word.
+            """
+            (seed_cw, ctrl_cw, w_cw, proof_cw) = public_share[malformed_level]
+            malformed = w_cw.copy()
+            malformed[0] += Field64(1)
+            public_share[malformed_level] = (
+                seed_cw, ctrl_cw, malformed, proof_cw)
+            return (public_share, input_shares)
+
+        # We expect the counter check to fail for the tweaked level and all
+        # subsequent levels.
+        for level in range(malformed_level, self.bits):
+            agg_param = (level, ((True,) * (level+1),), False)
+            self.run_test(modify_report, agg_param)
+
+    def test_malformed_correction_word_payload_weight(self):
+        malformed_level = randrange(self.bits)
+
+        def modify_report(mastic, public_share, input_shares):
+            """
+            Tweak the weight of the payload of some correction word.
+            """
+            (seed_cw, ctrl_cw, w_cw, proof_cw) = public_share[malformed_level]
+            malformed = w_cw.copy()
+            malformed[1] += Field64(1)
+            public_share[malformed_level] = (
+                seed_cw, ctrl_cw, malformed, proof_cw)
+            return (public_share, input_shares)
+
+        # For all but the first level, tweaking a correction word weight should
+        # cause the payload check to fail for the tweaked level and all
+        # subsequent levels.
+        #
+        # At the first level, the evaluation proof doesn't include a payload
+        # check. Thus if the first correction word payload is tweaked, then the
+        # evaluation proof check won't fail until the next level.
+        if malformed_level > 0:
+            start_level = malformed_level
+            agg_param = (0, ((True,),), False)
+            self.run_test(modify_report, agg_param, expect_success=True)
+        else:
+            start_level = 1
+        for level in range(start_level, self.bits):
+            agg_param = (level, ((True,) * (level+1),), False)
+            self.run_test(modify_report, agg_param)
 
 
 class TestMastic(TestVdaf):

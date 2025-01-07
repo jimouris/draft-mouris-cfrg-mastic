@@ -88,7 +88,7 @@ class Test(unittest.TestCase):
 
             proofs = []
             for agg_id in range(2):
-                (out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.test_eval(
                     agg_id,
                     correction_words,
                     keys[agg_id],
@@ -131,7 +131,7 @@ class Test(unittest.TestCase):
 
             proofs = []
             for agg_id in range(2):
-                (out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.test_eval(
                     agg_id,
                     correction_words,
                     keys[agg_id],
@@ -170,7 +170,7 @@ class Test(unittest.TestCase):
             out_shares = []
             proofs = []
             for agg_id in range(2):
-                (out_share, proof) = vidpf.eval(
+                (out_share, proof) = vidpf.test_eval(
                     agg_id,
                     pub,
                     keys[agg_id],
@@ -208,7 +208,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.test_eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -241,7 +241,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.test_eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -275,40 +275,7 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             proofs = []
             for agg_id in range(2):
-                (_out_share, proof) = vidpf.eval(
-                    agg_id,
-                    public_share,
-                    keys[agg_id],
-                    level,
-                    prefixes,
-                    ctx,
-                    nonce,
-                )
-                proofs.append(proof)
-            self.assertFalse(vidpf.verify(proofs[0], proofs[1]))
-
-    def test_malformed_correction_word_payload(self):
-        vidpf = Vidpf(Field128, 5, 1)
-        ctx = b'some application'
-        nonce = gen_rand(vidpf.NONCE_SIZE)
-        rand = gen_rand(vidpf.RAND_SIZE)
-        (public_share, keys) = vidpf.gen(vidpf.test_input_zero(),
-                                         [Field128(1)], ctx, nonce, rand)
-
-        # Tweak the payload of some correction word.
-        malformed_level = randrange(vidpf.BITS)
-        (seed_cw, ctrl_cw, w_cw, proof_cw) = public_share[malformed_level]
-        malformed = w_cw.copy()
-        malformed[randrange(vidpf.VALUE_LEN)] += Field128(1)
-        public_share[malformed_level] = (seed_cw, ctrl_cw, malformed, proof_cw)
-
-        # The tweak doesn't impact the computation until we reach the level
-        # with the malformed correction word.
-        for level in range(malformed_level, vidpf.BITS):
-            prefixes = vidpf.prefixes_for_level(level)
-            proofs = []
-            for agg_id in range(2):
-                (_out_share, proof) = vidpf.eval(
+                (_out_share, proof) = vidpf.test_eval(
                     agg_id,
                     public_share,
                     keys[agg_id],
@@ -341,10 +308,10 @@ class Test(unittest.TestCase):
             prefixes = vidpf.prefixes_for_level(level)
             for prefix in prefixes:
                 valid = vidpf.verify(
-                    vidpf.eval(0, pub, keys[0], level,
-                               (prefix,), ctx, nonce)[1],
-                    vidpf.eval(1, pub, keys[1], level,
-                               (prefix,), ctx, nonce)[1],
+                    vidpf.test_eval(0, pub, keys[0], level,
+                                    (prefix,), ctx, nonce)[1],
+                    vidpf.test_eval(1, pub, keys[1], level,
+                                    (prefix,), ctx, nonce)[1],
                 )
 
                 # If the prefix is on path, then we expect the proofs to be
