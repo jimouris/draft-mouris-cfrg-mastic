@@ -158,19 +158,19 @@ class TestMalformedReport(unittest.TestCase):
             return (public_share, input_shares)
 
         # For all but the first level, tweaking a correction word weight should
-        # cause the payload check to fail for the tweaked level and all
-        # subsequent levels.
-        #
-        # At the first level, the evaluation proof doesn't include a payload
-        # check. Thus if the first correction word payload is tweaked, then the
-        # evaluation proof check won't fail until the next level.
-        if malformed_level > 0:
-            start_level = malformed_level
-            agg_param = (0, ((True,),), False)
-            self.run_test(modify_report, agg_param, expect_success=True)
-        else:
-            start_level = 1
-        for level in range(start_level, self.bits):
+        # cause the payload check to fail.
+        for level in range(malformed_level, self.bits):
+            agg_param = (level, ((True,) * (level+1),), False)
+            self.run_test(modify_report, agg_param)
+
+    def test_malformed_weight_share(self):
+        def modify_report(mastic, public_share, input_shares):
+            """Tweak the leader's weight share."""
+            input_shares[0].weight_share[0] += Field64(1)
+            return (public_share, input_shares)
+
+        # The payload check should fail at every level.
+        for level in range(self.bits):
             agg_param = (level, ((True,) * (level+1),), False)
             self.run_test(modify_report, agg_param)
 
@@ -247,6 +247,16 @@ class TestMastic(TestVdaf):
                     b'01234567890000000000000000000000'), 256), 1),
             ],
             [0, 2],
+        )
+
+        mastic = MasticCount(2)
+        self.run_vdaf_test(
+            MasticCount(2),
+            (1, ((False, False),), True),
+            [
+                ((True, True), True),
+            ],
+            [0],
         )
 
     def test_sum(self):

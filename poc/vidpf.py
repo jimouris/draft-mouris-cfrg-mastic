@@ -260,24 +260,6 @@ class Vidpf(Generic[F]):
 
         return (out_share, root)
 
-    def get_beta_share(
-            self,
-            agg_id: int,
-            correction_words: list[CorrectionWord],
-            key: bytes,
-            ctx: bytes,
-            nonce: bytes,
-    ) -> list[F]:
-        root = PrefixTreeEntry.root(key, bool(agg_id))
-        left = self.eval_next(root, correction_words[0], ctx, nonce,
-                              PrefixTreeIndex((False,)))
-        right = self.eval_next(root, correction_words[0], ctx, nonce,
-                               PrefixTreeIndex((True,)))
-        beta_share = vec_add(left.w, right.w)
-        if agg_id == 1:
-            beta_share = vec_neg(beta_share)
-        return beta_share
-
     def eval_next(self,
                   node: PrefixTreeEntry,
                   correction_word: CorrectionWord,
