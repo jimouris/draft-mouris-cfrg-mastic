@@ -5,6 +5,11 @@ to make it easier to check that they're all distinct.
 
 from vdaf_poc.common import byte, to_le_bytes
 
+# The version of this document. This should be `0` until the document
+# gets adopted, at which point this should be synchronized with the
+# latest wire-breaking working group draft.
+VERSION: int = 0
+
 # Mastic
 USAGE_PROVE_RAND: int = 0
 USAGE_PROOF_SHARE: int = 1
@@ -24,8 +29,12 @@ USAGE_PAYLOAD_CHECK: int = 12
 
 
 def dst(ctx: bytes, usage: int) -> bytes:
-    # The version of this document. This should be `0` until the document
-    # gets adopted, at which point this should be synchronized with the
-    # latest wire-breaking working group draft.
-    VERSION: int = 0
-    return b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) + ctx
+    return b'mastic' + byte(VERSION) + byte(usage) + ctx
+
+
+def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
+    return b'mastic'\
+        + byte(VERSION) \
+        + byte(usage) \
+        + to_le_bytes(algorithm_id, 4) \
+        + ctx
