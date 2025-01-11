@@ -352,13 +352,17 @@ Table of Contents
    +-------------+----------------------+-----------------------------+
    | RAND_SIZE:  | the number of random | 2 * KEY_SIZE                |
    | int         | bytes consumed by    |                             |
-   |             | gen_rand()           |                             |
+   |             | gen()                |                             |
    +-------------+----------------------+-----------------------------+
    | BITS: int   | bit length of the    | set by constructor          |
    |             | input string alpha   |                             |
    +-------------+----------------------+-----------------------------+
    | VALUE_LEN:  | length of beta       | set by constructor          |
    | int         |                      |                             |
+   +-------------+----------------------+-----------------------------+
+   | field:      | class object for the | set by constructor          |
+   | type[F]     | field (Section 6.1   |                             |
+   |             | of [VDAF])           |                             |
    +-------------+----------------------+-----------------------------+
 
                         Table 2: VIDPF parameters.

@@ -1588,7 +1588,7 @@ construction. Some details are likely to change as a result of such analysis.<a 
             <td class="text-left" rowspan="1" colspan="1">
               <code>RAND_SIZE: int</code>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">the number of random bytes consumed by <code>gen_rand()</code>
+            <td class="text-left" rowspan="1" colspan="1">the number of random bytes consumed by <code>gen()</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">
               <code>2 * KEY_SIZE</code>
@@ -1608,6 +1608,13 @@ construction. Some details are likely to change as a result of such analysis.<a 
 </td>
             <td class="text-left" rowspan="1" colspan="1">length of <code>beta</code>
 </td>
+            <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>field: type[F]</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">class object for the field (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
             <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
           </tr>
         </tbody>
