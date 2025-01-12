@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-09T00:47:54.028479+00:00",
+  "timestamp": "2025-01-12T00:53:41.466464+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -7322,13 +7322,13 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2024-10-30T22:04:09Z",
+      "updatedAt": "2025-01-11T05:42:53Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "482903a99a52cfb61ec06d979ade2fc0512e8c3f",
+      "baseRefOid": "786ea5617364862d38b07f7cddfae34749f6af8a",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "nekt/draft-edits-2",
-      "headRefOid": "954b626ff3b844c5161163fc7c07d20509c8255c",
+      "headRefOid": "d068e0794cbb0a4da826347b8f587dce6aef43ca",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
@@ -8432,6 +8432,26 @@
               "body": "Suggestion: I'd list your full names here!",
               "createdAt": "2024-10-30T22:04:09Z",
               "updatedAt": "2024-10-30T22:04:09Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6XqtEL",
+          "commit": {
+            "abbreviatedOid": "954b626"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-11T05:42:53Z",
+          "updatedAt": "2025-01-11T05:42:53Z",
+          "comments": [
+            {
+              "originalPosition": 228,
+              "body": "Done",
+              "createdAt": "2025-01-11T05:42:53Z",
+              "updatedAt": "2025-01-11T05:42:53Z"
             }
           ]
         }
