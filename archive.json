@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-12T00:53:41.466464+00:00",
+  "timestamp": "2025-01-14T00:45:22.617186+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -1190,7 +1190,7 @@
       "id": "I_kwDOJmRsfc6kx52I",
       "title": "Add algorithm ID to domain separation tag",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/99",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -1199,8 +1199,8 @@
       "labels": [],
       "body": "",
       "createdAt": "2024-12-31T17:00:51Z",
-      "updatedAt": "2025-01-06T23:23:00Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-13T15:05:32Z",
+      "closedAt": "2025-01-13T15:05:32Z",
       "comments": []
     },
     {
@@ -1208,7 +1208,7 @@
       "id": "I_kwDOJmRsfc6kx7CT",
       "title": "VIDPF should be independent of Mastic",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/100",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -1217,8 +1217,8 @@
       "labels": [],
       "body": "Specify VIDPF so that it can be used easily in an application other than Mastic. In particular:\r\n\r\n1. The onehot, path, and counter checks should be moved into Mastic. VIDPF should just compute the prefix tree, including the weight and proof for each node.\r\n2. The domain separation tag should not include the word \"mastic\". ",
       "createdAt": "2024-12-31T17:08:08Z",
-      "updatedAt": "2025-01-07T17:26:48Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-13T15:01:21Z",
+      "closedAt": "2025-01-13T15:01:21Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -1234,7 +1234,7 @@
       "id": "I_kwDOJmRsfc6lAN8c",
       "title": "Replace zero seeds with empty seeds",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/102",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -1243,8 +1243,8 @@
       "labels": [],
       "body": "`XofTurboShake128` allows variable length seeds. So instead of using `zeros(32)` as the seed, as we've done so far in Prio3 and other places, we could use an empty seed, i.e., `b''`. This saves us from hashing a few bytes in the XOF input, which may save a Keccak evaluation in certain instances.\r\n\r\nWe currently use a mixture of zero and empty seeds. We should be consistent.",
       "createdAt": "2025-01-03T23:44:56Z",
-      "updatedAt": "2025-01-07T15:09:15Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-13T15:15:35Z",
+      "closedAt": "2025-01-13T15:15:34Z",
       "comments": []
     }
   ],
@@ -9241,24 +9241,26 @@
       "id": "PR_kwDOJmRsfc6G4G7C",
       "title": "poc: Move eval proof computation to Mastic",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/104",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #100.\r\n\r\nCurrently VIDPF computes the evaluation proof, which is largely Mastic-specific. For instance, we would like to bind Mastic preparation to the VDAF algorithm ID, as this allows for domain separation across different weight types. But other applications of VIDPF may have different requirements for domain separation.\r\n\r\nThis commit moves the eval proof computation to Mastic. VIDPF now just computes the prefix tree and returns the root and leaves it up to applications to do something with the result.\r\n\r\nTo maintain the current test coverage, we also make the following changes:\r\n\r\n1. Add a method on VIDPF, `test_eval()` that computes the hash of the node proofs and returns that instead of the prefix tree.\r\n\r\n2. Move the `test_malformed_correction_word_payload()` to the Mastic tests. The node proof is not actually sensitive to changes to the payload correction word, but payload check is.",
       "createdAt": "2025-01-07T00:35:14Z",
-      "updatedAt": "2025-01-07T19:16:25Z",
+      "updatedAt": "2025-01-13T15:01:20Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "786ea5617364862d38b07f7cddfae34749f6af8a",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/100-1",
       "headRefOid": "1cee4de037679635b14e73dea785a7e795448c1a",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2025-01-13T15:01:20Z",
+      "mergedAt": "2025-01-13T15:01:20Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "e89602a6ac0bef5041a601321eafafe5d51a413b"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -9356,24 +9358,26 @@
       "id": "PR_kwDOJmRsfc6G8y2x",
       "title": "poc: Add VDAF algorithm ID to domain separation",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/105",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #104.\r\nCloses #99.\r\n\r\nIn order to ensure that successful preparation implies agreement on the Mastic variant, add the VDAF algorithm ID to each XOF operation, including computation of the evaluation proof.",
       "createdAt": "2025-01-07T14:59:33Z",
-      "updatedAt": "2025-01-07T18:07:19Z",
+      "updatedAt": "2025-01-13T15:05:31Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/100-1",
-      "baseRefOid": "1cee4de037679635b14e73dea785a7e795448c1a",
+      "baseRefName": "main",
+      "baseRefOid": "e89602a6ac0bef5041a601321eafafe5d51a413b",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/99",
-      "headRefOid": "aca0f633a09e759749ee6f86db4e0a93f863125b",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "49afdbf1ea02eff8e3f970bbc105cecc3e739320",
+      "closedAt": "2025-01-13T15:05:31Z",
+      "mergedAt": "2025-01-13T15:05:31Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "ec425a76dbddb186adb4edf14ee497e20dd669c2"
+      },
       "comments": [],
       "reviews": [
         {
@@ -9416,24 +9420,26 @@
       "id": "PR_kwDOJmRsfc6G84dC",
       "title": "poc: Use empty seeds instead of zero seeds",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/106",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #105.\r\nCloses #102.\r\n\r\n`XofTurboShake128` is designed to tolerate variable length seeds. Use an empty seed, i.e., `'b''`, wherever a zero seed, `zeros(32)`, is currently used. This may save a Keccak evaluation in rare instances, especially wherever the binder string is long.",
       "createdAt": "2025-01-07T15:10:51Z",
-      "updatedAt": "2025-01-07T18:08:30Z",
+      "updatedAt": "2025-01-13T15:15:34Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/99",
-      "baseRefOid": "aca0f633a09e759749ee6f86db4e0a93f863125b",
+      "baseRefName": "main",
+      "baseRefOid": "ec425a76dbddb186adb4edf14ee497e20dd669c2",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/102",
-      "headRefOid": "09ca43588fb8de2e2bb8c2e5773cb24ee0ba0e81",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "28ed1bc605e0f3e192588c82b61588ddcbec9d76",
+      "closedAt": "2025-01-13T15:15:34Z",
+      "mergedAt": "2025-01-13T15:15:33Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "677fc2b6bad771ce633dd258cd13674e8872eb3e"
+      },
       "comments": [],
       "reviews": [
         {
@@ -9463,18 +9469,26 @@
       "labels": [],
       "body": "Stacked on #106.\r\nCloses #79.\r\n\r\nFor each node in the prefix tree that we traverse, we compute a \"node proof\" according to [CP22]. We then combine the node proofs into the \"onehot proof\" according to the following scheme.\r\n\r\nEach node proof updates the onehot proof. An update resembles a step of Merkle-Damgard compression. The main difference is that we XOR each block (i.e., corrected node proof) with the previous hash (or IV) rather than compress:\r\n\r\n```\r\n            node proof\r\n               |\r\n               v\r\ncurrent     +-----+     +------+     +-----+    updated\r\nproof --+-->| XOR |---->| Hash |---->| XOR |--> proof\r\n        |   +-----+     +------+     +-----+\r\n        |                               ^\r\n        |                               |\r\n        +-------------------------------+\r\n```\r\n\r\nThis construction is also from [CP22]. According to the authors, any method of hashing the node proofs that is \"secure against permutations attacks\" should suffice. All we really want is to confirm that the node proofs computed by both servers are the same.\r\n\r\nThis commit replaces this bespoke construction with a single XOF invocation, using the node proofs in breadth first order as the binder.\r\n\r\nThis change results in fewer XOF usage domain separators, so renumber and reorder these separators as well.",
       "createdAt": "2025-01-07T15:43:01Z",
-      "updatedAt": "2025-01-07T20:49:42Z",
+      "updatedAt": "2025-01-13T15:26:19Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/102",
-      "baseRefOid": "09ca43588fb8de2e2bb8c2e5773cb24ee0ba0e81",
+      "baseRefName": "main",
+      "baseRefOid": "677fc2b6bad771ce633dd258cd13674e8872eb3e",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/79",
-      "headRefOid": "dd45c9493884dd02dd2ec8a1330d68fe87c2cf45",
+      "headRefOid": "7c9370d492626f2f60fcba99cea95fedd96d0e03",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Rebased on main.",
+          "createdAt": "2025-01-13T15:26:18Z",
+          "updatedAt": "2025-01-13T15:26:18Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc6XHgYR",
@@ -9616,18 +9630,26 @@
       "labels": [],
       "body": "Stacked on #107.\r\nCloses #73.\r\n\r\nSeed the XOF invocation with the VDAF verification key, thereby rendering the verification key pseudorandom from the point of view of the robustness attacker (i.e., malicious Clients). This doesn't appear to be necessary based on our security analysis so far, but it seems like a reasonable defense-in-depth measure.",
       "createdAt": "2025-01-07T17:31:14Z",
-      "updatedAt": "2025-01-07T20:45:06Z",
+      "updatedAt": "2025-01-13T15:26:44Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "cjpatton/79",
-      "baseRefOid": "dd45c9493884dd02dd2ec8a1330d68fe87c2cf45",
+      "baseRefOid": "7c9370d492626f2f60fcba99cea95fedd96d0e03",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/73",
-      "headRefOid": "3536dc4f41b795c71a027daf8b479c25d8d387d9",
+      "headRefOid": "7906019e4293e88f045a1908dd24106d502f6894",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Regenerated test vectors and rebased.",
+          "createdAt": "2025-01-13T15:26:42Z",
+          "updatedAt": "2025-01-13T15:26:42Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc6XHhb4",
@@ -9656,18 +9678,26 @@
       "labels": [],
       "body": "Stacked on #108.\r\nCloses #78.\r\n\r\nDepending on the FLP, truncation may significantly reduce the length of the measurement. For example, for the `Sum` type, the length of the encoded measurement depends on the validity range, but the truncated measurement is a single field element. We can therefore significantly reduce the size of the correction words by programming the VIDPF with the truncated weight instead of the full encoded weight.\r\n\r\nTo make this work, we secret share the encoded weight precisely as in Prio3. We then extend the payload check by setting the root payload to the counter plus the encoded truncated weight carried by the encoded input share.\r\n\r\nThis change only saves communication cost when `mastic.flp.MEAS_LEN > mastic.flp.OUTPUT_LEN` and `mastic.vidpf.BITS` is sufficiently large. Of the currently defined variants, only `MasticSum` will see savings. For `MasticCount`, `MasticSumVec`, and `MasticHistogram` the Leader's share increases by `mastic.flp.MEAS_LEN` field elements.\r\n\r\nAnother benefit of this change is that the payload check detects malformed correction word payloads at the first level of the tree.\r\n\r\nRelated clean up:\r\n\r\n1. Add another usage domain separator for the helper's weight share and renumber.\r\n\r\n2. Simplify the `MasticInputShare` type by defining classes for the leader and helper shares.\r\n\r\n3. vidpf: Remove `get_beta_share()` as it's no longer used.",
       "createdAt": "2025-01-07T19:15:52Z",
-      "updatedAt": "2025-01-07T20:54:40Z",
+      "updatedAt": "2025-01-13T15:26:59Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "cjpatton/73",
-      "baseRefOid": "3536dc4f41b795c71a027daf8b479c25d8d387d9",
+      "baseRefOid": "7906019e4293e88f045a1908dd24106d502f6894",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/78",
-      "headRefOid": "7b2094cbfdc9f541399ad5b8770ac121289519b2",
+      "headRefOid": "9a3a15f4869ea5e287273048ba654289df037057",
       "closedAt": null,
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Fixed and regenerated test vectors, rebased.",
+          "createdAt": "2025-01-13T15:26:58Z",
+          "updatedAt": "2025-01-13T15:26:58Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc6XHlfj",
