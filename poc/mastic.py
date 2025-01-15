@@ -83,7 +83,8 @@ class Mastic(
                  valid: Valid[W, R, F]):
         self.field = valid.field
         self.flp = FlpBBCGGI19(valid)
-        self.vidpf = Vidpf(valid.field, bits, 1 + valid.MEAS_LEN)
+        self.vidpf = Vidpf(valid.field, bits, 1 +
+                           valid.MEAS_LEN, self.transform)
         self.RAND_SIZE = self.vidpf.RAND_SIZE + 2 * self.xof.SEED_SIZE
         if self.flp.JOINT_RAND_LEN > 0:  # FLP leader seed
             self.RAND_SIZE += self.xof.SEED_SIZE
@@ -217,7 +218,7 @@ class Mastic(
             self.expand_input_share(ctx, agg_id, input_share)
 
         # Evaluate the VIDPF.
-        (out_share, root) = self.vidpf.eval_with_siblings(
+        (out_shares, root) = self.vidpf.eval_with_siblings(
             agg_id,
             correction_words,
             key,
@@ -260,6 +261,8 @@ class Mastic(
         onehot_check_binder = b''
         assert root.left_child is not None
         assert root.right_child is not None
+        root.left_child.w = self.truncate(root.left_child.w)
+        root.right_child.w = self.truncate(root.right_child.w)
         q = [root.left_child, root.right_child]
         while len(q) > 0:
             (n, q) = (q[0], q[1:])
@@ -305,15 +308,14 @@ class Mastic(
             onehot_check + counter_check + payload_check,
         ).next(PROOF_SIZE)
 
-        # Concatenate the output shares into one aggregatable output,
-        # applying the FLP truncation algorithm on each FLP measurement
-        # share.
-        truncated_out_share = []
-        for val_share in out_share:
-            truncated_out_share += [val_share[0]] + \
-                self.flp.truncate(val_share[1:])
+        flattened_out_share = []
+        for out_share in out_shares:
+            # The VIDPF transform truncates at every level but the first.
+            if level == 0:
+                out_share = self.truncate(out_share)
+            flattened_out_share += out_share
 
-        prep_state = (truncated_out_share, joint_rand_seed)
+        prep_state = (flattened_out_share, joint_rand_seed)
         prep_share = (eval_proof, verifier_share, joint_rand_part)
         return (prep_state, prep_share)
 
@@ -366,7 +368,7 @@ class Mastic(
                   prep_state: MasticPrepState,
                   prep_msg: MasticPrepMessage,
                   ) -> list[F]:
-        (truncated_out_share, joint_rand_seed) = prep_state
+        (flattened_out_share, joint_rand_seed) = prep_state
         if joint_rand_seed is not None:
             if prep_msg is None:
                 raise ValueError('expected joint rand confirmation')
@@ -374,7 +376,7 @@ class Mastic(
             if prep_msg != joint_rand_seed:
                 raise Exception('joint rand confirmation failed')
 
-        return truncated_out_share
+        return flattened_out_share
 
     def agg_init(self, agg_param: MasticAggParam) -> list[F]:
         (_level, prefixes, _do_weight_check) = agg_param
@@ -508,6 +510,15 @@ class Mastic(
             nonce + to_le_bytes(level, 2),
             self.flp.QUERY_RAND_LEN,
         )
+
+    def truncate(self, w: list[F]) -> list[F]:
+        return [w[0]] + self.flp.valid.truncate(w[1:])
+
+    def transform(self, w: list[F], level: int) -> list[F]:
+        if level > 0:
+            return self.truncate(w)
+        else:
+            return w
 
     def test_vec_set_type_param(self, test_vec: dict[str, Any]) -> list[str]:
         test_vec['vidpf_bits'] = int(self.vidpf.BITS)

@@ -2,7 +2,7 @@
 
 import itertools
 from random import randrange
-from typing import Generic, Self, TypeAlias, TypeVar
+from typing import Callable, Generic, Self, TypeAlias, TypeVar
 
 from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor
 from vdaf_poc.field import NttField
@@ -81,6 +81,10 @@ class PrefixTreeEntry(Generic[F]):
         return cls(seed, ctrl, [], bytes())
 
 
+def identity_transform(w: list[F], _level: int) -> list[F]:
+    return w
+
+
 class Vidpf(Generic[F]):
     """
     The Verifiable Incremental Distributed Point Function (VIDPF) of [MST24].
@@ -95,10 +99,15 @@ class Vidpf(Generic[F]):
     # Number of random bytes consumed by the VIDPF key generation algorithm.
     RAND_SIZE = 2 * XofFixedKeyAes128.SEED_SIZE
 
-    def __init__(self, field: type[F], bits: int, value_len: int):
+    def __init__(self,
+                 field: type[F],
+                 bits: int,
+                 value_len: int,
+                 transform: Callable[[list[F], int], list[F]] = identity_transform):
         self.field = field
         self.BITS = bits
         self.VALUE_LEN = value_len
+        self.transform = transform
 
     def gen(self,
             alpha: tuple[bool, ...],
@@ -183,15 +192,15 @@ class Vidpf(Generic[F]):
                 t1[keep] ^= ctrl_cw[keep]
 
             # Convert.
-            (seed[0], w0) = self.convert(s0[keep], ctx, nonce)
-            (seed[1], w1) = self.convert(s1[keep], ctx, nonce)
+            (seed[0], w0) = self.convert(s0[keep], ctx, nonce, i)
+            (seed[1], w1) = self.convert(s1[keep], ctx, nonce, i)
             ctrl[0] = t0[keep]  # [MST24]: t0'
             ctrl[1] = t1[keep]  # [MST24]: t1'
 
             # Compute the correction word for this level's payload.
             #
             # Implementation note: `ctrl` is `alpha`-dependent.
-            w_cw = vec_add(vec_sub(beta, w0), w1)
+            w_cw = vec_add(vec_sub(self.transform(beta, i), w0), w1)
             if ctrl[1]:
                 w_cw = vec_neg(w_cw)
 
@@ -310,7 +319,7 @@ class Vidpf(Generic[F]):
         # Implementation note: the conditional addition should be
         # replaced with a constant-time select in practice in order to
         # reduce leakage via timing side channels.
-        (next_seed, w) = self.convert(s[keep], ctx, nonce)
+        (next_seed, w) = self.convert(s[keep], ctx, nonce, idx.level())
         next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
         if next_ctrl:
             w = vec_add(w, w_cw)
@@ -353,6 +362,7 @@ class Vidpf(Generic[F]):
                 seed: bytes,
                 ctx: bytes,
                 nonce: bytes,
+                level: int,
                 ) -> tuple[bytes, list[F]]:
         '''
         Convert a selected seed into a payload and the seed for the next
@@ -361,7 +371,7 @@ class Vidpf(Generic[F]):
         xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
         next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
         payload = xof.next_vec(self.field, self.VALUE_LEN)
-        return (next_seed, payload)
+        return (next_seed, self.transform(payload, level))
 
     def node_proof(self,
                    seed: bytes,
