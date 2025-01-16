@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-14T00:45:22.617186+00:00",
+  "timestamp": "2025-01-16T00:46:17.865603+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -879,7 +879,7 @@
       "id": "I_kwDOJmRsfc6W6NOm",
       "title": "Idea: Choices for `ONEHOT_PROOF_INIT`",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/73",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -888,8 +888,8 @@
       "labels": [],
       "body": "`ONEHOT_PROOF_INIT` is used as the initial  proof, which is updated with node proof computed by each call to `eval_next()`. It appears we're free to set this to any public value:\r\n* The original [de Castro and Polychroniadou paper](https://eprint.iacr.org/2021/580) sets this to the \"correction seed\" ($\\mathsf{cs}$ in Algorithm 3).\r\n* The PLASMA paper sets this to to \"0\" (the all zero string).\r\n* We currently set it to a salt.\r\n\r\nI had the thought that we could also derive this from the VDAF verification key so that it is pseudorandom from the point of view of the adversary (i.e., the malicious client). I wonder if this could provide some benefit in terms of security.\r\n\r\n",
       "createdAt": "2024-09-17T18:40:53Z",
-      "updatedAt": "2025-01-07T15:13:18Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-15T18:06:51Z",
+      "closedAt": "2025-01-15T18:06:51Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -915,7 +915,7 @@
       "labels": [],
       "body": "The FLP is run on the encoded measurement, which in general is longer than the truncated measurement. In some cases it might be much longer, e.g., for the `Sum` circuit, the encoded measurement is several field elements, while the truncated measurement is just one.\r\n\r\nThe encoded measurement is only needed when we verify the FLP. Suppose we modified Mastic as follows: \r\n\r\n1. Include shares of the encoded measurement, i.e., `flp.encode(weight)`,  in the input shares.\r\n2. Instead of setting `beta` to be the encoded measurement share, set `beta` to be the truncated measurement, i.e., `beta = flp.truncate(flp.encode(weight))`.\r\n3. Extend the path consistency check to make sure the left and right children of the root sum up to the encoded measurement.",
       "createdAt": "2024-09-26T23:26:36Z",
-      "updatedAt": "2024-11-14T01:04:16Z",
+      "updatedAt": "2025-01-15T18:09:32Z",
       "closedAt": null,
       "comments": [
         {
@@ -973,6 +973,13 @@
           "body": "(I'd like to keep this open until I've had time to think it through.)",
           "createdAt": "2024-10-31T22:30:39Z",
           "updatedAt": "2024-10-31T22:30:39Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "The idea of #109 is to apply VIDPF to the truncated weight and FLP to the untruncated weight. We would \"link\" them by incorporating the untruncated weight into the payload check.\r\n\r\nThis would allow for the following \"attack\": a client can modify a report by \"resharing\" the FLP weight shares, and the aggregators would accept the modified report. This isn't an attack against our current definition of robustness (ia.cr/2023/130), as the aggregators would still compute the same output shares. However, we're worried this could constitute an attack in the higher level protocol.\r\n\r\nOur current approach isn't vulnerable to this attack because the sharing of the weight is determined by the VIDPF.",
+          "createdAt": "2025-01-15T18:09:30Z",
+          "updatedAt": "2025-01-15T18:09:30Z"
         }
       ]
     },
@@ -981,7 +988,7 @@
       "id": "I_kwDOJmRsfc6YGNxw",
       "title": "Idea: Consider using Merkle-Damgard rather than the \"linear\" variant",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/79",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -990,8 +997,8 @@
       "labels": [],
       "body": "Each call to `vidpf.eval_next()` updates the onehot proof as follows (excerpted from the spec):\r\n\r\n```\r\n# Compute and correct the node proof and update the onehot proof.\r\n# Each update resembles a step of Merkle-Damgard compression. The\r\n# main difference is that we XOR each block (i.e., corrected node\r\n# proof) with the previous hash (or IV) rather than compress.\r\n#\r\n#             corrected node proof\r\n#                 |\r\n#                 |\r\n#                 v\r\n# current      +-----+     +------+     +-----+      updated\r\n# proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof\r\n#          |   +-----+     +------+     +-----+\r\n#          |                               ^\r\n#          |                               |\r\n#          +-------------------------------+\r\n#\r\n# [MST24]: \\tilde\\pi = H_1(x^{\\leq i} || s^\\i)\r\n#          \\pi = \\tilde \\pi \\xor\r\n#             H_2(\\pi \\xor (\\tilde\\pi \\xor t^\\i \\cdot \\cs^\\i)\r\n```\r\n\r\nThis is Merkle-Damgard-ish: the difference is that we XOR the next block (i.e., the node proof) with the current state (i.e., the current proof) then hash to get the next state, rather than compress the next block and the current state to get the next state. This comes from [CP22], but why do they do this? If we can get away with plain Merkle-Damgard, then it might be a good idea to use it here.",
       "createdAt": "2024-09-27T00:32:38Z",
-      "updatedAt": "2025-01-07T15:11:37Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-15T17:58:56Z",
+      "closedAt": "2025-01-15T17:58:55Z",
       "comments": [
         {
           "author": "cjpatton",
@@ -7322,7 +7329,7 @@
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2025-01-11T05:42:53Z",
+      "updatedAt": "2025-01-15T23:15:18Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "786ea5617364862d38b07f7cddfae34749f6af8a",
@@ -8454,6 +8461,128 @@
               "updatedAt": "2025-01-11T05:42:53Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YPdfA",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "I'd recommend not updating the algorithms in this PR; there is at least one more change to consider before the next draft (#110).",
+          "createdAt": "2025-01-15T22:39:01Z",
+          "updatedAt": "2025-01-15T23:15:18Z",
+          "comments": [
+            {
+              "originalPosition": 165,
+              "body": "If you want to make to the algorithms, please also update the reference implementation in the `poc/` folder.\r\n\r\nThe usual workflow is:\r\n1. Fix bug in a function in the reference implementation\r\n2. Copy-paste the entire function from the reference implementation to the document.",
+              "createdAt": "2025-01-15T22:39:01Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 31,
+              "body": "nit: Add a space between the column edge and the content\r\n```suggestion\r\n| `byte`            | Function  | {{Section 2 of !VDAF}} |\r\n```",
+              "createdAt": "2025-01-15T22:40:21Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 39,
+              "body": "This table isn't rendering properly:\r\n![image](https://github.com/user-attachments/assets/395eba47-99ff-4c41-a869-c2c9150b0f56)\r\n\r\nIt looks like the `{{!VDAF}}` reference in the table title is the trouble maker. If you remove the reference, the table redners properly.\r\n\r\nBy the way, when you run \"make\" from the project directory, it builds the html file. It's a good idea to keep an eye on that if you're editing the document directly.\r\n\r\nThe tables in the remainder of this section are also not rendering properly, presumably for the same reason.",
+              "createdAt": "2025-01-15T22:53:51Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 44,
+              "body": "nit: did you mean to start a new paragraph? If not, wrap this line at 80 columns.",
+              "createdAt": "2025-01-15T22:55:03Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 38,
+              "body": "as of https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/106 we no longer use this :)",
+              "createdAt": "2025-01-15T22:56:35Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 67,
+              "body": "These are all instance methods.",
+              "createdAt": "2025-01-15T22:57:18Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 70,
+              "body": "```suggestion\r\nThe following FLP parameters are defined in {{Section 7.3.2 of !VDAF}}:\r\n```",
+              "createdAt": "2025-01-15T22:57:35Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 79,
+              "body": "?\r\n```suggestion\r\n{{Section 6.2 of !VDAF}}. The following functionalities are as defined therein:\r\n```",
+              "createdAt": "2025-01-15T22:57:57Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 85,
+              "body": "Instance method",
+              "createdAt": "2025-01-15T22:58:07Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 88,
+              "body": "This is how we do author notes. In the final draft, we'll remove all author notes. Did you intend this to be part of the actual spec?\r\n```\r\n> NOTE ... \r\n```",
+              "createdAt": "2025-01-15T22:59:20Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 91,
+              "body": "This has been updated:\r\nhttps://github.com/jimouris/draft-mouris-cfrg-mastic/blob/fc295a793362793eebe9a6132a2b5881fb51fd91/poc/dst.py#L30-L42",
+              "createdAt": "2025-01-15T23:00:03Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 103,
+              "body": "Less ambigous\r\n\r\n```suggestion\r\n* `dst(usage: int) -> bytes` returns the domain separation tag as defined above.\r\n```",
+              "createdAt": "2025-01-15T23:01:24Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 105,
+              "body": "Odd sentence structure (\"following ... as follows\")",
+              "createdAt": "2025-01-15T23:01:53Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 165,
+              "body": "Actually, did you get these changes from the reference code? When did you copy the code? I merged some changes today, and there might be another one on the way (#110). It would be helpful if you could update once more, otherwise I would just revert these changes.",
+              "createdAt": "2025-01-15T23:05:24Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 154,
+              "body": "Text above this point (circa 391) is now out of date: the one-hotness, path, and counter consistency checks have been moved out of VIDPF into Mastic. If you'd like to update the algorithm definitions in this PR, then it would be helpful if you could also align the prose description with the spec.",
+              "createdAt": "2025-01-15T23:09:41Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 841,
+              "body": "```suggestion\r\nIANA is requested to add new identifiers to the \"Verifiable Distributed\r\n```",
+              "createdAt": "2025-01-15T23:10:09Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 843,
+              "body": "```suggestion\r\n!VDAF}}. The new entries to the VDAF Identifier registry are as follows:\r\n```",
+              "createdAt": "2025-01-15T23:10:28Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            },
+            {
+              "originalPosition": 867,
+              "body": "These applications aren't described until the appendix. At a minimum we need a forward reference here, but I would just cut it.\r\n\r\nIt looks like this was copied directly from the paper. Note that the ACK section of an IETF draft doesn't necessarily serve the same purpose as in a paper. I would rather acknowledge folks who have contributed to the draft, e.g., Pratik Sarkar and David Cook.\r\n\r\nAcknowledging a funding source is definitely acceptable, but I'm not sure Dimitris is supported by NSF anymore :)",
+              "createdAt": "2025-01-15T23:13:48Z",
+              "updatedAt": "2025-01-15T23:15:18Z"
+            }
+          ]
         }
       ]
     },
@@ -9462,24 +9591,26 @@
       "id": "PR_kwDOJmRsfc6G9Ihe",
       "title": "poc: Simplify the onehot check",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/107",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #106.\r\nCloses #79.\r\n\r\nFor each node in the prefix tree that we traverse, we compute a \"node proof\" according to [CP22]. We then combine the node proofs into the \"onehot proof\" according to the following scheme.\r\n\r\nEach node proof updates the onehot proof. An update resembles a step of Merkle-Damgard compression. The main difference is that we XOR each block (i.e., corrected node proof) with the previous hash (or IV) rather than compress:\r\n\r\n```\r\n            node proof\r\n               |\r\n               v\r\ncurrent     +-----+     +------+     +-----+    updated\r\nproof --+-->| XOR |---->| Hash |---->| XOR |--> proof\r\n        |   +-----+     +------+     +-----+\r\n        |                               ^\r\n        |                               |\r\n        +-------------------------------+\r\n```\r\n\r\nThis construction is also from [CP22]. According to the authors, any method of hashing the node proofs that is \"secure against permutations attacks\" should suffice. All we really want is to confirm that the node proofs computed by both servers are the same.\r\n\r\nThis commit replaces this bespoke construction with a single XOF invocation, using the node proofs in breadth first order as the binder.\r\n\r\nThis change results in fewer XOF usage domain separators, so renumber and reorder these separators as well.",
       "createdAt": "2025-01-07T15:43:01Z",
-      "updatedAt": "2025-01-13T15:26:19Z",
+      "updatedAt": "2025-01-15T17:58:55Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
       "baseRefOid": "677fc2b6bad771ce633dd258cd13674e8872eb3e",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/79",
       "headRefOid": "7c9370d492626f2f60fcba99cea95fedd96d0e03",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2025-01-15T17:58:54Z",
+      "mergedAt": "2025-01-15T17:58:54Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "9f5c3bfff3269273e3b6e09e750a85817dfc5927"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -9623,24 +9754,26 @@
       "id": "PR_kwDOJmRsfc6G97L_",
       "title": "poc: Make the evaluation proof pseudorandom",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/108",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #107.\r\nCloses #73.\r\n\r\nSeed the XOF invocation with the VDAF verification key, thereby rendering the verification key pseudorandom from the point of view of the robustness attacker (i.e., malicious Clients). This doesn't appear to be necessary based on our security analysis so far, but it seems like a reasonable defense-in-depth measure.",
       "createdAt": "2025-01-07T17:31:14Z",
-      "updatedAt": "2025-01-13T15:26:44Z",
+      "updatedAt": "2025-01-15T18:06:50Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/79",
-      "baseRefOid": "7c9370d492626f2f60fcba99cea95fedd96d0e03",
+      "baseRefName": "main",
+      "baseRefOid": "9f5c3bfff3269273e3b6e09e750a85817dfc5927",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/73",
-      "headRefOid": "7906019e4293e88f045a1908dd24106d502f6894",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "03aa8feadec18df493a08af3b70aa95e2c8af6a5",
+      "closedAt": "2025-01-15T18:06:50Z",
+      "mergedAt": "2025-01-15T18:06:50Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "fc295a793362793eebe9a6132a2b5881fb51fd91"
+      },
       "comments": [
         {
           "author": "cjpatton",
@@ -9671,21 +9804,21 @@
       "id": "PR_kwDOJmRsfc6G-gpz",
       "title": "poc: Let `beta` be the counter plus the encoded, truncated weight",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/109",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Stacked on #108.\r\nCloses #78.\r\n\r\nDepending on the FLP, truncation may significantly reduce the length of the measurement. For example, for the `Sum` type, the length of the encoded measurement depends on the validity range, but the truncated measurement is a single field element. We can therefore significantly reduce the size of the correction words by programming the VIDPF with the truncated weight instead of the full encoded weight.\r\n\r\nTo make this work, we secret share the encoded weight precisely as in Prio3. We then extend the payload check by setting the root payload to the counter plus the encoded truncated weight carried by the encoded input share.\r\n\r\nThis change only saves communication cost when `mastic.flp.MEAS_LEN > mastic.flp.OUTPUT_LEN` and `mastic.vidpf.BITS` is sufficiently large. Of the currently defined variants, only `MasticSum` will see savings. For `MasticCount`, `MasticSumVec`, and `MasticHistogram` the Leader's share increases by `mastic.flp.MEAS_LEN` field elements.\r\n\r\nAnother benefit of this change is that the payload check detects malformed correction word payloads at the first level of the tree.\r\n\r\nRelated clean up:\r\n\r\n1. Add another usage domain separator for the helper's weight share and renumber.\r\n\r\n2. Simplify the `MasticInputShare` type by defining classes for the leader and helper shares.\r\n\r\n3. vidpf: Remove `get_beta_share()` as it's no longer used.",
       "createdAt": "2025-01-07T19:15:52Z",
-      "updatedAt": "2025-01-13T15:26:59Z",
+      "updatedAt": "2025-01-15T18:09:46Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
-      "baseRefName": "cjpatton/73",
-      "baseRefOid": "7906019e4293e88f045a1908dd24106d502f6894",
+      "baseRefName": "main",
+      "baseRefOid": "fc295a793362793eebe9a6132a2b5881fb51fd91",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/78",
-      "headRefOid": "9a3a15f4869ea5e287273048ba654289df037057",
-      "closedAt": null,
+      "headRefOid": "6777e2b1e8d0f155a31ba1cad6a98a580d610662",
+      "closedAt": "2025-01-15T18:09:46Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
@@ -9696,6 +9829,13 @@
           "body": "Fixed and regenerated test vectors, rebased.",
           "createdAt": "2025-01-13T15:26:58Z",
           "updatedAt": "2025-01-13T15:26:58Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Closing due to https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/78#issuecomment-2593627448",
+          "createdAt": "2025-01-15T18:09:46Z",
+          "updatedAt": "2025-01-15T18:09:46Z"
         }
       ],
       "reviews": [
@@ -9711,6 +9851,191 @@
           "createdAt": "2025-01-07T20:54:40Z",
           "updatedAt": "2025-01-07T20:54:40Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 110,
+      "id": "PR_kwDOJmRsfc6H5JSI",
+      "title": "poc: Truncate the weight at each level but the first",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/110",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #78.\r\n\r\nFirst, extend VIDPF by adding an optional linear transform to the payload. The transform may depend on the level of the tree we're evaluating. Note that the length of each correction word depends on the length of the transformed payload.\r\n\r\nSecond, modify Mastic by applying the following transformation: for all but the first level of the tree, truncate the weight according to the FLP. We skip the first level so that we can still do the range check at the first level, but for each subsequent level, we don't need the full weight share.\r\n\r\nDepending on the FLP, this may significantly reduce the size of the public share.",
+      "createdAt": "2025-01-15T19:06:25Z",
+      "updatedAt": "2025-01-16T00:16:39Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "fc295a793362793eebe9a6132a2b5881fb51fd91",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/78-take-2",
+      "headRefOid": "17930b5f01ed2ba387b1b5c72a8dbdba6537af9e",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6YQAmM",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-15T23:49:20Z",
+          "updatedAt": "2025-01-15T23:55:18Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "Why do we need to truncate the first level? Why not just pass `out_share` here?",
+              "createdAt": "2025-01-15T23:49:20Z",
+              "updatedAt": "2025-01-15T23:55:18Z"
+            },
+            {
+              "originalPosition": 44,
+              "body": "`flattened_out_share` --> `truncated_flattened_shares`?",
+              "createdAt": "2025-01-15T23:50:08Z",
+              "updatedAt": "2025-01-15T23:55:18Z"
+            },
+            {
+              "originalPosition": 13,
+              "body": "Oh, that's nice. Initially I was about to comment why we need to abstract the truncate inside the transform in mastic, but I see why now, nice.",
+              "createdAt": "2025-01-15T23:53:02Z",
+              "updatedAt": "2025-01-15T23:55:18Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQE6h",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-15T23:59:47Z",
+          "updatedAt": "2025-01-16T00:00:22Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "The output of preparation should be the truncated weight for each candidate prefix. If we happen to be evaluating at level 0, then we haven't truncated yet and need to do so now.",
+              "createdAt": "2025-01-15T23:59:47Z",
+              "updatedAt": "2025-01-16T00:00:22Z"
+            },
+            {
+              "originalPosition": 44,
+              "body": "Eh, this is a little subjective, but I think \"truncated\" is implied here.",
+              "createdAt": "2025-01-16T00:00:12Z",
+              "updatedAt": "2025-01-16T00:00:22Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQGJk",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T00:02:57Z",
+          "updatedAt": "2025-01-16T00:02:57Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "I got this part, what I'm missing is the why do we need to truncate? We already evaluated, so why truncate after? (It might be obvious but I didn't get it from the description)",
+              "createdAt": "2025-01-16T00:02:57Z",
+              "updatedAt": "2025-01-16T00:03:20Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQG3G",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T00:04:38Z",
+          "updatedAt": "2025-01-16T00:04:38Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "Oh for the path checks! Right?",
+              "createdAt": "2025-01-16T00:04:38Z",
+              "updatedAt": "2025-01-16T00:04:38Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQG3d",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T00:04:39Z",
+          "updatedAt": "2025-01-16T00:04:39Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "Are you asking why we need to truncate at all?",
+              "createdAt": "2025-01-16T00:04:39Z",
+              "updatedAt": "2025-01-16T00:04:39Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQIAh",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T00:07:36Z",
+          "updatedAt": "2025-01-16T00:07:37Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "I understand the truncation is to reduce the public share size - what I was missing is why we need to truncate the first level after we evaluate it.",
+              "createdAt": "2025-01-16T00:07:37Z",
+              "updatedAt": "2025-01-16T00:07:37Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YQLta",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T00:16:39Z",
+          "updatedAt": "2025-01-16T00:16:39Z",
+          "comments": [
+            {
+              "originalPosition": 78,
+              "body": "I'm wondering if it's a good idea to transform the derived payload. An alternative would be to compute the length of the transformed payload and simply generate that many field elements here.",
+              "createdAt": "2025-01-16T00:16:39Z",
+              "updatedAt": "2025-01-16T00:16:39Z"
+            }
+          ]
         }
       ]
     }
