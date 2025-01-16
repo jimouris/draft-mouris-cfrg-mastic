@@ -3,7 +3,7 @@ Domain separation tags for all XOF usages, collected all in one place in order
 to make it easier to check that they're all distinct.
 """
 
-from vdaf_poc.common import byte, to_le_bytes
+from vdaf_poc.common import byte, to_be_bytes
 
 # The version of this document. This should be `0` until the document
 # gets adopted, at which point this should be synchronized with the
@@ -38,5 +38,5 @@ def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
     return b'mastic'\
         + byte(VERSION) \
         + byte(usage) \
-        + to_le_bytes(algorithm_id, 4) \
+        + to_be_bytes(algorithm_id, 4) \
         + ctx
