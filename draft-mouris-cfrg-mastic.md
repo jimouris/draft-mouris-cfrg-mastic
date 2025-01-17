@@ -820,6 +820,13 @@ shares of `beta` sent to each Aggregator:
 
 1. Encode the weight as `beta`
 1. Generate the VIDPF correction words and keys for `alpha` and `beta`
+
+    > NOTE Each correction word has length `flp.MEAS_LEN`. We could save a
+    > little bit of communication by truncating the weights according to
+    > `flp.truncate()`. However, we still need to encode the full weight at
+    > least once, either separately or at the first level of the VIDPF tree.
+    > See issue \#98 for details.
+
 1. Compute each Aggregator's FLP joint randomness part by hashing its share of
    `beta` with its FLP seed, its VIDPF key, and the VIDPF correction words
 1. Compute the FLP joint randomness seed by hashing the joint randomness parts
