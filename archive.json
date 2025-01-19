@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-16T00:46:17.865603+00:00",
+  "timestamp": "2025-01-19T00:51:12.328795+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -9859,25 +9859,47 @@
       "id": "PR_kwDOJmRsfc6H5JSI",
       "title": "poc: Truncate the weight at each level but the first",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/110",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
-      "body": "Closes #78.\r\n\r\nFirst, extend VIDPF by adding an optional linear transform to the payload. The transform may depend on the level of the tree we're evaluating. Note that the length of each correction word depends on the length of the transformed payload.\r\n\r\nSecond, modify Mastic by applying the following transformation: for all but the first level of the tree, truncate the weight according to the FLP. We skip the first level so that we can still do the range check at the first level, but for each subsequent level, we don't need the full weight share.\r\n\r\nDepending on the FLP, this may significantly reduce the size of the public share.",
+      "body": "Stacked on #111.\r\nCloses #78.\r\n\r\nFirst, extend VIDPF by adding an optional linear transform to the payload. The transform may depend on the level of the tree we're evaluating. Note that the length of each correction word depends on the length of the transformed payload.\r\n\r\nSecond, modify Mastic by applying the following transformation: for all but the first level of the tree, truncate the weight according to the FLP. We skip the first level so that we can still do the range check at the first level, but for each subsequent level, we don't need the full weight share.\r\n\r\nDepending on the FLP, this may significantly reduce the size of the public share.",
       "createdAt": "2025-01-15T19:06:25Z",
-      "updatedAt": "2025-01-16T00:16:39Z",
+      "updatedAt": "2025-01-17T21:17:01Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "fc295a793362793eebe9a6132a2b5881fb51fd91",
+      "baseRefOid": "14944f754397eedc0fbd0242649d687cf2489f1c",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/78-take-2",
-      "headRefOid": "17930b5f01ed2ba387b1b5c72a8dbdba6537af9e",
-      "closedAt": null,
+      "headRefOid": "f10afb8e5e78e649a4f604dfb906348810e6170d",
+      "closedAt": "2025-01-17T21:17:00Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Re-generated test vectors.",
+          "createdAt": "2025-01-16T18:16:41Z",
+          "updatedAt": "2025-01-16T18:16:41Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Rebased on #111.",
+          "createdAt": "2025-01-16T18:26:49Z",
+          "updatedAt": "2025-01-16T18:26:49Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Alright, I think I'm just gonna give up on this. This definitely works in theory, but the code design for libprio is turning out to be super hard. If desired we can revisit this in a future draft.",
+          "createdAt": "2025-01-17T21:17:00Z",
+          "updatedAt": "2025-01-17T21:17:00Z"
+        }
+      ],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc6YQAmM",
@@ -10036,6 +10058,235 @@
               "updatedAt": "2025-01-16T00:16:39Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Yaoqt",
+          "commit": {
+            "abbreviatedOid": "f10afb8"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-01-16T19:35:17Z",
+          "updatedAt": "2025-01-16T19:49:49Z",
+          "comments": []
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YapGG",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-16T19:35:51Z",
+          "updatedAt": "2025-01-16T19:35:51Z",
+          "comments": [
+            {
+              "originalPosition": 78,
+              "body": "I prefer it as it is now that we're calling transform.",
+              "createdAt": "2025-01-16T19:35:51Z",
+              "updatedAt": "2025-01-16T19:35:51Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YlDP6",
+          "commit": {
+            "abbreviatedOid": "f10afb8"
+          },
+          "author": "hannahdaviscrypto",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2025-01-17T19:48:48Z",
+          "updatedAt": "2025-01-17T19:58:03Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "When level != 0, it looks like this code is just renaming out_shares -> flattened_out_share. Can we eliminate the loop in this case?",
+              "createdAt": "2025-01-17T19:48:48Z",
+              "updatedAt": "2025-01-17T19:58:03Z"
+            },
+            {
+              "originalPosition": 78,
+              "body": "It definitely makes things a little weird as the payload may no longer be uniform for certain choices of transform, and I guess this could possibly leak info about beta in the correction words? Something uniform of the correct length seems probably better.",
+              "createdAt": "2025-01-17T19:57:43Z",
+              "updatedAt": "2025-01-17T19:58:03Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YlNWL",
+          "commit": {
+            "abbreviatedOid": "f10afb8"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-17T20:17:58Z",
+          "updatedAt": "2025-01-17T20:22:53Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "It's not just renaming, it's also \"flattening\". That is, `out_shares` is a list of lists, and `flattened_out_share` is a list that consists of the out shares concatenated together.",
+              "createdAt": "2025-01-17T20:17:58Z",
+              "updatedAt": "2025-01-17T20:22:53Z"
+            },
+            {
+              "originalPosition": 78,
+              "body": "That was my concern as well, though I think we're OK for the current set of Mastic variants, and probably any \"natural\" variant for which the output share is meaningfully secret, i.e, not just a constant.\r\n\r\nThe reason I didn't initially go with the length is that it adds a lot of code complexity to libprio.",
+              "createdAt": "2025-01-17T20:22:49Z",
+              "updatedAt": "2025-01-17T20:22:53Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YlSsM",
+          "commit": {
+            "abbreviatedOid": "17930b5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-17T20:33:37Z",
+          "updatedAt": "2025-01-17T20:33:37Z",
+          "comments": [
+            {
+              "originalPosition": 78,
+              "body": "(This change is much more invasive if have to deal with correction word decoding, which we don't here)",
+              "createdAt": "2025-01-17T20:33:37Z",
+              "updatedAt": "2025-01-17T20:33:37Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 111,
+      "id": "PR_kwDOJmRsfc6IC8mb",
+      "title": "Bump upload-artifact to v4",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/111",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2025-01-16T18:22:03Z",
+      "updatedAt": "2025-01-16T19:46:07Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "fc295a793362793eebe9a6132a2b5881fb51fd91",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/bump-artifacts",
+      "headRefOid": "a2602ec6d1d893a80bd95f32bcf129887015582a",
+      "closedAt": "2025-01-16T19:46:07Z",
+      "mergedAt": "2025-01-16T19:46:07Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "14944f754397eedc0fbd0242649d687cf2489f1c"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6YaoFv",
+          "commit": {
+            "abbreviatedOid": "a2602ec"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-01-16T19:34:29Z",
+          "updatedAt": "2025-01-16T19:34:29Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 112,
+      "id": "PR_kwDOJmRsfc6IC_QO",
+      "title": "poc: Switch byte order of algorithm ID encoding",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/112",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Stacked on #110.\r\n\r\nPrio3 and Poplar1 use big endian; we might as well do the same for consistency.",
+      "createdAt": "2025-01-16T18:29:17Z",
+      "updatedAt": "2025-01-17T21:24:26Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "14944f754397eedc0fbd0242649d687cf2489f1c",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/alg-id-byte-order",
+      "headRefOid": "084c996f41bdf4ae7db7ea98d931ac12a4ef5ae6",
+      "closedAt": "2025-01-17T21:24:26Z",
+      "mergedAt": "2025-01-17T21:24:26Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "ee2300a80b0359eb78eb4acb553c8b1a2e1f1cf0"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6YaoQS",
+          "commit": {
+            "abbreviatedOid": "0118795"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-01-16T19:34:53Z",
+          "updatedAt": "2025-01-16T19:34:53Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 113,
+      "id": "PR_kwDOJmRsfc6IM6g6",
+      "title": "Add a NOTE about correction word optimization",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/113",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Closes #78.",
+      "createdAt": "2025-01-17T21:24:17Z",
+      "updatedAt": "2025-01-18T18:30:56Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "14944f754397eedc0fbd0242649d687cf2489f1c",
+      "headRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "headRefName": "cjpatton/78-forget-it",
+      "headRefOid": "fa209e90e8a0b1296194370fdf15c7ba2a563fb0",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6Ynioy",
+          "commit": {
+            "abbreviatedOid": "fa209e9"
+          },
+          "author": "jimouris",
+          "authorAssociation": "OWNER",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-01-18T18:30:56Z",
+          "updatedAt": "2025-01-18T18:30:56Z",
+          "comments": []
         }
       ]
     }
