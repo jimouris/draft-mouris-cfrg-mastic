@@ -217,86 +217,88 @@ functionality.
 
 {::boilerplate bcp14-tagged}
 
-This document uses the same conventions and definitions as {{Section 2 of
-!VDAF}}. The following functions are as defined therein:
+This document uses the same conventions and definitions as {{Section 2 of !VDAF}}. The
+following functions are as defined therein:
 
-| Functionality     | Type      | Definition            |
-|:------------------|:----------|:----------------------|
-| `byte`            | Function  | {{Section 2 of !VDAF}}|
-| `cast`            | Function  | {{Section 2 of !VDAF}}|
-| `concat`          | Function  | {{Section 2 of !VDAF}}|
-| `front`           | Function  | {{Section 2 of !VDAF}}|
-| `range`           | Function  | {{Section 2 of !VDAF}}|
-| `to_le_bytes`     | Function  | {{Section 2 of !VDAF}}|
-| `xor`             | Function  | {{Section 2 of !VDAF}}|
-| `zeros`           | Function  | {{Section 2 of !VDAF}}|
-{: #common-functions title="Common Functionalities from {{!VDAF}}."}
+| Functionality     | Type      | Definition |
+|:------------------|:----------|:-----------|
+| `byte`            | Function  | Section 2  |
+| `cast`            | Function  | Section 2  |
+| `concat`          | Function  | Section 2  |
+| `front`           | Function  | Section 2  |
+| `range`           | Function  | Section 2  |
+| `to_le_bytes`     | Function  | Section 2  |
+| `xor`             | Function  | Section 2  |
+{: #common-functions title="Common Functionalities."}
 
 Mastic also uses finite fields as specified in {{Section 6.1 of !VDAF}}. We
 usually denote a finite field by `F` and its Python class object, a subclass of
 `Field`, as `field: type[F]`.
+
 The following functionalities are as defined in {{Section 6.1 of !VDAF}}:
 
-| Functionality       | Type          | Definition                |
-|:--------------------|:--------------|:--------------------------|
-| `Field`             | Constructor   | {{Section 6.1 of !VDAF}}  |
-| `field.encode_vec`  | Class Method  | {{Section 6.1.1 of !VDAF}}|
-| `field.zeros`       | Class Method  | {{Section 6.1 of !VDAF}}  |
-| `vec_add`           | Function      | {{Section 6.1.1 of !VDAF}}|
-| `vec_neg`           | Function      | {{Section 6.1.1 of !VDAF}}|
-| `vec_sub`           | Function      | {{Section 6.1.1 of !VDAF}}|
-{: #field-functionalities title="Finite Field Functionalities from {{!VDAF}}."}
+| Functionality       | Type            | Definition    |
+|:--------------------|:----------------|:--------------|
+| `Field`             | Constructor     | Section 6.1   |
+| `field.encode_vec`  | Instance Method | Section 6.1.1 |
+| `field.zeros`       | Instance Method | Section 6.1   |
+| `vec_add`           | Function        | Section 6.1.1 |
+| `vec_neg`           | Function        | Section 6.1.1 |
+| `vec_sub`           | Function        | Section 6.1.1 |
+{: #field-functionalities title="Finite Field Functionalities."}
 
 
 Moreover, the following algorithms of Fully Linear Proofs (FLPs) are as
 defined in {{Section 7.1 of !VDAF}}:
 
-| Functionality   | Type          | Definition                  |
-|:----------------|:--------------|:----------------------------|
-| `flp.decide`    | Class Method  | {{Section 7.1 of !VDAF}}    |
-| `flp.decode`    | Class Method  | {{Section 7.1.1 of !VDAF}}  |
-| `flp.encode`    | Class Method  | {{Section 7.1.1 of !VDAF}}  |
-| `flp.prove`     | Class Method  | {{Section 7.1 of !VDAF}}    |
-| `flp.query`     | Class Method  | {{Section 7.1 of !VDAF}}    |
-| `flp.truncate`  | Class Method  | {{Section 7.1.1 of !VDAF}}  |
-{: #FLP-functionalities title="FLP Functionalities from {{!VDAF}}."}
+| Functionality   | Type  --        | Definition    |
+|:----------------|:----------------|:--------------|
+| `flp.decide`    | Instance Method | Section 7.1   |
+| `flp.decode`    | Instance Method | Section 7.1.1 |
+| `flp.encode`    | Instance Method | Section 7.1.1 |
+| `flp.prove`     | Instance Method | Section 7.1   |
+| `flp.query`     | Instance Method | Section 7.1   |
+| `flp.truncate`  | Instance Method | Section 7.1.1 |
+{: #FLP-functionalities title="FLP Functionalities."}
 
-The following parameters are defined in {{Section 7.3.2 of !VDAF}}:
+The following FLP parameters are defined in {{Section 7.3.2 of !VDAF}}:
 
-| Parameter     | Type      | Definition                  |
-|:--------------|:----------|:----------------------------|
-| `MEAS_LEN`    | integer   | {{Section 7.3.2 of !VDAF}}  |
-| `OUTPUT_LEN`  | integer   | {{Section 7.3.2 of !VDAF}}  |
+| Parameter     | Type      | Definition    |
+|:--------------|:----------|:--------------|
+| `MEAS_LEN`    | integer   | Section 7.3.2 |
+| `OUTPUT_LEN`  | integer   | Section 7.3.2 |
 {: #circ-params title="Validity Circuit Parameters."}
 
 Mastic also uses eXtendable Output Functions (XOFs) as specified in
-{{Section 6.2 of !VDAF}}. The following functionalities are as defined herein:
+{{Section 6.2 of !VDAF}}. The following functionalities are as defined therein:
 
-| Functionality       | Type          | Definition                  |
-|:--------------------|:--------------|:----------------------------|
-| `XofFixedKeyAes128` | Constructor   | {{Section 6.2 of !VDAF}}    |
-| `XofTurboShake128`  | Constructor   | {{Section 6.2 of !VDAF}}    |
-| `xof.next`          | Class Method  | {{Section 6.2 of !VDAF}}    |
-{: #XOF-functionalities title="XOF Functionalities from {{!VDAF}}."}
+| Functionality       | Type            | Definition  |
+|:--------------------|:----------------|:------------|
+| `XofFixedKeyAes128` | Constructor     | Section 6.2 |
+| `XofTurboShake128`  | Constructor     | Section 6.2 |
+| `xof.next`          | Instance Method | Section 6.2 |
+{: #XOF-functionalities title="XOF Functionalities."}
 
-> NOTE `xof` instances use a seed of size `SEED_SIZE` (in bytes).
-
-Each invocation of a XOF is initialized with a domain separation tag set to
-`b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) + ctx`, where `ctx` is the
-application context string (see {{Section 4.1 of !VDAF}}) and `usage` is an
-integer in the range `[0, 255)`. The length of `ctx` MUST be in range
-`[0, 2^16 - 11)`.
+Each invocation of a XOF is initialized with a domain separation tag is the
+concatenation of `b'mastic'`, `byte(VERSION)`, `byte(usage)` and `ctx`, where
+`ctx` is the application context string (see {{Section 4.1 of !VDAF}}) and
+`usage` is an integer in the range `[0, 12)`. The length of `ctx` MUST be in
+range `[0, 2^16 - 11)`. Also, `xof` instances use a seed of size `SEED_SIZE`
+(in bytes).
 
 > NOTE This range was computed by taking the maximum size of the domain
 > separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
 > subtracting the length of the prefix.
 
-For domain separation purposes, we further define the following function:
+For domain separation purposes, we further define the following functions:
 
-* `dst(usage: int) -> bytes` returns a string of bytes encoding the name of
-the VDAF (i.e., "mastic"), the version number, and the usage type.
+* `dst(ctx: bytes, usage: int) -> bytes` returns the domain separation tag as
+defined above.
+* `dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes` returns a
+domain separation tag based on the above difinition that also includes an
+algorithm ID in the range `[0, 2^32 - 1)`
 
-Finally, the following common functionalities are defined as follows:
+Finally, common functionalities are defined as follows:
 
 * `bool(val: Any) -> bool` converts a value `val` to a Boolean.
 * `bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) ->
@@ -388,19 +390,6 @@ Imagine arranging these prefixes in a binary tree where each path from the root
 corresponds to a prefix `X` and each node corresponds to a payload `F(X)`. We
 refer to this as the "prefix tree".
 
-When the Aggregators evaluate a Client's VIDPF, they verify three properties of
-the prefix tree:
-
-1. One-hotness: at every level of the tree, at most one node has a non-zero
-   payload.
-
-1. Path consistency: each payload is equal to the sum of the payloads of its
-   children. If one-hotness holds, then this ensures the payload is equal to
-   `[field(1)] + beta` for each node along the `alpha` path.
-
-1. Counter consistency: the counter of the non-zero payload is equal to
-   `field(1)`.
-
 VIDPF is comprised of two algorithms.
 
 The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
@@ -413,9 +402,7 @@ The key evaluation algorithm defined in {{vidpf-key-eval}} takes in the
 correction words, the Aggregator's key, the sequence of candidate prefixes,
 and the nonce associated with the Client's report. It outputs secret shares of
 `beta`, the share of the payload for each prefix, and a byte string known as
-the "evaluation proof". To verify one-hotness, payload consistency, and
-counter consistency, the Aggregators check that the proofs they computed are
-equal.
+the "evaluation proof".
 
 ## Key Generation {#vidpf-key-gen}
 
@@ -449,8 +436,10 @@ def gen(self,
         ) -> tuple[list[CorrectionWord], list[bytes]]:
     '''
     The VIDPF key generation algorithm.
+
     Returns the public share (i.e., the correction word for each
     level of the tree) and two keys, one for each aggregator.
+
     Implementation note: for clarity, this algorithm has not been
     written in a manner that is side-channel resistant. To avoid
     leaking `alpha` via a side-channel, implementations should avoid
@@ -464,7 +453,9 @@ def gen(self,
         raise ValueError("incorrect nonce size")
     if len(rand) != self.RAND_SIZE:
         raise ValueError("randomness has incorrect length")
+
     keys = [rand[:self.KEY_SIZE], rand[self.KEY_SIZE:]]
+
     # [MST24, Fig. 15]: s0^0, s1^0, t0^0, t1^0
     seed = keys.copy()
     ctrl = [False, True]
@@ -472,11 +463,13 @@ def gen(self,
     for i in range(self.BITS):
         idx = PrefixTreeIndex(alpha[:i+1])
         bit = alpha[i]
+
         # [MST24]: if x = 0 then keep <- L, lose <- R
         #
         # Implementation note: the value of `bit` is
         # `alpha`-dependent.
         (keep, lose) = (1, 0) if bit else (0, 1)
+
         # Extend: compute the left and right children the current
         # level of the tree. During evaluation, one of these children
         # will be selected as the next seed and control bit.
@@ -485,6 +478,7 @@ def gen(self,
         #          s_1^L || s_1^R || t_1^L || t_1^R
         (s0, t0) = self.extend(seed[0], ctx, nonce)
         (s1, t1) = self.extend(seed[1], ctx, nonce)
+
         # Compute the correction words for this level's seed and
         # control bit. Our goal is to maintain the following
         # invariant, after correction:
@@ -503,6 +497,7 @@ def gen(self,
             t0[0] ^ t1[0] ^ (not bit),  # [MST24]: t_c^L
             t0[1] ^ t1[1] ^ bit,        # [MST24]: t_c^R
         ]
+
         # Correct.
         #
         # Implementation note: the index `keep` is `alpha`-dependent,
@@ -513,17 +508,20 @@ def gen(self,
         if ctrl[1]:
             s1[keep] = xor(s1[keep], seed_cw)
             t1[keep] ^= ctrl_cw[keep]
+
         # Convert.
         (seed[0], w0) = self.convert(s0[keep], ctx, nonce)
         (seed[1], w1) = self.convert(s1[keep], ctx, nonce)
         ctrl[0] = t0[keep]  # [MST24]: t0'
         ctrl[1] = t1[keep]  # [MST24]: t1'
+
         # Compute the correction word for this level's payload.
         #
         # Implementation note: `ctrl` is `alpha`-dependent.
         w_cw = vec_add(vec_sub(beta, w0), w1)
         if ctrl[1]:
             w_cw = vec_neg(w_cw)
+
         # Compute the correction word for this level's node proof. If
         # evaluation is on path, then exactly one of the aggregatos
         # will correct their node proof, causing them to compute the
@@ -534,7 +532,9 @@ def gen(self,
             self.node_proof(seed[0], ctx, idx),
             self.node_proof(seed[1], ctx, idx),
         )
+
         correction_words.append((seed_cw, ctrl_cw, w_cw, proof_cw))
+
     return (correction_words, keys)
 ~~~
 
@@ -944,6 +944,22 @@ Preparation initialization involves the following steps:
    them into a single vector of field elements. This constitutes Mastic's
    output share.
 
+Moreover, when the Aggregators evaluate a Client's VIDPF, they verify three
+properties of the prefix tree:
+
+1. One-hotness: at every level of the tree, at most one node has a non-zero
+   payload.
+
+1. Path consistency: each payload is equal to the sum of the payloads of its
+   children. If one-hotness holds, then this ensures the payload is equal to
+   `[field(1)] + beta` for each node along the `alpha` path.
+
+1. Counter consistency: the counter of the non-zero payload is equal to
+   `field(1)`.
+
+To verify one-hotness, payload consistency, and counter consistency, the
+Aggregators check that the proofs they computed are equal.
+
 The complete algorithm is listed below:
 
 ~~~ python
@@ -962,7 +978,7 @@ def prep_init(
         self.expand_input_share(ctx, agg_id, input_share)
 
     # Evaluate the VIDPF.
-    (out_share, eval_proof) = self.vidpf.eval(
+    (out_share, root) = self.vidpf.eval_with_siblings(
         agg_id,
         correction_words,
         key,
@@ -999,6 +1015,56 @@ def prep_init(
             joint_rand,
             2,
         )
+
+    # Payload and onehot checks.
+    payload_check_binder = b''
+    onehot_check_binder = b''
+    assert root.left_child is not None
+    assert root.right_child is not None
+    q = [root.left_child, root.right_child]
+    while len(q) > 0:
+        (n, q) = (q[0], q[1:])
+
+        if n.left_child is not None and n.right_child is not None:
+            # Update payload check. The weight of each node should equal
+            # the sum of its children.
+            payload_check_binder += self.field.encode_vec(
+                vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
+            q += [n.left_child, n.right_child]
+
+        # Update the onehot check.
+        onehot_check_binder += n.proof
+
+    payload_check = self.xof(
+        b'',
+        dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
+        payload_check_binder,
+    ).next(PROOF_SIZE)
+
+    onehot_check = self.xof(
+        b'',
+        dst_alg(ctx, USAGE_ONEHOT_CHECK, self.ID),
+        onehot_check_binder,
+    ).next(PROOF_SIZE)
+
+    # Counter check: the first element of beta should equal 1.
+    #
+    # Each aggregator holds an additive share of the counter, so
+    # we have aggregator 1 negate its share and add 1 so that they
+    # both compute the same value for `counter`.
+    w0 = root.left_child.w
+    w1 = root.right_child.w
+    counter_check = self.field.encode_vec(
+        [w0[0] + w1[0] + self.field(agg_id)])
+
+    # Evaluation proof: if both aggregators compute the same
+    # value, then they agree on the onehot proof, the counter, and
+    # the payload.
+    eval_proof = self.xof(
+        verify_key,
+        dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
+        onehot_check + counter_check + payload_check,
+    ).next(PROOF_SIZE)
 
     # Concatenate the output shares into one aggregatable output,
     # applying the FLP truncation algorithm on each FLP measurement
@@ -1209,7 +1275,7 @@ def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(ctx, USAGE_PROOF_SHARE),
+        dst_alg(ctx, USAGE_PROOF_SHARE, self.ID),
         b'',
         self.flp.PROOF_LEN,
     )
@@ -1218,7 +1284,7 @@ def prove_rand(self, ctx: bytes, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(ctx, USAGE_PROVE_RAND),
+        dst_alg(ctx, USAGE_PROVE_RAND, self.ID),
         b'',
         self.flp.PROVE_RAND_LEN,
     )
@@ -1232,14 +1298,14 @@ def joint_rand_part(
 ) -> bytes:
     return self.xof.derive_seed(
         seed,
-        dst(ctx, USAGE_JOINT_RAND_PART),
+        dst_alg(ctx, USAGE_JOINT_RAND_PART, self.ID),
         nonce + self.field.encode_vec(weight_share),
     )
 
 def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
     return self.xof.derive_seed(
-        zeros(self.xof.SEED_SIZE),
-        dst(ctx, USAGE_JOINT_RAND_SEED),
+        b'',
+        dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
         concat(parts),
     )
 
@@ -1247,7 +1313,7 @@ def joint_rand(self, ctx: bytes, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(ctx, USAGE_JOINT_RAND),
+        dst_alg(ctx, USAGE_JOINT_RAND, self.ID),
         b'',
         self.flp.JOINT_RAND_LEN,
     )
@@ -1260,7 +1326,7 @@ def query_rand(self,
     return self.xof.expand_into_vec(
         self.field,
         verify_key,
-        dst(ctx, USAGE_QUERY_RAND),
+        dst_alg(ctx, USAGE_QUERY_RAND, self.ID),
         nonce + to_le_bytes(level, 2),
         self.flp.QUERY_RAND_LEN,
     )
@@ -1277,9 +1343,9 @@ security analysis of Mastic is provided in {{MPDST25}}.
 
 # IANA Considerations
 
-IANA is requested to add a new identifier to the "Verifiable Distributed
+IANA is requested to add new identifiers to the "Verifiable Distributed
 Aggregation Functions (VDAF)" registry, that is described in {{Section 10 of
-!VDAF}}. The new requested entry to the VDAF Identifier registry is as follows:
+!VDAF}}. The new entries to the VDAF Identifier registry are as follows:
 
 | Value         | Scheme                   | Type | Reference            |
 |:--------------|:-------------------------|:-----|:---------------------|
@@ -1303,7 +1369,7 @@ this document.)
 {:numbered="false"}
 
 The Network Error Logging and Attribute-Based Browser Telemetry applications
-(discussed in the next sections) were first described to the authors by the
+(discussed next in section {{motivation}}) were first described to the authors by the
 PPM working group at IETF. The authors would like to thank Suleman Ahmad and
 Simon Friedberger for their help in fleshing out the details. Dimitris Mouris
 and Nektarios Georgios Tsoutsos would like to acknowledge the support of the
