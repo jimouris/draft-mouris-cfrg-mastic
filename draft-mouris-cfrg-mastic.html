@@ -2291,6 +2291,15 @@ shares of <code>beta</code> sent to each Aggregator:<a href="#section-4.1-11" cl
 </li>
           <li id="section-4.1-12.2">
             <p id="section-4.1-12.2.1">Generate the VIDPF correction words and keys for <code>alpha</code> and <code>beta</code><a href="#section-4.1-12.2.1" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.1-12.2.2.1">
+                <p id="section-4.1-12.2.2.1.1">NOTE Each correction word has length <code>flp.MEAS_LEN</code>. We could save a
+little bit of communication by truncating the weights according to
+<code>flp.truncate()</code>. However, we still need to encode the full weight at
+least once, either separately or at the first level of the VIDPF tree.
+See issue #98 for details.<a href="#section-4.1-12.2.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
 </li>
           <li id="section-4.1-12.3">
             <p id="section-4.1-12.3.1">Compute each Aggregator's FLP joint randomness part by hashing its share of
