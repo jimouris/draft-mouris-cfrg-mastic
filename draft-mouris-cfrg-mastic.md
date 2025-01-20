@@ -144,7 +144,7 @@ This problem can be solved by combining a binary search with a subroutine
 solving the simpler "prefix histogram" problem. The goal of this problem is to
 count how many of the input strings begin with each of a sequence of candidate
 prefixes. This problem can be solved using a Verifiable Distributed Aggregation
-Function, or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-12}}.
+Function, or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-14}}.
 
 The Poplar1 VDAF specified in {{Section 8 of !VDAF}} describes how to
 distribute this computation amongst two aggregation servers such that, as long
@@ -204,7 +204,8 @@ evaluation.
 This document specifies VIDPF in {{vidpf}} and the composition of VIDPF and FLP
 into Mastic in {{vidpf}}. The appendix includes supplementary material:
 
-* {{motivation}} discusses some use cases that motivated Mastic's functionality.
+* {{motivation}} discusses some use cases that motivated Mastic's
+functionality.
 
 * {{additional-modes}} describes extensions and optimizations for Mastic,
   including a batched "preparation" ({{Section 5.2 of !VDAF}}) mode of
@@ -216,11 +217,105 @@ into Mastic in {{vidpf}}. The appendix includes supplementary material:
 
 {::boilerplate bcp14-tagged}
 
-This document uses the same conventions and definitions of {{Section 2 of
-!VDAF}}. The following functions are as defined therein:
+This document uses the same conventions and definitions as {{Section 2 of !VDAF}}. The
+following functions are as defined therein:
 
-* `gen_rand(len: int) -> bytes`
-* TODO List all functions we use in alphabetical order.
+| Functionality     | Type      | Definition |
+|:------------------|:----------|:-----------|
+| `byte`            | Function  | Section 2  |
+| `cast`            | Function  | Section 2  |
+| `concat`          | Function  | Section 2  |
+| `front`           | Function  | Section 2  |
+| `range`           | Function  | Section 2  |
+| `to_le_bytes`     | Function  | Section 2  |
+| `xor`             | Function  | Section 2  |
+{: #common-functions title="Common Functionalities."}
+
+Mastic also uses finite fields as specified in {{Section 6.1 of !VDAF}}. We
+usually denote a finite field by `F` and its Python class object, a subclass of
+`Field`, as `field: type[F]`.
+
+The following functionalities are as defined in {{Section 6.1 of !VDAF}}:
+
+| Functionality       | Type            | Definition    |
+|:--------------------|:----------------|:--------------|
+| `Field`             | Constructor     | Section 6.1   |
+| `field.encode_vec`  | Instance Method | Section 6.1.1 |
+| `field.zeros`       | Instance Method | Section 6.1   |
+| `vec_add`           | Function        | Section 6.1.1 |
+| `vec_neg`           | Function        | Section 6.1.1 |
+| `vec_sub`           | Function        | Section 6.1.1 |
+{: #field-functionalities title="Finite Field Functionalities."}
+
+
+Moreover, the following algorithms of Fully Linear Proofs (FLPs) are as
+defined in {{Section 7.1 of !VDAF}}:
+
+| Functionality   | Type  --        | Definition    |
+|:----------------|:----------------|:--------------|
+| `flp.decide`    | Instance Method | Section 7.1   |
+| `flp.decode`    | Instance Method | Section 7.1.1 |
+| `flp.encode`    | Instance Method | Section 7.1.1 |
+| `flp.prove`     | Instance Method | Section 7.1   |
+| `flp.query`     | Instance Method | Section 7.1   |
+| `flp.truncate`  | Instance Method | Section 7.1.1 |
+{: #FLP-functionalities title="FLP Functionalities."}
+
+The following FLP parameters are defined in {{Section 7.3.2 of !VDAF}}:
+
+| Parameter     | Type      | Definition    |
+|:--------------|:----------|:--------------|
+| `MEAS_LEN`    | integer   | Section 7.3.2 |
+| `OUTPUT_LEN`  | integer   | Section 7.3.2 |
+{: #circ-params title="Validity Circuit Parameters."}
+
+Mastic also uses eXtendable Output Functions (XOFs) as specified in
+{{Section 6.2 of !VDAF}}. The following functionalities are as defined therein:
+
+| Functionality       | Type            | Definition  |
+|:--------------------|:----------------|:------------|
+| `XofFixedKeyAes128` | Constructor     | Section 6.2 |
+| `XofTurboShake128`  | Constructor     | Section 6.2 |
+| `xof.next`          | Instance Method | Section 6.2 |
+{: #XOF-functionalities title="XOF Functionalities."}
+
+Each invocation of a XOF is initialized with a domain separation tag is the
+concatenation of `b'mastic'`, `byte(VERSION)`, `byte(usage)` and `ctx`, where
+`ctx` is the application context string (see {{Section 4.1 of !VDAF}}) and
+`usage` is an integer in the range `[0, 12)`. The length of `ctx` MUST be in
+range `[0, 2^16 - 11)`. Also, `xof` instances use a seed of size `SEED_SIZE`
+(in bytes).
+
+> NOTE This range was computed by taking the maximum size of the domain
+> separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
+> subtracting the length of the prefix.
+
+For domain separation purposes, we further define the following functions:
+
+* `dst(ctx: bytes, usage: int) -> bytes` returns the domain separation tag as
+defined above.
+* `dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes` returns a
+domain separation tag based on the above difinition that also includes an
+algorithm ID in the range `[0, 2^32 - 1)`
+
+Finally, common functionalities are defined as follows:
+
+* `bool(val: Any) -> bool` converts a value `val` to a Boolean.
+* `bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) ->
+bytearray` returns a mutable sequence of bytes.
+* `bytes(source: Union[str, bytes, bytearray, Iterable[int]]) -> bytes`
+returns a immutable sequence of bytes.
+* `len(obj: Sized) -> int` returns the number of items in `obj`. The object
+argument can be a sequence (e.g., string, list, or tuple) or a collection
+(e.g., dictionary, set).
+* `list.append(elem: Any) -> None` adds a single element `elem` to the end of
+a `list` instance.
+* `list.copy() -> list` returns a shallow copy of a `list` instance.
+* `set(iterable: Optional[Iterable] = None) -> set` creates a new set object,
+which is an unordered collection of unique elements. The optional `iterable`
+argument (e.g., list, tuple, or string) is used to initialize the set. If no
+argument is provided, an empty set is created.
+
 
 This document uses the following terms as defined in {{!VDAF}}:
 "Aggregator",
@@ -237,9 +332,6 @@ This document uses the following terms as defined in {{!VDAF}}:
 "prep share", and
 "report".
 
-Mastic uses finite fields as specified in {{Section 6.1 of !VDAF}}. We usually
-denote a finite field by `F` and its Python class object, a subclass of
-`Field`, as `field: type[F]`.
 
 An instance of Mastic is determined by a desired bit-length of the input,
 denoted `BITS`, and a validity circuit, an instance of `Valid` as defined in
@@ -256,16 +348,6 @@ The aggregate result has type `list[R]`, where `R` is likewise a type defined
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.
 
-Finally, Mastic uses eXtendable Output Functions (XOFs) as specified in
-{{Section 6.2 of !VDAF}}. Each invocation of a XOF is initialized with a domain
-separation tag set to `b'mastic' + to_le_bytes(VERSION, 4) + byte(usage) +
-ctx`, where `ctx` is the application context string (see {{Section 4.1 of
-!VDAF}}) and `usage` is an integer in the range `[0, 255)`. The length of `ctx`
-MUST be in range `[0, 2^16 - 11)`.
-
-> NOTE This range was computed by taking the maximum size of the domain
-> separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
-> subtracting the length of the prefix.
 
 # Specification of VIDPF {#vidpf}
 
@@ -308,19 +390,6 @@ Imagine arranging these prefixes in a binary tree where each path from the root
 corresponds to a prefix `X` and each node corresponds to a payload `F(X)`. We
 refer to this as the "prefix tree".
 
-When the Aggregators evaluate a Client's VIDPF, they verify three properties of
-the prefix tree:
-
-1. One-hotness: at every level of the tree, at most one node has a non-zero
-   payload.
-
-1. Path consistency: each payload is equal to the sum of the payloads of its
-   children. If one-hotness holds, then this ensures the payload is equal to
-   `[field(1)] + beta` for each node along the `alpha` path.
-
-1. Counter consistency: the counter of the non-zero payload is equal to
-   `field(1)`.
-
 VIDPF is comprised of two algorithms.
 
 The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
@@ -333,9 +402,7 @@ The key evaluation algorithm defined in {{vidpf-key-eval}} takes in the
 correction words, the Aggregator's key, the sequence of candidate prefixes,
 and the nonce associated with the Client's report. It outputs secret shares of
 `beta`, the share of the payload for each prefix, and a byte string known as
-the "evaluation proof". To verify one-hotness, payload consistency, and
-counter consistency, the Aggregators check that the proofs they computed are
-equal.
+the "evaluation proof".
 
 ## Key Generation {#vidpf-key-gen}
 
@@ -399,7 +466,7 @@ def gen(self,
 
         # [MST24]: if x = 0 then keep <- L, lose <- R
         #
-        # Implementation note: the value of `bits` is
+        # Implementation note: the value of `bit` is
         # `alpha`-dependent.
         (keep, lose) = (1, 0) if bit else (0, 1)
 
@@ -451,7 +518,7 @@ def gen(self,
         # Compute the correction word for this level's payload.
         #
         # Implementation note: `ctrl` is `alpha`-dependent.
-        w_cw = vec_add(vec_sub([self.field(1)] + beta, w0), w1)
+        w_cw = vec_add(vec_sub(beta, w0), w1)
         if ctrl[1]:
             w_cw = vec_neg(w_cw)
 
@@ -477,27 +544,27 @@ The VIDPF-key evaluation algorithm is listed below. See {{vidpf-aux}} for
 deferred auxiliary functions. Its inputs are the Aggregator's ID (either `0` or
 `1`), the correction words, the Aggregator's key, the level of the tree, the
 sequence of prefixes, and the nonce associated with the report. Its outputs are
-the Aggregator's share of `beta`, the sequence of output shares for each
-prefix, and the evaluation proof.
+the sequence of output shares for each prefix, and the evaluation proof.
 
 > TODO Provide an overview and define `PrefixTreeIndex` and `PrefixTreeEntry`.
 > Explain how the evaluation proof is constructed.
 
 ~~~ python
-def eval(self,
-         agg_id: int,
-         correction_words: list[CorrectionWord],
-         key: bytes,
-         level: int,
-         prefixes: tuple[tuple[bool, ...], ...],
-         ctx: bytes,
-         nonce: bytes,
-         ) -> tuple[list[F], list[list[F]], bytes]:
+def eval_with_siblings(self,
+                        agg_id: int,
+                        correction_words: list[CorrectionWord],
+                        key: bytes,
+                        level: int,
+                        prefixes: tuple[tuple[bool, ...], ...],
+                        ctx: bytes,
+                        nonce: bytes,
+                        ) -> tuple[list[list[F]], PrefixTreeEntry]:
     """
     The VIDPF key evaluation algorithm.
 
-    Return the aggregator's share of `beta`, its output share for
-    each prefix, and its evaluation proof.
+    The return value consists of the weights for each candidate prefix and
+    the root of the prefix tree. The prefix tree includes the prefixes and
+    the siblings of each node visited.
     """
     if agg_id not in range(2):
         raise ValueError("invalid aggregator ID")
@@ -511,84 +578,35 @@ def eval(self,
     if len(set(prefixes)) != len(prefixes):
         raise ValueError("candidate prefixes are non-unique")
 
-    # Evaluate our share of the prefix tree and compute the path
-    # proof.
+    # Evaluate our share of the prefix tree, including the sibling of each
+    # node we visit.
     #
-    # Implementation note: we can save computation by storing
-    # `prefix_tree_share` across `eval()` calls for the same report.
-    prefix_tree_share: dict[PrefixTreeIndex, PrefixTreeEntry] = {}
+    # Implementation note: we can save computation by storing the tree
+    # across `eval()` calls for the same report.
     root = PrefixTreeEntry.root(key, bool(agg_id))
-    onehot_proof = ONEHOT_PROOF_INIT
-    for i in range(level+1):
-        for prefix in prefixes:
-            # Compute the entry for `prefix`. Set `idx` to the
-            # index of its parent.
-            idx = PrefixTreeIndex(prefix[:i])
-            node = prefix_tree_share.setdefault(idx, root)
-            for child_idx in [idx.left_child(), idx.right_child()]:
-                # Compute the entry for `prefix` and its sibling. The
-                # sibling is used for the counter and payload checks.
-                if not prefix_tree_share.get(child_idx):
-                    (child, onehot_proof) = self.eval_next(
-                        node,
-                        onehot_proof,
-                        correction_words[i],
-                        ctx,
-                        nonce,
-                        child_idx,
-                    )
-                    prefix_tree_share[child_idx] = child
-
-    # Compute the aggregator's share of `beta`.
-    w0 = prefix_tree_share[PrefixTreeIndex((False,))].w
-    w1 = prefix_tree_share[PrefixTreeIndex((True,))].w
-    beta_share = vec_add(w0, w1)[1:]
-    if agg_id == 1:
-        beta_share = vec_neg(beta_share)
-
-    # Counter check: check that the first element of the payload is
-    # equal to 1.
-    #
-    # Each aggregator holds an additive share of the counter, so we
-    # have aggregator 1 negate its share and add 1 so that they both
-    # compute the same value for `counter`.
-    counter_check = self.field.encode_vec(
-        [w0[0] + w1[0] + self.field(agg_id)])
-
-    # Payload check: for each node, check that the payload is equal
-    # to the sum of its children.
-    payload_check = b''
-    for prefix in prefixes:
-        for i in range(level):
-            idx = PrefixTreeIndex(prefix[:i+1])
-            w = prefix_tree_share[idx].w
-            w0 = prefix_tree_share[idx.left_child()].w
-            w1 = prefix_tree_share[idx.right_child()].w
-            payload_check += self.field.encode_vec(
-                vec_sub(w, vec_add(w0, w1)))
-
-    # Compute the Aggregator's output share.
     out_share = []
     for prefix in prefixes:
-        idx = PrefixTreeIndex(prefix)
-        w = prefix_tree_share[idx].w
-        out_share.append(w if agg_id == 0 else vec_neg(w))
+        n = root
+        for (i, bit) in enumerate(prefix):
+            idx = PrefixTreeIndex(prefix[:i+1])
+            if n.left_child is None:
+                n.left_child = self.eval_next(n, correction_words[i], ctx,
+                                                nonce, idx.left_sibling())
+            if n.right_child is None:
+                n.right_child = self.eval_next(n, correction_words[i], ctx,
+                                                nonce, idx.right_sibling())
+            n = n.right_child if bit else n.left_child
+        out_share.append(n.w if agg_id == 0 else vec_neg(n.w))
 
-    # Compute the evaluation proof. If both aggregators compute the
-    # same value, then they agree on the onehot proof, the counter,
-    # and the payload.
-    proof = eval_proof(
-        ctx, onehot_proof, counter_check, payload_check)
-    return (beta_share, out_share, proof)
+    return (out_share, root)
 
 def eval_next(self,
-              node: PrefixTreeEntry,
-              onehot_proof: bytes,
-              correction_word: CorrectionWord,
-              ctx: bytes,
-              nonce: bytes,
-              idx: PrefixTreeIndex,
-              ) -> tuple[PrefixTreeEntry, bytes]:
+                node: PrefixTreeEntry,
+                correction_word: CorrectionWord,
+                ctx: bytes,
+                nonce: bytes,
+                idx: PrefixTreeIndex,
+                ) -> PrefixTreeEntry:
     """
     Extend a node in the tree, select and correct one of its
     children, then convert it into a payload and the next seed.
@@ -619,44 +637,24 @@ def eval_next(self,
     if next_ctrl:
         w = vec_add(w, w_cw)
 
-    # Compute and correct the node proof and update the onehot proof.
-    # Each update resembles a step of Merkle-Damgard compression. The
-    # main difference is that we XOR each block (i.e., corrected node
-    # proof) with the previous hash (or IV) rather than compress.
-    #
-    #             corrected node proof
-    #                 |
-    #                 |
-    #                 v
-    # current      +-----+     +------+     +-----+      updated
-    # proof  --+-->| XOR |---->| Hash |---->| XOR |----> proof
-    #          |   +-----+     +------+     +-----+
-    #          |                               ^
-    #          |                               |
-    #          +-------------------------------+
-    #
-    # [MST24]: \tilde\pi = H_1(x^{\leq i} || s^\i)
-    #          \pi = \tilde \pi \xor
-    #             H_2(\pi \xor (\tilde\pi \xor t^\i \cdot \cs^\i)
+    # Compute and correct the node proof.
     #
     # Implementation note: avoid branching on the control bit here.
     node_proof = self.node_proof(next_seed, ctx, idx)
     if next_ctrl:
         node_proof = xor(node_proof, proof_cw)
-    onehot_proof = xor(
-        onehot_proof, hash_proof(ctx, xor(onehot_proof, node_proof)))
 
-    return (PrefixTreeEntry(next_seed, next_ctrl, w), onehot_proof)
+    return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
 ~~~
 
 ## Auxiliary functions {#vidpf-aux}
 
 ~~~ python
 def extend(self,
-           seed: bytes,
-           ctx: bytes,
-           nonce: bytes,
-           ) -> tuple[list[bytes], Ctrl]:
+            seed: bytes,
+            ctx: bytes,
+            nonce: bytes,
+            ) -> tuple[list[bytes], Ctrl]:
     '''
     Extend a seed into the seed and control bits for its left and
     right children in the VIDPF tree.
@@ -685,13 +683,13 @@ def convert(self,
     '''
     xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
     next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
-    payload = xof.next_vec(self.field, 1+self.VALUE_LEN)
+    payload = xof.next_vec(self.field, self.VALUE_LEN)
     return (next_seed, payload)
 
 def node_proof(self,
-               seed: bytes,
-               ctx: bytes,
-               idx: PrefixTreeIndex) -> bytes:
+                seed: bytes,
+                ctx: bytes,
+                idx: PrefixTreeIndex) -> bytes:
     '''
     Compute the proof for this node.
     '''
@@ -700,23 +698,8 @@ def node_proof(self,
         to_le_bytes(idx.level(), 2) + \
         idx.encode()
     xof = XofTurboShake128(seed,
-                           dst(ctx, USAGE_NODE_PROOF),
-                           binder)
-    return xof.next(PROOF_SIZE)
-
-def hash_proof(ctx: bytes, proof: bytes) -> bytes:
-    xof = XofTurboShake128(b'',
-                           dst(ctx, USAGE_ONEHOT_PROOF_HASH),
-                           proof)
-    return xof.next(PROOF_SIZE)
-
-
-def eval_proof(ctx: bytes,
-               onehot_proof: bytes,
-               counter_check: bytes,
-               payload_check: bytes) -> bytes:
-    binder = onehot_proof + counter_check + payload_check
-    xof = XofTurboShake128(b'', dst(ctx, USAGE_EVAL_PROOF), binder)
+                            dst(ctx, USAGE_NODE_PROOF),
+                            binder)
     return xof.next(PROOF_SIZE)
 ~~~
 
@@ -775,11 +758,11 @@ joint randomness:
 
 ~~~ python
 def shard(self,
-          ctx: bytes,
-          measurement: tuple[tuple[bool, ...], W],
-          nonce: bytes,
-          rand: bytes,
-          ) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+            ctx: bytes,
+            measurement: tuple[tuple[bool, ...], W],
+            nonce: bytes,
+            rand: bytes,
+            ) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
     if self.flp.JOINT_RAND_LEN > 0:
         return self.shard_with_joint_rand(
             ctx, measurement, nonce, rand)
@@ -804,13 +787,16 @@ def shard_without_joint_rand(
         measurement: tuple[tuple[bool, ...], W],
         nonce: bytes,
         rand: bytes,
-) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
     (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+    assert len(rand) == 0  # REMOVE ME
 
+    # Encode the inputs to VIDPF key generation. The output, denoted
+    # `beta`, is a counter concatenated with the encoded weight.
     (alpha, weight) = measurement
-    beta = self.flp.encode(weight)
+    beta = [self.field(1)] + self.flp.encode(weight)
 
     # Generate VIDPF keys.
     (correction_words, keys) = \
@@ -818,16 +804,15 @@ def shard_without_joint_rand(
 
     # Generate FLP and split it into shares.
     prove_rand = self.prove_rand(ctx, prove_rand_seed)
-    proof = self.flp.prove(beta, prove_rand, [])
+    proof = self.flp.prove(beta[1:], prove_rand, [])
     helper_proof_share = self.helper_proof_share(ctx, helper_seed)
     leader_proof_share = vec_sub(proof, helper_proof_share)
 
-    public_share = (correction_words, None)
-    input_shares = [
-        (keys[0], leader_proof_share, None),
-        (keys[1], None, helper_seed),
+    input_shares: list[MasticInputShare] = [
+        (keys[0], leader_proof_share, None, None),
+        (keys[1], None, helper_seed, None),
     ]
-    return (public_share, input_shares)
+    return (correction_words, input_shares)
 ~~~
 
 When FLP joint randomness is required, the Client must compute it from the
@@ -856,46 +841,55 @@ def shard_with_joint_rand(
         measurement: tuple[tuple[bool, ...], W],
         nonce: bytes,
         rand: bytes,
-) -> tuple[MasticPublicShare, list[MasticInputShare]]:
+) -> tuple[list[CorrectionWord], list[MasticInputShare]]:
     (vidpf_rand, rand) = front(self.vidpf.RAND_SIZE, rand)
     (prove_rand_seed, rand) = front(self.xof.SEED_SIZE, rand)
-    (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
     (helper_seed, rand) = front(self.xof.SEED_SIZE, rand)
+    (leader_seed, rand) = front(self.xof.SEED_SIZE, rand)
+    assert len(rand) == 0  # REMOVE ME
 
+    # Encode the inputs to VIDPF key generation. The output, denoted
+    # `beta`, is a counter concatenated with the encoded weight.
     (alpha, weight) = measurement
-    beta = self.flp.encode(weight)
+    beta = [self.field(1)] + self.flp.encode(weight)
 
     # Generate VIDPF keys.
     (correction_words, keys) = \
         self.vidpf.gen(alpha, beta, ctx, nonce, vidpf_rand)
 
     # Generate FLP joint randomness.
+    leader_beta_share = self.vidpf.get_beta_share(0, correction_words,
+                                                    keys[0], ctx, nonce)
+    helper_beta_share = self.vidpf.get_beta_share(1, correction_words,
+                                                    keys[1], ctx, nonce)
     joint_rand_parts = [
-        self.joint_rand_part(
-            ctx, 0, leader_seed, keys[0], correction_words, nonce),
-        self.joint_rand_part(
-            ctx, 1, helper_seed, keys[1], correction_words, nonce),
+        self.joint_rand_part(ctx, leader_seed, leader_beta_share[1:],
+                                nonce),
+        self.joint_rand_part(ctx, helper_seed, helper_beta_share[1:],
+                                nonce),
     ]
     joint_rand = self.joint_rand(
         ctx, self.joint_rand_seed(ctx, joint_rand_parts))
 
     # Generate FLP and split it into shares.
     prove_rand = self.prove_rand(ctx, prove_rand_seed)
-    proof = self.flp.prove(beta, prove_rand, joint_rand)
+    proof = self.flp.prove(beta[1:], prove_rand, joint_rand)
     helper_proof_share = self.helper_proof_share(ctx, helper_seed)
     leader_proof_share = vec_sub(proof, helper_proof_share)
 
-    public_share = (correction_words, joint_rand_parts)
+    leader_joint_rand_part: Optional[bytes] = joint_rand_parts[0]
+    helper_joint_rand_part: Optional[bytes] = joint_rand_parts[1]
     input_shares = [
-        (keys[0], leader_proof_share, leader_seed),
-        (keys[1], None, cast(Optional[bytes], helper_seed)),
+        (keys[0], leader_proof_share, leader_seed, helper_joint_rand_part),
+        (keys[1], None, cast(Optional[bytes],
+            helper_seed), leader_joint_rand_part),
     ]
-    return (public_share, input_shares)
+    return (correction_words, input_shares)
 
 def is_valid(self,
-             agg_param: MasticAggParam,
-             previous_agg_params: list[MasticAggParam],
-             ) -> bool:
+                agg_param: MasticAggParam,
+                previous_agg_params: list[MasticAggParam],
+                ) -> bool:
     (level, _prefixes, do_weight_check) = agg_param
 
     # Check that the weight check is done exactly once.
@@ -936,8 +930,8 @@ message in the next step.
 Preparation initialization involves the following steps:
 
 1. Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
-   each corresponding payload. This step also produces our share of `beta`, to be
-   used to verify the FLP, and the VIDPF proof.
+   each corresponding payload. This step also produces our share of `beta`, to
+   be used to verify the FLP, and the VIDPF proof.
 
 1. If applicable, run the FLP query generation algorithm on our share of `beta`
    and proof to obtain our FLP verifier share. If joint randomness is required,
@@ -950,6 +944,22 @@ Preparation initialization involves the following steps:
    them into a single vector of field elements. This constitutes Mastic's
    output share.
 
+Moreover, when the Aggregators evaluate a Client's VIDPF, they verify three
+properties of the prefix tree:
+
+1. One-hotness: at every level of the tree, at most one node has a non-zero
+   payload.
+
+1. Path consistency: each payload is equal to the sum of the payloads of its
+   children. If one-hotness holds, then this ensures the payload is equal to
+   `[field(1)] + beta` for each node along the `alpha` path.
+
+1. Counter consistency: the counter of the non-zero payload is equal to
+   `field(1)`.
+
+To verify one-hotness, payload consistency, and counter consistency, the
+Aggregators check that the proofs they computed are equal.
+
 The complete algorithm is listed below:
 
 ~~~ python
@@ -960,16 +970,15 @@ def prep_init(
         agg_id: int,
         agg_param: MasticAggParam,
         nonce: bytes,
-        public_share: MasticPublicShare,
+        correction_words: list[CorrectionWord],
         input_share: MasticInputShare,
 ) -> tuple[MasticPrepState, MasticPrepShare]:
     (level, prefixes, do_weight_check) = agg_param
-    (key, proof_share, seed) = \
+    (key, proof_share, seed, peer_joint_rand_part) = \
         self.expand_input_share(ctx, agg_id, input_share)
-    (correction_words, joint_rand_parts) = public_share
 
     # Evaluate the VIDPF.
-    (beta_share, out_share, eval_proof) = self.vidpf.eval(
+    (out_share, root) = self.vidpf.eval_with_siblings(
         agg_id,
         correction_words,
         key,
@@ -984,25 +993,78 @@ def prep_init(
     joint_rand_seed = None
     verifier_share = None
     if do_weight_check:
+        beta_share = self.vidpf.get_beta_share(agg_id, correction_words,
+                                                key, ctx, nonce)
         query_rand = self.query_rand(verify_key, ctx, nonce, level)
         joint_rand = []
         if self.flp.JOINT_RAND_LEN > 0:
             assert seed is not None
-            assert joint_rand_parts is not None
-            joint_rand_part = self.joint_rand_part(
-                ctx, agg_id, seed, key, correction_words, nonce)
-            joint_rand_parts[agg_id] = joint_rand_part
-            joint_rand_seed = self.joint_rand_seed(
-                ctx, joint_rand_parts)
-            joint_rand = self.joint_rand(
-                ctx, self.joint_rand_seed(ctx, joint_rand_parts))
+            assert peer_joint_rand_part is not None
+            joint_rand_part = self.joint_rand_part(ctx, seed,
+                                                    beta_share[1:], nonce)
+            if agg_id == 0:
+                joint_rand_parts = [joint_rand_part, peer_joint_rand_part]
+            else:
+                joint_rand_parts = [peer_joint_rand_part, joint_rand_part]
+            joint_rand_seed = self.joint_rand_seed(ctx, joint_rand_parts)
+            joint_rand = self.joint_rand(ctx, joint_rand_seed)
         verifier_share = self.flp.query(
-            beta_share,
+            beta_share[1:],
             proof_share,
             query_rand,
             joint_rand,
             2,
         )
+
+    # Payload and onehot checks.
+    payload_check_binder = b''
+    onehot_check_binder = b''
+    assert root.left_child is not None
+    assert root.right_child is not None
+    q = [root.left_child, root.right_child]
+    while len(q) > 0:
+        (n, q) = (q[0], q[1:])
+
+        if n.left_child is not None and n.right_child is not None:
+            # Update payload check. The weight of each node should equal
+            # the sum of its children.
+            payload_check_binder += self.field.encode_vec(
+                vec_sub(n.w, vec_add(n.left_child.w, n.right_child.w)))
+            q += [n.left_child, n.right_child]
+
+        # Update the onehot check.
+        onehot_check_binder += n.proof
+
+    payload_check = self.xof(
+        b'',
+        dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
+        payload_check_binder,
+    ).next(PROOF_SIZE)
+
+    onehot_check = self.xof(
+        b'',
+        dst_alg(ctx, USAGE_ONEHOT_CHECK, self.ID),
+        onehot_check_binder,
+    ).next(PROOF_SIZE)
+
+    # Counter check: the first element of beta should equal 1.
+    #
+    # Each aggregator holds an additive share of the counter, so
+    # we have aggregator 1 negate its share and add 1 so that they
+    # both compute the same value for `counter`.
+    w0 = root.left_child.w
+    w1 = root.right_child.w
+    counter_check = self.field.encode_vec(
+        [w0[0] + w1[0] + self.field(agg_id)])
+
+    # Evaluation proof: if both aggregators compute the same
+    # value, then they agree on the onehot proof, the counter, and
+    # the payload.
+    eval_proof = self.xof(
+        verify_key,
+        dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
+        onehot_check + counter_check + payload_check,
+    ).next(PROOF_SIZE)
 
     # Concatenate the output shares into one aggregatable output,
     # applying the FLP truncation algorithm on each FLP measurement
@@ -1046,11 +1108,11 @@ def prep_shares_to_prep(
         raise ValueError('unexpected number of prep shares')
 
     (eval_proof_0,
-     verifier_share_0,
-     joint_rand_part_0) = prep_shares[0]
+        verifier_share_0,
+        joint_rand_part_0) = prep_shares[0]
     (eval_proof_1,
-     verifier_share_1,
-     joint_rand_part_1) = prep_shares[1]
+        verifier_share_1,
+        joint_rand_part_1) = prep_shares[1]
 
     # Verify the VIDPF output.
     if eval_proof_0 != eval_proof_1:
@@ -1086,10 +1148,10 @@ aggregation parameter and joint randomness was required by the FLP:
 
 ~~~ python
 def prep_next(self,
-              _ctx: bytes,
-              prep_state: MasticPrepState,
-              prep_msg: MasticPrepMessage,
-              ) -> list[F]:
+                _ctx: bytes,
+                prep_state: MasticPrepState,
+                prep_msg: MasticPrepMessage,
+                ) -> list[F]:
     (truncated_out_share, joint_rand_seed) = prep_state
     if joint_rand_seed is not None:
         if prep_msg is None:
@@ -1117,9 +1179,9 @@ at each step:
 
 ~~~ python
 def is_valid(self,
-             agg_param: MasticAggParam,
-             previous_agg_params: list[MasticAggParam],
-             ) -> bool:
+                agg_param: MasticAggParam,
+                previous_agg_params: list[MasticAggParam],
+                ) -> bool:
     (level, _prefixes, do_weight_check) = agg_param
 
     # Check that the weight check is done exactly once.
@@ -1196,75 +1258,75 @@ def unshard(self,
 ~~~ python
 def expand_input_share(
         self,
+        ctx: bytes,
         agg_id: int,
         input_share: MasticInputShare,
-) -> tuple[bytes, list[F], Optional[bytes]]:
+) -> tuple[bytes, list[F], Optional[bytes], Optional[bytes]]:
     if agg_id == 0:
-        (key, proof_share, seed) = input_share
+        (key, proof_share, seed, peer_joint_rand_part) = input_share
         assert proof_share is not None
     else:
-        (key, _leader_proof_share, seed) = input_share
+        (key, _leader_proof_share, seed, peer_joint_rand_part) = input_share
         assert seed is not None
-        proof_share = self.helper_proof_share(seed)
-    return (key, proof_share, seed)
+        proof_share = self.helper_proof_share(ctx, seed)
+    return (key, proof_share, seed, peer_joint_rand_part)
 
-def helper_proof_share(self, seed: bytes) -> list[F]:
+def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(USAGE_PROOF_SHARE),
+        dst_alg(ctx, USAGE_PROOF_SHARE, self.ID),
         b'',
         self.flp.PROOF_LEN,
     )
 
-def prove_rand(self, seed: bytes) -> list[F]:
+def prove_rand(self, ctx: bytes, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(USAGE_PROVE_RAND),
+        dst_alg(ctx, USAGE_PROVE_RAND, self.ID),
         b'',
         self.flp.PROVE_RAND_LEN,
     )
 
 def joint_rand_part(
         self,
-        agg_id: int,
+        ctx: bytes,
         seed: bytes,
-        key: bytes,
-        correction_words: list[CorrectionWord],
+        weight_share: list[F],
         nonce: bytes,
 ) -> bytes:
-    pub = self.vidpf.encode_public_share(correction_words)
     return self.xof.derive_seed(
         seed,
-        dst(USAGE_JOINT_RAND_PART),
-        byte(agg_id) + nonce + key + pub,
+        dst_alg(ctx, USAGE_JOINT_RAND_PART, self.ID),
+        nonce + self.field.encode_vec(weight_share),
     )
 
-def joint_rand_seed(self, parts: list[bytes]) -> bytes:
+def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
     return self.xof.derive_seed(
-        zeros(self.xof.SEED_SIZE),
-        dst(USAGE_JOINT_RAND_SEED),
+        b'',
+        dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
         concat(parts),
     )
 
-def joint_rand(self, seed: bytes) -> list[F]:
+def joint_rand(self, ctx: bytes, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        dst(USAGE_JOINT_RAND),
+        dst_alg(ctx, USAGE_JOINT_RAND, self.ID),
         b'',
         self.flp.JOINT_RAND_LEN,
     )
 
 def query_rand(self,
-               verify_key: bytes,
-               nonce: bytes,
-               level: int) -> list[F]:
+                verify_key: bytes,
+                ctx: bytes,
+                nonce: bytes,
+                level: int) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         verify_key,
-        dst(USAGE_QUERY_RAND),
+        dst_alg(ctx, USAGE_QUERY_RAND, self.ID),
         nonce + to_le_bytes(level, 2),
         self.flp.QUERY_RAND_LEN,
     )
@@ -1281,14 +1343,37 @@ security analysis of Mastic is provided in {{MPDST25}}.
 
 # IANA Considerations
 
-TODO
+IANA is requested to add new identifiers to the "Verifiable Distributed
+Aggregation Functions (VDAF)" registry, that is described in {{Section 10 of
+!VDAF}}. The new entries to the VDAF Identifier registry are as follows:
+
+| Value         | Scheme                   | Type | Reference            |
+|:--------------|:-------------------------|:-----|:---------------------|
+| `0xFFFF0001`  | MasticCount              | VDAF | {{vdaf}} of RFC XXXX |
+| `0xFFFF0002`  | MasticSum                | VDAF | {{vdaf}} of RFC XXXX |
+| `0xFFFF0003`  | MasticSumVec             | VDAF | {{vdaf}} of RFC XXXX |
+| `0xFFFF0004`  | MasticHistogram          | VDAF | {{vdaf}} of RFC XXXX |
+| `0xFFFF0005`  | MasticMultihotCountVec   | VDAF | {{vdaf}} of RFC XXXX |
+{: #codepoints title="Additional codepoints for the VDAF Identifier Registry."}
+
+> TODO The codepoints in this section are from the private codepoint range and
+> are used for testing purposes. We will update this table with the codepoints
+> assigned by IANA.
+
+(RFC EDITOR: Please replace "RFC XXXX" above with the RFC number assigned to
+this document.)
 
 --- back
 
 # Acknowledgments
 {:numbered="false"}
 
-TODO
+The Network Error Logging and Attribute-Based Browser Telemetry applications
+(discussed next in section {{motivation}}) were first described to the authors by the
+PPM working group at IETF. The authors would like to thank Suleman Ahmad and
+Simon Friedberger for their help in fleshing out the details. Dimitris Mouris
+and Nektarios Georgios Tsoutsos would like to acknowledge the support of the
+National Science Foundation (Award 2239334).
 
 # Motivating Applications {#motivation}
 {:numbered="false"}
@@ -1299,41 +1384,42 @@ here.
 ## Network Error Logging {#NEL}
 {:numbered="false"}
 
-Network Error Logging (NEL) is a mechanism used by web browsers to report errors
-that occur while attempting to establish a connection to a server {{W3C23}}. Some
-of these errors are visible to the server, but not all: failures in DNS, TCP,
-TLS, and HTTP can occur without the server having any visibility into the issue.
-A small amount of connection errors is expected, even under normal operating
-conditions; but a sudden, substantial increase in errors may be an indication of
-an outage, or a configuration issue impacting millions of users. Without a
-reporting mechanism like NEL, these events would only manifest in the server's
-telemetry as a drop in overall traffic.
+Network Error Logging (NEL) is a mechanism used by web browsers to report
+errors that occur while attempting to establish a connection to a server
+{{W3C23}}. Some of these errors are visible to the server, but not all:
+failures in DNS, TCP, TLS, and HTTP can occur without the server having any
+visibility into the issue. A small amount of connection errors is expected,
+even under normal operating conditions; but a sudden, substantial increase in
+errors may be an indication of an outage, or a configuration issue impacting
+millions of users. Without a reporting mechanism like NEL, these events would
+only manifest in the server's telemetry as a drop in overall traffic.
 
 NEL is particularly important for content delivery networks that handle HTTP
 traffic for a large number of websites (typically millions). A content delivery
-network acts as a reverse proxy between clients and origin servers that provides
-a layer of caching and security services, such as DDoS protection.
+network acts as a reverse proxy between clients and origin servers that
+provides a layer of caching and security services, such as DDoS protection.
 
 Reports are comprised of the URL the client attempted to navigate to (e.g.,
-"https://example.com"), the type of error that occurred, and metadata related to
-the attempt, such as the time that elapsed between when the connection attempt
-began and the error was observed (e.g., Section 7 of {{W3C23}}). Clients may
-also report successful connection attempts to give the server a sense of the
-error rate. The exact client behavior is determined by the reporting policy
-specified by the server (see Section 5.1 of {{W3C23}}).
+"https://example.com"), the type of error that occurred, and metadata related
+to the attempt, such as the time that elapsed between when the connection
+attempt began and the error was observed (e.g., Section 7 of {{W3C23}}).
+Clients may also report successful connection attempts to give the server a
+sense of the error rate. The exact client behavior is determined by the
+reporting policy specified by the server (see Section 5.1 of {{W3C23}}).
 
 NEL data is privacy-sensitive for two reasons. First, it exposes information
-that the server would not otherwise have access to, which can be abused to probe
-the client's network configuration as described in Section 9 of {{W3C23}}.
-Second, for operational reasons, the reporting endpoint may be organizationally
-separated from the server (i.e., run on different cloud infrastructures),
-leading to an increased risk of the client's browsing history being exposed
-(e.g., in a data breach).
+that the server would not otherwise have access to, which can be abused to
+probe the client's network configuration as described in Section 9 of
+{{W3C23}}. Second, for operational reasons, the reporting endpoint may be
+organizationally separated from the server (i.e., run on different cloud
+infrastructures), leading to an increased risk of the client's browsing
+history being exposed (e.g., in a data breach).
 
-MPC helps mitigate these risks by revealing to the endpoint only the information
-it needs to fulfill its service level objectives. This means, of course, we must
-be satisfied with limited functionality. Fortunately, Mastic allows us to
-preserve the most important functionality of NEL while minimizing privacy loss.
+MPC helps mitigate these risks by revealing to the endpoint only the
+information it needs to fulfill its service level objectives. This means, of
+course, we must be satisfied with limited functionality. Fortunately, Mastic
+allows us to preserve the most important functionality of NEL while minimizing
+privacy loss.
 
 Mastic can be applied to a simplified version of NEL where each client reports
 a tuple `(dom, err)` consisting of a domain name dom (e.g., "example.com") and
@@ -1374,17 +1460,17 @@ important requirement for this system is the ability to break down the metrics
 by client attributes. Suppose for example that we want to aggregate by 1) the
 software version, and 2) the information about the client's location.
 
-Mastic provides a simple solution to this problem. For the sake of presentation,
-we consider a simplified use case (the same approach can be applied to any
-aggregation task for which Prio3 ({{Section 7 of !VDAF}}) is suitable). Each
-client reports a tuple `(ver, loc, site, time)` where: `ver` is a string
-representing the client's software version (e.g., "Browser/122.0"); `loc` is a
-string encoding its country code (e.g., "GR", "US", "IN", etc.); `site` is one
-of a fixed set of sites (e.g., "example.com", "example.org", etc.); and `time`
-is the load time of the site in seconds. The version and location are included
-in the Mastic input; the site and load time are encoded by the corresponding
-weight. Notably, this is just one example of what Mastic can do; the same idea
-can be applied to other types of metrics.
+Mastic provides a simple solution to this problem. For the sake of
+presentation, we consider a simplified use case (the same approach can be
+applied to any aggregation task for which Prio3 ({{Section 7 of !VDAF}}) is
+suitable). Each client reports a tuple `(ver, loc, site, time)` where: `ver`
+is a string representing the client's software version (e.g.,
+"Browser/122.0"); `loc` is a string encoding its country code (e.g., "GR",
+"US", "IN", etc.); `site` is one of a fixed set of sites (e.g., "example.com",
+"example.org", etc.); and `time` is the load time of the site in seconds. The
+version and location are included in the Mastic input; the site and load time
+are encoded by the corresponding weight. Notably, this is just one example of
+what Mastic can do; the same idea can be applied to other types of metrics.
 
 Compared to the private NEL application in {{NEL}}, the number of possible
 inputs here is relatively small: there are less than 200 country codes and a
@@ -1394,8 +1480,8 @@ immediately. Consider the following parameters for Mastic, in its
 attribute-based metrics mode of operation {{attribute-based-metrics}}:
 
 * Attributes: Two-letter country codes can easily be encoded in 2 bytes.
-  Likewise, the number of distinct browser versions is easily less than 2^16, so
-  2 bytes are sufficient. Therefore, each attribute can be encoded with just
+  Likewise, the number of distinct browser versions is easily less than 2^16,
+  so 2 bytes are sufficient. Therefore, each attribute can be encoded with just
   `32` bits.
 
 * Values: Similar to private NEL, each weight is a `0`-vector except for a
@@ -1412,15 +1498,15 @@ attribute-based metrics mode of operation {{attribute-based-metrics}}:
 ## Weighted Heavy-Hitters {#weighted-heavy-hitters}
 {:numbered="false"}
 
-> TODO See {{NEL}} for a motivating application and
+> NOTE See {{NEL}} for a motivating application and
 > `example_weighted_heavy_hitters_mode()` in the reference implementation for
 > an end-to-end example.
 
 The primary use case for Mastic is a variant of the heavy-hitters problem, in
-which the prefix counts are replaced with a notion of weight that is specific to
-some application. For example, when measuring the performance of an ad campaign,
-it is useful to learn not only which ads led to purchases, but how much money
-was spent.
+which the prefix counts are replaced with a notion of weight that is specific
+to some application. For example, when measuring the performance of an ad
+campaign, it is useful to learn not only which ads led to purchases, but how
+much money was spent.
 
 To support this use case, we view the Client's `alpha` value as its measurement
 and the `beta` value as the measurement's "weight". The range of valid values
@@ -1433,9 +1519,9 @@ described in {{Section 8 of !VDAF}}, except that the threshold represents a
 minimum weight rather than a minimum count. In addition:
 
 1. The Aggregators MUST perform the range check (i.e., verify the FLP) at the
-   first round of aggregation and remove any invalid reports before proceeding.
+first round of aggregation and remove any invalid reports before proceeding.
 
-1. The level at which the reports are Aggregated MUST be strictly increasing.
+2. The level at which the reports are Aggregated MUST be strictly increasing.
 
 ### Different Thresholds {#different-thresholds}
 {:numbered="false"}
@@ -1446,11 +1532,11 @@ minimum weight rather than a minimum count. In addition:
 
 So far, we have assumed that there is a single threshold for determining which
 prefixes are "heavy". However, we can easily extend this to have different
-thresholds for different prefixes. There exist use-cases where prefixes starting
-with "000" may be significantly more popular than prefixes starting with "111".
-Setting a low threshold may result in an overwhelmingly big set of heavy hitters
-starting with "000", while setting a high threshold might prune anything
-starting with "111". Consider the following examples:
+thresholds for different prefixes. There exist use-cases where prefixes
+starting with "000" may be significantly more popular than prefixes starting
+with "111". Setting a low threshold may result in an overwhelmingly big set of
+heavy hitters starting with "000", while setting a high threshold might prune
+anything starting with "111". Consider the following examples:
 
 1. Popular URLs: `a.example.com` receives a massive amount of traffic whereas
    `b.example.com` may have lower traffic. To identify heavy-hitting search
@@ -1463,18 +1549,18 @@ starting with "111". Consider the following examples:
    compared to groceries. Meanwhile, luxury items command significantly higher
    prices but generally experience lower sales volumes. To identify
    heavy-hitting grocery items on an e-commerce website, Aggregators could use
-   different threshold for each of these categories. These thresholds are set to
-   ensure that only the top-selling grocery items qualify as heavy hitters while
-   electronics and luxury items are also considered heavy hitters on their own
-   categories.
+   different threshold for each of these categories. These thresholds are set
+   to ensure that only the top-selling grocery items qualify as heavy hitters
+   while electronics and luxury items are also considered heavy hitters on
+   their own categories.
 
-To tackle this, Mastic can allow different prefixes having different thresholds.
-When a specific prefix does not have an associated threshold, we first search if
-any of its prefixes has a specified threshold, otherwise we use a default
-threshold. For example, if the Aggregators have set the thresholds to be
-`{"000": 10, "111": 2, "default": 5}` and the search for prefix "01", then
-threshold 5 should be used. However, if the Aggregators search for prefix
-"11101", then threshold 2 should be used.
+To tackle this, Mastic can allow different prefixes having different
+thresholds. When a specific prefix does not have an associated threshold, we
+first search if any of its prefixes has a specified threshold, otherwise we
+use a default threshold. For example, if the Aggregators have set the
+thresholds to be `{"000": 10, "111": 2, "default": 5}` and the search for
+prefix "01", then threshold 5 should be used. However, if the Aggregators
+search for prefix "11101", then threshold 2 should be used.
 
 ## Attribute-based Metrics {#attribute-based-metrics}
 {:numbered="false"}
@@ -1529,15 +1615,15 @@ the best case.
 
 The idea is to take advantage of the feature of VIDPF evaluation whereby the
 Aggregators compute identical VIDPF proofs if and only if the report is valid.
-This allows the proofs themselves to be aggregated: if each report in a batch of
-reports is valid, then the hash of their proofs will be equal as well; on the
-other hand, if one report is invalid, then the hash of the proofs will not be
-equal.
+This allows the proofs themselves to be aggregated: if each report in a batch
+of reports is valid, then the hash of their proofs will be equal as well; on
+the other hand, if one report is invalid, then the hash of the proofs will not
+be equal.
 
-To facilitate isolation of the invalid report(s), the proof strings are arranged
-into a Merkle tree. During aggregation, the Aggregators interactively traverse
-the tree to detect the subtree(s) containing invalid reports and remove them
-from the batch.
+To facilitate isolation of the invalid report(s), the proof strings are
+arranged into a Merkle tree. During aggregation, the Aggregators interactively
+traverse the tree to detect the subtree(s) containing invalid reports and
+remove them from the batch.
 
 > TODO Decide if we should spell this out in greater detail. This feature
 > is not compatible with {{?DAP=I-D.draft-ietf-ppm-dap-07}}; if we wanted to
@@ -1545,12 +1631,13 @@ from the batch.
 > messages exchanged between the Aggregators.
 
 In the worst case, isolating invalid reports requires `O(num_measurements *
-Vidpf.BITS)` bits of communication and `Vidpf.BITS` many rounds of communication
-between the Aggregators. However, this behavior would only be observed under
-attack conditions in which the vast majority of Clients are malicious.
+Vidpf.BITS)` bits of communication and `Vidpf.BITS` many rounds of
+communication between the Aggregators. However, this behavior would only be
+observed under attack conditions in which the vast majority of Clients are
+malicious.
 
-In the simple case where the `beta` value is a constant (e.g., 1) we can replace
-the FLP check with a simpler check. FLPs are not compatible with proof
+In the simple case where the `beta` value is a constant (e.g., 1) we can
+replace the FLP check with a simpler check. FLPs are not compatible with proof
 aggregation the way VIDPFs are. In order to perform the range check without
 FLPs, we use an extension of VIDPF described by {{MST24}}. The high-level idea
 here is that the Aggregators can evaluate the empty string and verify that they
@@ -1575,20 +1662,20 @@ weighted heavy-hitters, since it expects that each `beta` value is constant
 ## Robustness Against a Malicious Aggregator {#malicious-security-with-three-aggregators}
 {:numbered="false"}
 
-Next, we describe an enhancement that allows Mastic to achieve robustness in the
-presence of a malicious Aggregator. The two-party Mastic (as well as Poplar1) is
-susceptible to additive attacks by a malicious Aggregator. In more detail, if
-one of the Aggregators starts acting maliciously, they can arbitrarily add to
-the aggregation result (simply by adding to their own aggregation shares)
-without the honest Aggregator noticing.
+Next, we describe an enhancement that allows Mastic to achieve robustness in
+the presence of a malicious Aggregator. The two-party Mastic (as well as
+Poplar1) is susceptible to additive attacks by a malicious Aggregator. In more
+detail, if one of the Aggregators starts acting maliciously, they can
+arbitrarily add to the aggregation result (simply by adding to their own
+aggregation shares) without the honest Aggregator noticing.
 
 We can solve this problem in Mastic by using a technique from {{MST24}} that
-lifts the two-party semi-honest secure PLASMA to the three-party maliciously secure
-setting. Rather than having two Aggregators as in the previous setting, this
-flavor involves three Aggregators, where every pair of Aggregators communicate
-over a different channel. In essence, each pair of Aggregators will run one
-session of the VDAF with unique randomness but on the same Client measurement.
-The following changes are necessary:
+lifts the two-party semi-honest secure PLASMA to the three-party maliciously
+secure setting. Rather than having two Aggregators as in the previous setting,
+this flavor involves three Aggregators, where every pair of Aggregators
+communicate over a different channel. In essence, each pair of Aggregators
+will run one session of the VDAF with unique randomness but on the same Client
+measurement. The following changes are necessary:
 
 1. The Client needs to generate three pairs of VIDPF keys all corresponding to
    the same `alpha` and `beta` values. We represent the keys based on the
@@ -1618,8 +1705,8 @@ The following changes are necessary:
    2. Their output shares of Session 1 minus their output shares of Session 2
       are shares of zero.
 
-   The subtraction is a local operation and verifying that two Aggregators possess
-   a sharing of zero requires exchanging one hash.
+   The subtraction is a local operation and verifying that two Aggregators
+   possess a sharing of zero requires exchanging one hash.
 
 Using a third Aggregator, we can lift the security of Mastic from the
 semi-honest setting to malicious security. While more complex to implement than
