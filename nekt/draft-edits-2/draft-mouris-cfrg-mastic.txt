@@ -244,7 +244,7 @@ Table of Contents
           +------------------+-----------------+---------------+
           | field.encode_vec | Instance Method | Section 6.1.1 |
           +------------------+-----------------+---------------+
-          | field.zeros      | Method          | Section 6.1   |
+          | field.zeros      | Instance Method | Section 6.1   |
           +------------------+-----------------+---------------+
           | vec_add          | Function        | Section 6.1.1 |
           +------------------+-----------------+---------------+
