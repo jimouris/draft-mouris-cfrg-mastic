@@ -1641,12 +1641,12 @@ defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-
         </tbody>
       </table>
 </div>
-<p id="section-2-13">Each invocation of a XOF is initialized with a domain separation tag set to
-<code>b'mastic' + byte(VERSION) + byte(usage) + ctx</code>, where <code>ctx</code> is the
-application context string (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and <code>usage</code> is an
-integer in the range <code>[0, 255)</code>. The length of <code>ctx</code> <span class="bcp14">MUST</span> be in range
-<code>[0, 2^16 - 11)</code>. Also, <code>xof</code> instances use a seed of size <code>SEED_SIZE</code> (in
-bytes).<a href="#section-2-13" class="pilcrow">¶</a></p>
+<p id="section-2-13">Each invocation of a XOF is initialized with a domain separation tag is the
+concatenation of <code>b'mastic'</code>, <code>byte(VERSION)</code>, <code>byte(usage)</code> and <code>ctx</code>, where
+<code>ctx</code> is the application context string (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and
+<code>usage</code> is an integer in the range <code>[0, 12)</code>. The length of <code>ctx</code> <span class="bcp14">MUST</span> be in
+range <code>[0, 2^16 - 11)</code>. Also, <code>xof</code> instances use a seed of size <code>SEED_SIZE</code>
+(in bytes).<a href="#section-2-13" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-2-14.1">
           <p id="section-2-14.1.1">NOTE This range was computed by taking the maximum size of the domain
@@ -1654,11 +1654,16 @@ separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
 subtracting the length of the prefix.<a href="#section-2-14.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-2-15">For domain separation purposes, we further define the following function:<a href="#section-2-15" class="pilcrow">¶</a></p>
+<p id="section-2-15">For domain separation purposes, we further define the following functions:<a href="#section-2-15" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-2-16.1">
-          <p id="section-2-16.1.1"><code>dst(usage: int) -&gt; bytes</code> returns the domain separation tag as defined
-above.<a href="#section-2-16.1.1" class="pilcrow">¶</a></p>
+          <p id="section-2-16.1.1"><code>dst(ctx: bytes, usage: int) -&gt; bytes</code> returns the domain separation tag as
+defined above.<a href="#section-2-16.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-16.2">
+          <p id="section-2-16.2.1"><code>dst_alg(ctx: bytes, usage: int, algorithm_id: int) -&gt; bytes</code> returns a
+domain separation tag based on the above difinition that also includes an
+algorithm ID in the range <code>[0, 2^32 - 1)</code><a href="#section-2-16.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-2-17">Finally, common functionalities are defined as follows:<a href="#section-2-17" class="pilcrow">¶</a></p>

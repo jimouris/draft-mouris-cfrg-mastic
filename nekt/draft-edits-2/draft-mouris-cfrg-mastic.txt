@@ -305,21 +305,25 @@ Table of Contents
                        Table 5: XOF Functionalities.
 
    Each invocation of a XOF is initialized with a domain separation tag
-   set to b'mastic' + byte(VERSION) + byte(usage) + ctx, where ctx is
-   the application context string (see Section 4.1 of [VDAF]) and usage
-   is an integer in the range [0, 255).  The length of ctx MUST be in
-   range [0, 2^16 - 11).  Also, xof instances use a seed of size
-   SEED_SIZE (in bytes).
+   is the concatenation of b'mastic', byte(VERSION), byte(usage) and
+   ctx, where ctx is the application context string (see Section 4.1 of
+   [VDAF]) and usage is an integer in the range [0, 12).  The length of
+   ctx MUST be in range [0, 2^16 - 11).  Also, xof instances use a seed
+   of size SEED_SIZE (in bytes).
 
       NOTE This range was computed by taking the maximum size of the
       domain separation tag supported by both XofFixedKeyAes128 and
       XofTurboShake128 and subtracting the length of the prefix.
 
    For domain separation purposes, we further define the following
-   function:
+   functions:
 
-   *  dst(usage: int) -> bytes returns the domain separation tag as
-      defined above.
+   *  dst(ctx: bytes, usage: int) -> bytes returns the domain separation
+      tag as defined above.
+
+   *  dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes
+      returns a domain separation tag based on the above difinition that
+      also includes an algorithm ID in the range [0, 2^32 - 1)
 
    Finally, common functionalities are defined as follows:
 
