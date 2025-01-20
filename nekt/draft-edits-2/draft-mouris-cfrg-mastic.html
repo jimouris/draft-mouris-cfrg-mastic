@@ -1379,45 +1379,201 @@ described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</s
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
 <p id="section-2-2">This document uses the same conventions and definitions as <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-2" class="relref">Section 2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The
 following functions are as defined therein:<a href="#section-2-2" class="pilcrow">¶</a></p>
-<p id="section-2-3">| Functionality     | Type      | Definition |
-|:------------------|:----------|:-----------|
-| <code>byte</code>            | Function  | Section 2  |
-| <code>cast</code>            | Function  | Section 2  |
-| <code>concat</code>          | Function  | Section 2  |
-| <code>front</code>           | Function  | Section 2  |
-| <code>range</code>           | Function  | Section 2  |
-| <code>to_le_bytes</code>     | Function  | Section 2  |
-| <code>xor</code>             | Function  | Section 2  |
-{: #common-functions title="Common Functionalities from <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>."}<a href="#section-2-3" class="pilcrow">¶</a></p>
+<span id="name-common-functionalities"></span><div id="common-functions">
+<table class="center" id="table-1">
+        <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-common-functionalities" class="selfRef">Common Functionalities.</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Functionality</th>
+            <th class="text-left" rowspan="1" colspan="1">Type</th>
+            <th class="text-left" rowspan="1" colspan="1">Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>byte</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>cast</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>concat</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>front</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>range</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>to_le_bytes</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xor</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 2</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
 <p id="section-2-4">Mastic also uses finite fields as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. We
 usually denote a finite field by <code>F</code> and its Python class object, a subclass of
 <code>Field</code>, as <code>field: type[F]</code>.<a href="#section-2-4" class="pilcrow">¶</a></p>
 <p id="section-2-5">The following functionalities are as defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-5" class="pilcrow">¶</a></p>
-<p id="section-2-6">| Functionality       | Type            | Definition    |
-|:--------------------|:----------------|:--------------|
-| <code>Field</code>             | Constructor     | Section 6.1   |
-| <code>field.encode_vec</code>  | Instance Method | Section 6.1.1 |
-| <code>field.zeros</code>       | Method          | Section 6.1   |
-| <code>vec_add</code>           | Function        | Section 6.1.1 |
-| <code>vec_neg</code>           | Function        | Section 6.1.1 |
-| <code>vec_sub</code>           | Function        | Section 6.1.1 |
-{: #field-functionalities title="Finite Field Functionalities from <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>."}<a href="#section-2-6" class="pilcrow">¶</a></p>
+<span id="name-finite-field-functionalitie"></span><div id="field-functionalities">
+<table class="center" id="table-2">
+        <caption>
+<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#name-finite-field-functionalitie" class="selfRef">Finite Field Functionalities.</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Functionality</th>
+            <th class="text-left" rowspan="1" colspan="1">Type</th>
+            <th class="text-left" rowspan="1" colspan="1">Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>Field</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Constructor</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>field.encode_vec</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>field.zeros</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>vec_add</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>vec_neg</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>vec_sub</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Function</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1.1</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
 <p id="section-2-7">Moreover, the following algorithms of Fully Linear Proofs (FLPs) are as
 defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.1" class="relref">Section 7.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-7" class="pilcrow">¶</a></p>
-<p id="section-2-8">| Functionality   | Type  --        | Definition    |
-|:----------------|:----------------|:--------------|
-| <code>flp.decide</code>    | Instance Method | Section 7.1   |
-| <code>flp.decode</code>    | Instance Method | Section 7.1.1 |
-| <code>flp.encode</code>    | Instance Method | Section 7.1.1 |
-| <code>flp.prove</code>     | Instance Method | Section 7.1   |
-| <code>flp.query</code>     | Instance Method | Section 7.1   |
-| <code>flp.truncate</code>  | Instance Method | Section 7.1.1 |
-{: #FLP-functionalities title="FLP Functionalities from <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>."}<a href="#section-2-8" class="pilcrow">¶</a></p>
+<span id="name-flp-functionalities"></span><div id="FLP-functionalities">
+<table class="center" id="table-3">
+        <caption>
+<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#name-flp-functionalities" class="selfRef">FLP Functionalities.</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Functionality</th>
+            <th class="text-left" rowspan="1" colspan="1">Type  --</th>
+            <th class="text-left" rowspan="1" colspan="1">Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.decide</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.decode</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.encode</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.prove</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.query</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.truncate</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1.1</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
 <p id="section-2-9">The following FLP parameters are defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-9" class="pilcrow">¶</a></p>
 <span id="name-validity-circuit-parameters"></span><div id="circ-params">
-<table class="center" id="table-1">
+<table class="center" id="table-4">
         <caption>
-<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#table-4" class="selfRef">Table 4</a>:
 <a href="#name-validity-circuit-parameters" class="selfRef">Validity Circuit Parameters.</a>
         </caption>
 <thead>
@@ -1447,12 +1603,44 @@ defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-
 </div>
 <p id="section-2-11">Mastic also uses eXtendable Output Functions (XOFs) as specified in
 <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The following functionalities are as defined therein:<a href="#section-2-11" class="pilcrow">¶</a></p>
-<p id="section-2-12">| Functionality       | Type            | Definition  |
-|:--------------------|:----------------|:------------|
-| <code>XofFixedKeyAes128</code> | Constructor     | Section 6.2 |
-| <code>XofTurboShake128</code>  | Constructor     | Section 6.2 |
-| <code>xof.next</code>          | Instance Method | Section 6.2 |
-{: #XOF-functionalities title="XOF Functionalities from <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>."}<a href="#section-2-12" class="pilcrow">¶</a></p>
+<span id="name-xof-functionalities"></span><div id="XOF-functionalities">
+<table class="center" id="table-5">
+        <caption>
+<a href="#table-5" class="selfRef">Table 5</a>:
+<a href="#name-xof-functionalities" class="selfRef">XOF Functionalities.</a>
+        </caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Functionality</th>
+            <th class="text-left" rowspan="1" colspan="1">Type</th>
+            <th class="text-left" rowspan="1" colspan="1">Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>XofFixedKeyAes128</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Constructor</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>XofTurboShake128</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Constructor</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xof.next</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
 <p id="section-2-13">Each invocation of a XOF is initialized with a domain separation tag set to
 <code>b'mastic' + byte(VERSION) + byte(usage) + ctx</code>, where <code>ctx</code> is the
 application context string (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and <code>usage</code> is an
@@ -1546,9 +1734,9 @@ construction. Some details are likely to change as a result of such analysis.<a 
 </li>
       </ul>
 <span id="name-vidpf-parameters"></span><div id="vidpf-params">
-<table class="center" id="table-2">
+<table class="center" id="table-6">
         <caption>
-<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#table-6" class="selfRef">Table 6</a>:
 <a href="#name-vidpf-parameters" class="selfRef">VIDPF parameters.</a>
         </caption>
 <thead>
@@ -1613,7 +1801,7 @@ construction. Some details are likely to change as a result of such analysis.<a 
       </table>
 </div>
 <p id="section-3-3">This section specifies the Verifiable Incremental Distributed Point Function
-(VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 2</a>.<a href="#section-3-3" class="pilcrow">¶</a></p>
+(VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 6</a>.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <p id="section-3-4">VIDPF is a function secret sharing scheme <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span> for functions <code>F</code> for which:<a href="#section-3-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-5.1">
@@ -2693,9 +2881,9 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 <p id="section-6-1">IANA is requested to add new identifiers to the "Verifiable Distributed
 Aggregation Functions (VDAF)" registry, that is described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-10" class="relref">Section 10</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The new entries to the VDAF Identifier registry are as follows:<a href="#section-6-1" class="pilcrow">¶</a></p>
 <span id="name-additional-codepoints-for-t"></span><div id="codepoints">
-<table class="center" id="table-3">
+<table class="center" id="table-7">
         <caption>
-<a href="#table-3" class="selfRef">Table 3</a>:
+<a href="#table-7" class="selfRef">Table 7</a>:
 <a href="#name-additional-codepoints-for-t" class="selfRef">Additional codepoints for the VDAF Identifier Registry.</a>
         </caption>
 <thead>

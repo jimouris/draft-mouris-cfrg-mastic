@@ -210,13 +210,25 @@ Table of Contents
    This document uses the same conventions and definitions as Section 2
    of [VDAF].  The following functions are as defined therein:
 
-   | Functionality | Type |
-   Definition | |:------------------|:----------|:-----------| | byte |
-   Function | Section 2 | | cast | Function | Section 2 | | concat |
-   Function | Section 2 | | front | Function | Section 2 | | range |
-   Function | Section 2 | | to_le_bytes | Function | Section 2 | | xor |
-   Function | Section 2 | {: #common-functions title="Common
-   Functionalities from [VDAF]."}
+                 +===============+==========+============+
+                 | Functionality | Type     | Definition |
+                 +===============+==========+============+
+                 | byte          | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | cast          | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | concat        | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | front         | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | range         | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | to_le_bytes   | Function | Section 2  |
+                 +---------------+----------+------------+
+                 | xor           | Function | Section 2  |
+                 +---------------+----------+------------+
+
+                      Table 1: Common Functionalities.
 
    Mastic also uses finite fields as specified in Section 6.1 of [VDAF].
    We usually denote a finite field by F and its Python class object, a
@@ -225,25 +237,44 @@ Table of Contents
    The following functionalities are as defined in Section 6.1 of
    [VDAF]:
 
-   | Functionality | Type | Definition | |:--------------------|:-------
-   ---------|:--------------| | Field | Constructor | Section 6.1 | |
-   field.encode_vec | Instance Method | Section 6.1.1 | | field.zeros |
-   Method | Section 6.1 | | vec_add | Function | Section 6.1.1 | |
-   vec_neg | Function | Section 6.1.1 | | vec_sub | Function |
-   Section 6.1.1 | {: #field-functionalities title="Finite Field
-   Functionalities from [VDAF]."}
+          +==================+=================+===============+
+          | Functionality    | Type            | Definition    |
+          +==================+=================+===============+
+          | Field            | Constructor     | Section 6.1   |
+          +------------------+-----------------+---------------+
+          | field.encode_vec | Instance Method | Section 6.1.1 |
+          +------------------+-----------------+---------------+
+          | field.zeros      | Method          | Section 6.1   |
+          +------------------+-----------------+---------------+
+          | vec_add          | Function        | Section 6.1.1 |
+          +------------------+-----------------+---------------+
+          | vec_neg          | Function        | Section 6.1.1 |
+          +------------------+-----------------+---------------+
+          | vec_sub          | Function        | Section 6.1.1 |
+          +------------------+-----------------+---------------+
+
+                  Table 2: Finite Field Functionalities.
 
    Moreover, the following algorithms of Fully Linear Proofs (FLPs) are
    as defined in Section 7.1 of [VDAF]:
 
-   | Functionality | Type -- |
-   Definition | |:----------------|:----------------|:--------------| |
-   flp.decide | Instance Method | Section 7.1 | | flp.decode | Instance
-   Method | Section 7.1.1 | | flp.encode | Instance Method |
-   Section 7.1.1 | | flp.prove | Instance Method | Section 7.1 | |
-   flp.query | Instance Method | Section 7.1 | | flp.truncate | Instance
-   Method | Section 7.1.1 | {: #FLP-functionalities title="FLP
-   Functionalities from [VDAF]."}
+            +===============+=================+===============+
+            | Functionality | Type --         | Definition    |
+            +===============+=================+===============+
+            | flp.decide    | Instance Method | Section 7.1   |
+            +---------------+-----------------+---------------+
+            | flp.decode    | Instance Method | Section 7.1.1 |
+            +---------------+-----------------+---------------+
+            | flp.encode    | Instance Method | Section 7.1.1 |
+            +---------------+-----------------+---------------+
+            | flp.prove     | Instance Method | Section 7.1   |
+            +---------------+-----------------+---------------+
+            | flp.query     | Instance Method | Section 7.1   |
+            +---------------+-----------------+---------------+
+            | flp.truncate  | Instance Method | Section 7.1.1 |
+            +---------------+-----------------+---------------+
+
+                       Table 3: FLP Functionalities.
 
    The following FLP parameters are defined in Section 7.3.2 of [VDAF]:
 
@@ -255,17 +286,23 @@ Table of Contents
                  | OUTPUT_LEN | integer | Section 7.3.2 |
                  +------------+---------+---------------+
 
-                  Table 1: Validity Circuit Parameters.
+                  Table 4: Validity Circuit Parameters.
 
    Mastic also uses eXtendable Output Functions (XOFs) as specified in
    Section 6.2 of [VDAF].  The following functionalities are as defined
    therein:
 
-   | Functionality | Type | Definition | |:--------------------|:-------
-   ---------|:------------| | XofFixedKeyAes128 | Constructor |
-   Section 6.2 | | XofTurboShake128 | Constructor | Section 6.2 | |
-   xof.next | Instance Method | Section 6.2 | {: #XOF-functionalities
-   title="XOF Functionalities from [VDAF]."}
+           +===================+=================+=============+
+           | Functionality     | Type            | Definition  |
+           +===================+=================+=============+
+           | XofFixedKeyAes128 | Constructor     | Section 6.2 |
+           +-------------------+-----------------+-------------+
+           | XofTurboShake128  | Constructor     | Section 6.2 |
+           +-------------------+-----------------+-------------+
+           | xof.next          | Instance Method | Section 6.2 |
+           +-------------------+-----------------+-------------+
+
+                       Table 5: XOF Functionalities.
 
    Each invocation of a XOF is initialized with a domain separation tag
    set to b'mastic' + byte(VERSION) + byte(usage) + ctx, where ctx is
@@ -362,11 +399,11 @@ Table of Contents
    |             | of [VDAF])           |                             |
    +-------------+----------------------+-----------------------------+
 
-                        Table 2: VIDPF parameters.
+                        Table 6: VIDPF parameters.
 
    This section specifies the Verifiable Incremental Distributed Point
    Function (VIDPF) of [MST24].  Its parameters are summarized in
-   Table 2.
+   Table 6.
 
    VIDPF is a function secret sharing scheme [BGI15] for functions F for
    which:
@@ -1373,7 +1410,7 @@ Table of Contents
        |            |                        |      | of RFC XXXX |
        +------------+------------------------+------+-------------+
 
-          Table 3: Additional codepoints for the VDAF Identifier
+          Table 7: Additional codepoints for the VDAF Identifier
                                 Registry.
 
       TODO The codepoints in this section are from the private codepoint
