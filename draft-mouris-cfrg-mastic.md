@@ -342,10 +342,6 @@ argument is provided, an empty set is created.
 
 # Specification of VIDPF {#vidpf}
 
-> NOTE This specification is based on {{MST24}}, which in turn draws on ideas
-> from {{CP22}}. We don't yet have a concrete security analysis of the complete
-> construction. Some details are likely to change as a result of such analysis.
-
 | Parameter         | Description                                           | Value                                                      |
 |:------------------|:------------------------------------------------------|:-----------------------------------------------------------|
 | `KEY_SIZE: int`   | the size of each VIDPF key                            | `XofFixedKeyAes128.SEED_SIZE` ({{Section 6.2.2 of !VDAF}}) |
@@ -356,54 +352,55 @@ argument is provided, an empty set is created.
 | `field: type[F]`  | class object for the field ({{Section 6.1 of !VDAF}}) | set by constructor                                         |
 {: #vidpf-params title="VIDPF parameters."}
 
+> NOTE This specification is based on {{MST24}}, which in turn draws on ideas
+> from {{CP22}}. We don't yet have a concrete security analysis of the complete
+> construction. Some details are likely to change as a result of such analysis.
+
 This section specifies the Verifiable Incremental Distributed Point Function
 (VIDPF) of {{MST24}}. Its parameters are summarized in {{vidpf-params}}.
 
 VIDPF is a function secret sharing scheme {{BGI15}} for functions `F` for which:
 
-  * `F(X) = [field(1)] + beta` if `X` is a prefix of `alpha`
-  * `F(X) = field.zeros(VALUE_LEN+1)` if `x` is not a prefix of `alpha`
+  * `F(X) = `beta` if `X` is a prefix of `alpha`
+  * `F(X) = field.zeros(VALUE_LEN)` if `x` is not a prefix of `alpha`
 
-where `alpha` and `beta` are the input and encoded weight of a Client. The
-scheme is designed to allow each Aggregator to compute a share of `F(X)` for
-any candidate prefix `X` without revealing any information about `alpha` or
-`beta`. Furthermore, the output shares can be aggregated locally, allowing each
-Aggregator to compute a share of the total weight for all inputs that have `X`
-as a prefix.
+where `alpha` and `beta` are the input and encoded weight of a Client and
+`field` a the finite field. The scheme is designed to allow each Aggregator to
+compute a share of `F(X)` for any candidate prefix `X` without revealing any
+information about `alpha` or `beta`. Furthermore, the output shares can be
+aggregated locally, allowing each Aggregator to compute a share of the total
+weight for all inputs that have `X` as a prefix.
 
-Along with encoded weight `beta`, the output includes a counter prefix, denoted
-`field(1)`, so that the total weight also includes the prefix count. This
-allows for the Collector to take this into account when decoding the aggregate
-result for each prefix. This is required by {{Section 7.1.1 of !VDAF}}.
+VIDPF is comprised of two algorithms.
+
+The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
+beta)` and the report nonce and outputs secret shares of `F`. The shares take
+the form of a pair of "keys", one for each Aggregator, and a sequence of
+"correction words" sent to both Aggregators. We define correction words in the
+next section.
 
 The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
 Imagine arranging these prefixes in a binary tree where each path from the root
 corresponds to a prefix `X` and each node corresponds to a payload `F(X)`. We
 refer to this as the "prefix tree".
 
-VIDPF is comprised of two algorithms.
-
-The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
-beta)` and a nonce and outputs secret shares of `F`. The shares take the form
-of a pair of "keys", one for each Aggregator, and a sequence of "correction
-words" sent to both Aggregators. We define correction words in the next
-section.
-
 The key evaluation algorithm defined in {{vidpf-key-eval}} takes in the
-correction words, the Aggregator's key, the sequence of candidate prefixes,
-and the nonce associated with the Client's report. It outputs secret shares of
-`beta`, the share of the payload for each prefix, and a byte string known as
-the "evaluation proof".
+correction words, the Aggregator's key, the sequence of candidate prefixes, and
+the nonce associated with the Client's report. It the Aggregator's share of the
+prefix tree.
+
+> TODO Define the "node proofs".
 
 ## Key Generation {#vidpf-key-gen}
 
 The VIDPF-key generation algorithm run by each Client is listed below. The
-specification invokes auxiliary functions defined in {{vidpf-aux}}. Its inputs
-are the input string `alpha`, the encoded weight `beta`, the application
-context string `ctx` ({{Section 4.1 of !VDAF}}), a public nonce of length
-`NONCE_SIZE`, and the randomness consumed by the algorithm of length
-`RAND_SIZE`. Its outputs are the public sequence of "correction words", one for
-each level of the tree, and the secret keys, one for each Aggregator.
+specification invokes auxiliary functions, namely `extend()`, `convert()`, and
+`node_proof()`, which are defined in {{vidpf-aux}}. Its inputs are the input
+string `alpha`, the encoded weight `beta`, the application context string `ctx`
+({{Section 4.1 of !VDAF}}), a public nonce of length `NONCE_SIZE`, and the
+randomness consumed by the algorithm of length `RAND_SIZE`. Its outputs are the
+public sequence of "correction words", one for each level of the tree, and the
+secret keys, one for each Aggregator.
 
 > TODO Give a high level overview of how IDPF works, in particular the
 > seed/control-bit invariant for each level. Define `CorrectionWord` and
@@ -537,8 +534,10 @@ deferred auxiliary functions. Its inputs are the Aggregator's ID (either `0` or
 sequence of prefixes, and the nonce associated with the report. Its outputs are
 the sequence of output shares for each prefix, and the evaluation proof.
 
-> TODO Provide an overview and define `PrefixTreeIndex` and `PrefixTreeEntry`.
-> Explain how the evaluation proof is constructed.
+> TODO Define `PrefixTreeIndex` and `PrefixTreeEntry`.
+>
+> TODO Say why we also visit the siblings of nodes in the prefix tree (it's
+> needed for Mastic).
 
 ~~~ python
 def eval_with_siblings(self,
