@@ -540,6 +540,56 @@ the sequence of output shares for each prefix, and the evaluation proof.
 > needed for Mastic).
 
 ~~~ python
+def eval_next(self,
+                node: PrefixTreeEntry,
+                correction_word: CorrectionWord,
+                ctx: bytes,
+                nonce: bytes,
+                idx: PrefixTreeIndex,
+                ) -> PrefixTreeEntry:
+    """
+    Extend a node in the tree, select and correct one of its
+    children, then convert it into a payload and the next seed.
+    """
+    (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
+    keep = int(idx.path[-1])
+
+    # Extend.
+    #
+    # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+    (s, t) = self.extend(node.seed, ctx, nonce)
+
+    # Correct.
+    #
+    # Implementation note: avoid branching on the value of control
+    # bits, as its value may be leaked by a side channel.
+    if node.ctrl:
+        s[keep] = xor(s[keep], seed_cw)
+        t[keep] ^= ctrl_cw[keep]
+
+    # Convert and correct the payload.
+    #
+    # Implementation note: the conditional addition should be
+    # replaced with a constant-time select in practice in order to
+    # reduce leakage via timing side channels.
+    (next_seed, w) = self.convert(s[keep], ctx, nonce)
+    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
+    if next_ctrl:
+        w = vec_add(w, w_cw)
+
+    # Compute and correct the node proof.
+    #
+    # Implementation note: avoid branching on the control bit here.
+    node_proof = self.node_proof(next_seed, ctx, idx)
+    if next_ctrl:
+        node_proof = xor(node_proof, proof_cw)
+
+    return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
+~~~
+
+Evaluating the prefix tree, plus the sibling of each n ode in the prefix tree:
+
+~~~ python
 def eval_with_siblings(self,
                         agg_id: int,
                         correction_words: list[CorrectionWord],
@@ -589,52 +639,28 @@ def eval_with_siblings(self,
         out_share.append(n.w if agg_id == 0 else vec_neg(n.w))
 
     return (out_share, root)
+~~~
 
-def eval_next(self,
-                node: PrefixTreeEntry,
-                correction_word: CorrectionWord,
-                ctx: bytes,
-                nonce: bytes,
-                idx: PrefixTreeIndex,
-                ) -> PrefixTreeEntry:
-    """
-    Extend a node in the tree, select and correct one of its
-    children, then convert it into a payload and the next seed.
-    """
-    (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
-    keep = int(idx.path[-1])
+Obtaining our share of `beta`, the payload programmed into the prefix tree:
 
-    # Extend.
-    #
-    # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-    (s, t) = self.extend(node.seed, ctx, nonce)
-
-    # Correct.
-    #
-    # Implementation note: avoid branching on the value of control
-    # bits, as its value may be leaked by a side channel.
-    if node.ctrl:
-        s[keep] = xor(s[keep], seed_cw)
-        t[keep] ^= ctrl_cw[keep]
-
-    # Convert and correct the payload.
-    #
-    # Implementation note: the conditional addition should be
-    # replaced with a constant-time select in practice in order to
-    # reduce leakage via timing side channels.
-    (next_seed, w) = self.convert(s[keep], ctx, nonce)
-    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
-    if next_ctrl:
-        w = vec_add(w, w_cw)
-
-    # Compute and correct the node proof.
-    #
-    # Implementation note: avoid branching on the control bit here.
-    node_proof = self.node_proof(next_seed, ctx, idx)
-    if next_ctrl:
-        node_proof = xor(node_proof, proof_cw)
-
-    return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
+~~~ python
+def get_beta_share(
+        self,
+        agg_id: int,
+        correction_words: list[CorrectionWord],
+        key: bytes,
+        ctx: bytes,
+        nonce: bytes,
+) -> list[F]:
+    root = PrefixTreeEntry.root(key, bool(agg_id))
+    left = self.eval_next(root, correction_words[0], ctx, nonce,
+                          PrefixTreeIndex((False,)))
+    right = self.eval_next(root, correction_words[0], ctx, nonce,
+                           PrefixTreeIndex((True,)))
+    beta_share = vec_add(left.w, right.w)
+    if agg_id == 1:
+        beta_share = vec_neg(beta_share)
+    return beta_share
 ~~~
 
 ## Auxiliary functions {#vidpf-aux}
@@ -710,16 +736,6 @@ The aggregate result has type `list[R]`, where `R` is likewise a type defined
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.
 
-Mastic combines the VIDPF from {{vidpf}} with the FLP from {{Section 7.3 of
-!VDAF}}. An instance of Mastic is determined by a choice of length of the
-input, denoted `BITS`, and a validity circuit, an instance of `Valid` as
-defined in {{Section 7.3.2 of !VDAF}}.
-
-The validity circuit determines the type of the weights submitted by Clients,
-denoted by `W`, the total weight computed by the Collector, denoted by `R`, and
-the field ({{Section 6.1 of !VDAF}}) in which the weights are encoded and
-aggregated. The field is denoted by `F`.
-
 The VIDPF is instantiated with bit length `BITS`, value length
 `valid.MEAS_LEN`, and field `valid.field`, where `valid` is the validity
 circuit. We denote this instance of the VIDPF by `vidpf`.
@@ -739,15 +755,11 @@ size of the randomness is `vidpf.RAND_SIZE + 2 * xof.SEED_SIZE`, plus an
 additional `xof.SEED_SIZE` if the validity circuit takes joint randomness as
 input.
 
-The public share, denoted `MasticPublicShare`, is a tuple comprised of the list
-correction words generated by the VIDPF key generation algorithm and the FLP
-"joint randomness parts" (defined below) used during preparation to compute the
-joint randomness.
-
-The contents of each input share, denoted `MasticInputShare`, depends on the
-Aggregator who receives it. We refer to the first Aggregator as the "Leader";
-we refer to the second Aggregator as the "Helper". The components of the input
-share are:
+The public share is the sequence of correction words output by the VIPDF key
+generation algirthm. The contents of each input share, denoted
+`MasticInputShare`, depends on the Aggregator who receives it. We refer to the
+first Aggregator as the "Leader"; we refer to the second Aggregator as the
+"Helper". The components of the input share are:
 
 1. The Aggregator's VIDPF key share.
 
@@ -757,6 +769,10 @@ share are:
 1. An optional seed. This is always set for the Helper, who uses it to derive
    its FLP proof share. This is set for the Leader of the circuit uses joint
    randomness.
+
+1. The peer's FLP joint randomness seed, used to derive joint randomness for
+   the FLP's validity circuit. This is set for both the Leader and Helper only
+   if joint randomness is required (i.e., `flp.JOINT_RAND_LEN > 0`).
 
 The behavior of the sharding algorithm depends on whether the circuit requires
 joint randomness:
@@ -778,10 +794,19 @@ def shard(self,
 When no FLP joint randomness is required, sharding involves the following
 steps:
 
-1. Encode the weight as `beta`
-1. Generate the VIDPF correction words and keys for `alpha` and `beta`
-1. Generate the FLP proof of `beta`'s validity
-1. Compute the Leader's share of the proof
+1. Encode the weight `weight` as `beta = [field(1)] + flp.encode(weight)`. The
+   prefix `[field(1)]`, is used to count how many reports share a prefix in
+   common and is usesd during unsharding. More details in {{unsharding}}.
+1. Generate the VIDPF correction words and keys for input `alpha` and `beta` as
+   the payload.
+1. Generate the FLP proof of validity for `flp.encode(weight)`.
+1. Compute the Leader's share of the proof.
+
+> NOTE Each correction word has length `flp.MEAS_LEN`. We could save a
+> little bit of communication by truncating the weights according to
+> `flp.truncate()`. However, we still need to encode the full weight at
+> least once, either separately or at the first level of the VIDPF tree.
+> See issue \#98 for details.
 
 The complete algorithm is listed below:
 
@@ -823,26 +848,19 @@ def shard_without_joint_rand(
 When FLP joint randomness is required, the Client must compute it from the
 shares of `beta` sent to each Aggregator:
 
-1. Encode the weight as `beta`
-1. Generate the VIDPF correction words and keys for `alpha` and `beta`
-
-    > NOTE Each correction word has length `flp.MEAS_LEN`. We could save a
-    > little bit of communication by truncating the weights according to
-    > `flp.truncate()`. However, we still need to encode the full weight at
-    > least once, either separately or at the first level of the VIDPF tree.
-    > See issue \#98 for details.
-
+1. Encode the weight `weight` as `beta = [field(1)] + flp.encode(weight)`.
+1. Generate the VIDPF correction words and keys for `alpha` and `beta`.
 1. Compute each Aggregator's FLP joint randomness part by hashing its share of
-   `beta` with its FLP seed, its VIDPF key, and the VIDPF correction words
-1. Compute the FLP joint randomness seed by hashing the joint randomness parts
-1. Derive the FLP joint randomness from the joint randomness seed
+   `beta` with its FLP seed, its VIDPF key, and the VIDPF correction words.
+1. Compute the FLP joint randomness seed by hashing the joint randomness parts.
+1. Derive the FLP joint randomness from the joint randomness seed.
 1. Generate the FLP proof of `beta`'s validity using the derived joint
-   randomness
-1. Compute the Leader's share of the proof
+   randomness.
+1. Compute the Leader's share of the proof.
 
 The joint randomness is also needed to verify the FLP and must therefore be
-recomputed during preparation ({{preparation}}). The Client includes the parts
-in the public share for this purpose.
+recomputed during preparation ({{preparation}}). To accomplish this, the Client
+includes in each Aggregator's input share the joint randomness part of its peer.
 
 The complete algorithm is listed below:
 
@@ -897,24 +915,6 @@ def shard_with_joint_rand(
             helper_seed), leader_joint_rand_part),
     ]
     return (correction_words, input_shares)
-
-def is_valid(self,
-                agg_param: MasticAggParam,
-                previous_agg_params: list[MasticAggParam],
-                ) -> bool:
-    (level, _prefixes, do_weight_check) = agg_param
-
-    # Check that the weight check is done exactly once.
-    weight_checked = \
-        (do_weight_check and len(previous_agg_params) == 0) or \
-        (not do_weight_check and
-            any(agg_param[2] for agg_param in previous_agg_params))
-
-    # Check that the level is strictly increasing.
-    level_increased = len(previous_agg_params) == 0 or \
-        level > previous_agg_params[-1][0]
-
-    return weight_checked and level_increased
 ~~~
 
 ## Preparation
@@ -942,15 +942,14 @@ message in the next step.
 Preparation initialization involves the following steps:
 
 1. Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
-   each corresponding payload. This step also produces our share of `beta`, to
-   be used to verify the FLP, and the VIDPF proof.
+   the prefix tree.
 
-1. If applicable, run the FLP query generation algorithm on our share of `beta`
-   and proof to obtain our FLP verifier share. If joint randomness is required,
-   then compute our joint randomness part and derive the joint randomness seed
-   using our co-Aggregator's part provided by the Client. Note that the Client
-   may have provided the wrong part, so we need to check that the seed was
-   computed correctly before completing preparation.
+1. If applicable, run the FLP query generation algorithm on our share of the
+   encoded weight to obtain our FLP verifier share. If joint randomness is
+   required, then compute our joint randomness part and derive the joint
+   randomness seed using our peer Aggregator's part provided by the Client.
+   Note that the Client may have provided the wrong part, so we need to check
+   that the seed was computed correctly before completing preparation.
 
 1. Truncate each payload share according to the FLP encoding scheme and flatten
    them into a single vector of field elements. This constitutes Mastic's
@@ -962,15 +961,14 @@ properties of the prefix tree:
 1. One-hotness: at every level of the tree, at most one node has a non-zero
    payload.
 
-1. Path consistency: each payload is equal to the sum of the payloads of its
+1. Payload consistency: each payload is equal to the sum of the payloads of its
    children. If one-hotness holds, then this ensures the payload is equal to
-   `[field(1)] + beta` for each node along the `alpha` path.
+   `beta` for each node along the `alpha` path.
 
 1. Counter consistency: the counter of the non-zero payload is equal to
    `field(1)`.
 
-To verify one-hotness, payload consistency, and counter consistency, the
-Aggregators check that the proofs they computed are equal.
+> TODO Define the "evaluation proof".
 
 The complete algorithm is listed below:
 
@@ -1120,11 +1118,11 @@ def prep_shares_to_prep(
         raise ValueError('unexpected number of prep shares')
 
     (eval_proof_0,
-        verifier_share_0,
-        joint_rand_part_0) = prep_shares[0]
+     verifier_share_0,
+     joint_rand_part_0) = prep_shares[0]
     (eval_proof_1,
-        verifier_share_1,
-        joint_rand_part_1) = prep_shares[1]
+     verifier_share_1,
+     joint_rand_part_1) = prep_shares[1]
 
     # Verify the VIDPF output.
     if eval_proof_0 != eval_proof_1:
@@ -1331,10 +1329,10 @@ def joint_rand(self, ctx: bytes, seed: bytes) -> list[F]:
     )
 
 def query_rand(self,
-                verify_key: bytes,
-                ctx: bytes,
-                nonce: bytes,
-                level: int) -> list[F]:
+               verify_key: bytes,
+               ctx: bytes,
+               nonce: bytes,
+               level: int) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         verify_key,
