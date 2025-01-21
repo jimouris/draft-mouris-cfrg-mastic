@@ -1711,13 +1711,6 @@ argument is provided, an empty set is created.<a href="#section-2-19.7.1" class=
       <h2 id="name-specification-of-vidpf">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-specification-of-vidpf" class="section-name selfRef">Specification of VIDPF</a>
       </h2>
-<ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-3-1.1">
-          <p id="section-3-1.1.1">NOTE This specification is based on <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>, which in turn draws on ideas
-from <span>[<a href="#CP22" class="cite xref">CP22</a>]</span>. We don't yet have a concrete security analysis of the complete
-construction. Some details are likely to change as a result of such analysis.<a href="#section-3-1.1.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
 <span id="name-vidpf-parameters"></span><div id="vidpf-params">
 <table class="center" id="table-5">
         <caption>
@@ -1785,54 +1778,62 @@ construction. Some details are likely to change as a result of such analysis.<a 
         </tbody>
       </table>
 </div>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-3-2.1">
+          <p id="section-3-2.1.1">NOTE This specification is based on <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>, which in turn draws on ideas
+from <span>[<a href="#CP22" class="cite xref">CP22</a>]</span>. We don't yet have a concrete security analysis of the complete
+construction. Some details are likely to change as a result of such analysis.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 <p id="section-3-3">This section specifies the Verifiable Incremental Distributed Point Function
 (VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. Its parameters are summarized in <a href="#vidpf-params" class="auto internal xref">Table 5</a>.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <p id="section-3-4">VIDPF is a function secret sharing scheme <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span> for functions <code>F</code> for which:<a href="#section-3-4" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-5.1">
-          <p id="section-3-5.1.1"><code>F(X) = [field(1)] + beta</code> if <code>X</code> is a prefix of <code>alpha</code><a href="#section-3-5.1.1" class="pilcrow">¶</a></p>
+          <p id="section-3-5.1.1"><code>F(X) = </code>beta<code> if </code>X<code> is a prefix of </code>alpha`<a href="#section-3-5.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-5.2">
-          <p id="section-3-5.2.1"><code>F(X) = field.zeros(VALUE_LEN+1)</code> if <code>x</code> is not a prefix of <code>alpha</code><a href="#section-3-5.2.1" class="pilcrow">¶</a></p>
+          <p id="section-3-5.2.1"><code>F(X) = field.zeros(VALUE_LEN)</code> if <code>x</code> is not a prefix of <code>alpha</code><a href="#section-3-5.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-3-6">where <code>alpha</code> and <code>beta</code> are the input and encoded weight of a Client. The
-scheme is designed to allow each Aggregator to compute a share of <code>F(X)</code> for
-any candidate prefix <code>X</code> without revealing any information about <code>alpha</code> or
-<code>beta</code>. Furthermore, the output shares can be aggregated locally, allowing each
-Aggregator to compute a share of the total weight for all inputs that have <code>X</code>
-as a prefix.<a href="#section-3-6" class="pilcrow">¶</a></p>
-<p id="section-3-7">Along with encoded weight <code>beta</code>, the output includes a counter prefix, denoted
-<code>field(1)</code>, so that the total weight also includes the prefix count. This
-allows for the Collector to take this into account when decoding the aggregate
-result for each prefix. This is required by <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.1.1" class="relref">Section 7.1.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
+<p id="section-3-6">where <code>alpha</code> and <code>beta</code> are the input and encoded weight of a Client and
+<code>field</code> a the finite field. The scheme is designed to allow each Aggregator to
+compute a share of <code>F(X)</code> for any candidate prefix <code>X</code> without revealing any
+information about <code>alpha</code> or <code>beta</code>. Furthermore, the output shares can be
+aggregated locally, allowing each Aggregator to compute a share of the total
+weight for all inputs that have <code>X</code> as a prefix.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">VIDPF is comprised of two algorithms.<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">The key generation algorithm defined in <a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a> takes in a <code>(alpha,
+beta)</code> and the report nonce and outputs secret shares of <code>F</code>. The shares take
+the form of a pair of "keys", one for each Aggregator, and a sequence of
+"correction words" sent to both Aggregators. We define correction words in the
+next section.<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-9">The Aggregators evaluate a Client's VIDPF on a sequence of candidate prefixes.
 Imagine arranging these prefixes in a binary tree where each path from the root
 corresponds to a prefix <code>X</code> and each node corresponds to a payload <code>F(X)</code>. We
-refer to this as the "prefix tree".<a href="#section-3-8" class="pilcrow">¶</a></p>
-<p id="section-3-9">VIDPF is comprised of two algorithms.<a href="#section-3-9" class="pilcrow">¶</a></p>
-<p id="section-3-10">The key generation algorithm defined in <a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a> takes in a <code>(alpha,
-beta)</code> and a nonce and outputs secret shares of <code>F</code>. The shares take the form
-of a pair of "keys", one for each Aggregator, and a sequence of "correction
-words" sent to both Aggregators. We define correction words in the next
-section.<a href="#section-3-10" class="pilcrow">¶</a></p>
-<p id="section-3-11">The key evaluation algorithm defined in <a href="#vidpf-key-eval" class="auto internal xref">Section 3.2</a> takes in the
-correction words, the Aggregator's key, the sequence of candidate prefixes,
-and the nonce associated with the Client's report. It outputs secret shares of
-<code>beta</code>, the share of the payload for each prefix, and a byte string known as
-the "evaluation proof".<a href="#section-3-11" class="pilcrow">¶</a></p>
+refer to this as the "prefix tree".<a href="#section-3-9" class="pilcrow">¶</a></p>
+<p id="section-3-10">The key evaluation algorithm defined in <a href="#vidpf-key-eval" class="auto internal xref">Section 3.2</a> takes in the
+correction words, the Aggregator's key, the sequence of candidate prefixes, and
+the nonce associated with the Client's report. It the Aggregator's share of the
+prefix tree.<a href="#section-3-10" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-3-11.1">
+          <p id="section-3-11.1.1">TODO Define the "node proofs".<a href="#section-3-11.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 <div id="vidpf-key-gen">
 <section id="section-3.1">
         <h3 id="name-key-generation">
 <a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-key-generation" class="section-name selfRef">Key Generation</a>
         </h3>
 <p id="section-3.1-1">The VIDPF-key generation algorithm run by each Client is listed below. The
-specification invokes auxiliary functions defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs
-are the input string <code>alpha</code>, the encoded weight <code>beta</code>, the application
-context string <code>ctx</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length
-<code>NONCE_SIZE</code>, and the randomness consumed by the algorithm of length
-<code>RAND_SIZE</code>. Its outputs are the public sequence of "correction words", one for
-each level of the tree, and the secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+specification invokes auxiliary functions, namely <code>extend()</code>, <code>convert()</code>, and
+<code>node_proof()</code>, which are defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs are the input
+string <code>alpha</code>, the encoded weight <code>beta</code>, the application context string <code>ctx</code>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length <code>NONCE_SIZE</code>, and the
+randomness consumed by the algorithm of length <code>RAND_SIZE</code>. Its outputs are the
+public sequence of "correction words", one for each level of the tree, and the
+secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-3.1-2.1">
             <p id="section-3.1-2.1.1">TODO Give a high level overview of how IDPF works, in particular the
@@ -1973,8 +1974,9 @@ sequence of prefixes, and the nonce associated with the report. Its outputs are
 the sequence of output shares for each prefix, and the evaluation proof.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-3.2-2.1">
-            <p id="section-3.2-2.1.1">TODO Provide an overview and define <code>PrefixTreeIndex</code> and <code>PrefixTreeEntry</code>.
-Explain how the evaluation proof is constructed.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.1.1">TODO Define <code>PrefixTreeIndex</code> and <code>PrefixTreeEntry</code>.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2.1.2">TODO Say why we also visit the siblings of nodes in the prefix tree (it's
+needed for Mastic).<a href="#section-3.2-2.1.2" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <div class="breakable lang-python sourcecode" id="section-3.2-3">
