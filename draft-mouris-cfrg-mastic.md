@@ -180,13 +180,13 @@ The main component of Mastic is the Verifiable Incremental Distributed Point
 Function (VIDPF) of {{MST24}}. VIDPF extends IDPF ({{Section 8.3 of !VDAF}}),
 the main building block of Poplar1. Both IDPF and VIDPF are a form of function
 secret sharing {{BGI15}}, where a client generates shares of a secret function
-`F` such that each server can computes shares of `F(X)` for a chosen `X`. In
-our case, the function being shared is associated with a secret input string
-`alpha` and weight `beta` for which `F(X) = beta` for every prefix `X` of
-`alpha` and `F(X) = 0` for every `X` this is not a prefix of `alpha`. The
-scheme is verifiable in the sense that, for any two candidate prefixes of the
-same length, the servers can verify that at most one of them evaluates to
-`beta` and the other(s) evaluate(s) to `0`.
+`F` such that each server can compute shares of `F(X)` for a chosen `X`. In our
+case, the function being shared is associated with a secret input string `alpha`
+and weight `beta` for which `F(X) = beta` for every prefix `X` of `alpha` and
+`F(X) = 0` for every `X` this is not a prefix of `alpha`. The scheme is
+verifiable in the sense that, for any two candidate prefixes of the same length,
+the servers can verify that at most one of them evaluates to `beta` and the
+other(s) evaluate(s) to `0`.
 
 Mastic combines VIDPF with a method for checking that `beta` itself is a valid
 weight. For example, if the weights represent page load times, it is important
@@ -250,7 +250,7 @@ The following functions are as defined therein:
 Mastic also uses finite fields as specified in {{Section 6.1 of !VDAF}}. We
 usually denote a finite field by `F` and its Python class object, a subclass of
 `Field`, as `field: type[F]`. This document references the following operations
-on fields,  defined in {{Section 6.1 of !VDAF}}:
+on fields, defined in {{Section 6.1 of !VDAF}}:
 
 | Functionality       | Type            | Definition    |
 |:--------------------|:----------------|:--------------|
@@ -314,15 +314,14 @@ def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
         + ctx
 ~~~
 
-When using Mastic or VIDPF, the length of the appication context string
+When using Mastic or VIDPF, the length of the application context string
 (denoted `ctx`) MUST be in range `[0, 2^16 - 12)`.
 
 > NOTE This range was computed by taking the maximum size of the domain
 > separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
 > subtracting the length of the prefix.
 
-Finally, for completeness, we define some some Python methods used in the
-remainder:
+Finally, for completeness, we define some Python methods used in the remainder:
 
 * `bool(val: Any) -> bool` converts a value `val` to a Boolean.
 * `bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) ->
@@ -365,13 +364,13 @@ VIDPF is a function secret sharing scheme {{BGI15}} for functions `F` for which:
   * `F(X) = field.zeros(VALUE_LEN)` if `x` is not a prefix of `alpha`
 
 where `alpha` and `beta` are the input and encoded weight of a Client and
-`field` a the finite field. The scheme is designed to allow each Aggregator to
+`field` the finite field. The scheme is designed to allow each Aggregator to
 compute a share of `F(X)` for any candidate prefix `X` without revealing any
 information about `alpha` or `beta`. Furthermore, the output shares can be
 aggregated locally, allowing each Aggregator to compute a share of the total
 weight for all inputs that have `X` as a prefix.
 
-VIDPF is comprised of two algorithms.
+VIDPF comprises two algorithms.
 
 The key generation algorithm defined in {{vidpf-key-gen}} takes in a `(alpha,
 beta)` and the report nonce and outputs secret shares of `F`. The shares take
@@ -744,7 +743,7 @@ In the remainder, we write `xof` as shorthand for `XofTurboShake128` ({{Section
 6.2.1 of !VDAF}}).
 
 Mastic's implementation of the VDAF interface ({{Section 5 of !VDAF}}) is
-sepcified in the following sections. {{mastic-aux}} defines some auxiliary
+specified in the following sections. {{mastic-aux}} defines some auxiliary
 functions referenced in the sharding and preparation sections.
 
 ## Sharding
@@ -756,7 +755,7 @@ additional `xof.SEED_SIZE` if the validity circuit takes joint randomness as
 input.
 
 The public share is the sequence of correction words output by the VIPDF key
-generation algirthm. The contents of each input share, denoted
+generation algorithm. The contents of each input share, denoted
 `MasticInputShare`, depends on the Aggregator who receives it. We refer to the
 first Aggregator as the "Leader"; we refer to the second Aggregator as the
 "Helper". The components of the input share are:
@@ -1242,8 +1241,8 @@ one of the prefixes. To compute it:
 1. Add up the aggregate shares.
 
 1. For each prefix, decode the corresponding vector chunk using the FLP's
-   decoding algorithm ({{Section 7.1.1 of !VDAF}}). This requires the
-   the prefix count, which is also encoded by the chunk.
+   decoding algorithm ({{Section 7.1.1 of !VDAF}}). This requires the prefix
+   count, which is also encoded by the chunk.
 
 The complete algorithm is listed below:
 
@@ -1348,7 +1347,7 @@ Mastic inherits its security considerations from {{Section 9 of !VDAF}}. A
 security analysis of Mastic is provided in {{MPDST25}}.
 
 > TODO Contrast with Poplar1, especially {{Section 9.4.2 of !VDAF}} ("Safe
-> Usage of IDPF Outputs"). In particular it's perfectly safe to use Mastic's
+> Usage of IDPF Outputs"). In particular, it's perfectly safe to use Mastic's
 > intermediate outputs.
 
 # IANA Considerations
