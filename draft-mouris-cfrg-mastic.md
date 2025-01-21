@@ -119,13 +119,13 @@ informative:
 --- abstract
 
 This document describes Mastic, a two-party VDAF for the following secure
-aggregation task: each client holds an input and an associated weight, and the
-data collector wants to aggregate the weights of all clients whose inputs begin
-with a prefix chosen by the data collector. This functionality enables two
-classes of applications. First, it allows grouping metrics by client attributes
-without revealing which clients have which attributes. Second, it solves the
-weighted heavy hitters problem, where the goal is to compute the subset of
-inputs that have the highest total weight.
+aggregation task: each client holds an input string and an associated weight,
+and the data collector wants to aggregate the weights of all clients whose
+inputs begin with a prefix chosen by the data collector. This functionality
+enables two classes of applications. First, it allows grouping metrics by
+client attributes without revealing which clients have which attributes.
+Second, it solves the weighted heavy hitters problem, where the goal is to
+compute the subset of inputs that have the highest total weight.
 
 --- middle
 
@@ -192,14 +192,15 @@ Mastic combines VIDPF with a method for checking that `beta` itself is a valid
 weight. For example, if the weights represent page load times, it is important
 to make sure each weight is within a sensible range, say within seconds rather
 than hours or days. Otherwise, misbehaving clients would be able to poison the
-computation by reporting out of range values. This range check is accomplished
-with the Fully Linear Proof (FLP) system of {{Section 7.3 of !VDAF}}. An FLP
-allows properties of secret shared data to be validated without revealing the
-data itself. In Mastic, the client generates an FLP of its `beta`'s validity;
-when the servers are ready to evaluate the VIDPF, they first compute shares of
-`beta` and verify the FLP, which itself is secret shared. Then the VIDPF
-ensures that the non-`0` output of the point function is the same for each
-evaluation.
+computation by reporting out of range values.
+
+This range check is accomplished with the Fully Linear Proof (FLP) system of
+{{Section 7.3 of !VDAF}}. An FLP allows properties of secret shared data to be
+validated without revealing the data itself. In Mastic, the client generates an
+FLP of its `beta`'s validity; when the servers are ready to evaluate the VIDPF,
+they first compute shares of `beta` and verify the FLP, which itself is secret
+shared. Then the VIDPF ensures that the non-`0` output of the point function is
+the same for each evaluation.
 
 This document specifies VIDPF in {{vidpf}} and the composition of VIDPF and FLP
 into Mastic in {{vidpf}}. The appendix includes supplementary material:
@@ -217,8 +218,23 @@ functionality.
 
 {::boilerplate bcp14-tagged}
 
-This document uses the same conventions and definitions as {{Section 2 of !VDAF}}. The
-following functions are as defined therein:
+This document uses the same conventions and definitions as {{Section 2 of
+!VDAF}}. The following terms as defined in therein:
+"Aggregator",
+"Client",
+"Collector",
+"aggregate result",
+"aggregate share",
+"aggregation parameter",
+"batch",
+"input share",
+"measurement",
+"output share",
+"prep message",
+"prep share", and
+"report".
+
+The following functions are as defined therein:
 
 | Functionality     | Type      | Definition |
 |:------------------|:----------|:-----------|
@@ -233,9 +249,8 @@ following functions are as defined therein:
 
 Mastic also uses finite fields as specified in {{Section 6.1 of !VDAF}}. We
 usually denote a finite field by `F` and its Python class object, a subclass of
-`Field`, as `field: type[F]`.
-
-The following functionalities are as defined in {{Section 6.1 of !VDAF}}:
+`Field`, as `field: type[F]`. This document references the following operations
+on fields,  defined in {{Section 6.1 of !VDAF}}:
 
 | Functionality       | Type            | Definition    |
 |:--------------------|:----------------|:--------------|
@@ -247,9 +262,9 @@ The following functionalities are as defined in {{Section 6.1 of !VDAF}}:
 | `vec_sub`           | Function        | Section 6.1.1 |
 {: #field-functionalities title="Finite Field Functionalities."}
 
-
-Moreover, the following algorithms of Fully Linear Proofs (FLPs) are as
-defined in {{Section 7.1 of !VDAF}}:
+Mastic uses the Fully Linear Proof (FLP) system specified in {{Section 7.3 of
+!VDAF}}. The draft refers to the following methods on an instance `flp` of the
+class `Flp` defined in {{!VDAF}}:
 
 | Functionality   | Type  --        | Definition    |
 |:----------------|:----------------|:--------------|
@@ -259,18 +274,13 @@ defined in {{Section 7.1 of !VDAF}}:
 | `flp.prove`     | Instance Method | Section 7.1   |
 | `flp.query`     | Instance Method | Section 7.1   |
 | `flp.truncate`  | Instance Method | Section 7.1.1 |
-{: #FLP-functionalities title="FLP Functionalities."}
+| `MEAS_LEN`      | integer         | Section 7.3.2 |
+| `OUTPUT_LEN`    | integer         | Section 7.3.2 |
+{: #FLP-functionalities title="FLP methods and parameters."}
 
-The following FLP parameters are defined in {{Section 7.3.2 of !VDAF}}:
-
-| Parameter     | Type      | Definition    |
-|:--------------|:----------|:--------------|
-| `MEAS_LEN`    | integer   | Section 7.3.2 |
-| `OUTPUT_LEN`  | integer   | Section 7.3.2 |
-{: #circ-params title="Validity Circuit Parameters."}
-
-Mastic also uses eXtendable Output Functions (XOFs) as specified in
-{{Section 6.2 of !VDAF}}. The following functionalities are as defined therein:
+Mastic also uses eXtendable Output Functions (XOFs) as specified in {{Section
+6.2 of !VDAF}}. The following functionalities are as defined therein (`xof`
+denotes an instance of class `Xof`):
 
 | Functionality       | Type            | Definition  |
 |:--------------------|:----------------|:------------|
@@ -279,26 +289,40 @@ Mastic also uses eXtendable Output Functions (XOFs) as specified in
 | `xof.next`          | Instance Method | Section 6.2 |
 {: #XOF-functionalities title="XOF Functionalities."}
 
-Each invocation of a XOF is initialized with a domain separation tag is the
-concatenation of `b'mastic'`, `byte(VERSION)`, `byte(usage)` and `ctx`, where
-`ctx` is the application context string (see {{Section 4.1 of !VDAF}}) and
-`usage` is an integer in the range `[0, 12)`. The length of `ctx` MUST be in
-range `[0, 2^16 - 11)`. Also, `xof` instances use a seed of size `SEED_SIZE`
-(in bytes).
+Each invocation of a XOF is initialized with a domain separation tag. Each
+domain separation tag encodes the version of this document, the application
+context string ({{Section 4.1 of !VDAF}}), and a distinguished byte identifying
+how the XOF output is used. The tag may also encode a VDAF algorithm ID
+({{Section 5 of !VDAF}}).
+
+The version of this document is a byte denoted `VERSION`. Its value SHALL be `0`.
+
+> NOTE We'll bump `VERSION` whenever we publish a draft with incompatible
+> changes from the previous draft.
+
+Algorithms in the remainder will use the following algorithms:
+
+~~~ python
+def dst(ctx: bytes, usage: int) -> bytes:
+    return b'mastic' + byte(VERSION) + byte(usage) + ctx
+
+def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
+    return b'mastic'\
+        + byte(VERSION) \
+        + byte(usage) \
+        + to_be_bytes(algorithm_id, 4) \
+        + ctx
+~~~
+
+When using Mastic or VIDPF, the length of the appication context string
+(denoted `ctx`) MUST be in range `[0, 2^16 - 12)`.
 
 > NOTE This range was computed by taking the maximum size of the domain
 > separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
 > subtracting the length of the prefix.
 
-For domain separation purposes, we further define the following functions:
-
-* `dst(ctx: bytes, usage: int) -> bytes` returns the domain separation tag as
-defined above.
-* `dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes` returns a
-domain separation tag based on the above difinition that also includes an
-algorithm ID in the range `[0, 2^32 - 1)`
-
-Finally, common functionalities are defined as follows:
+Finally, for completeness, we define some some Python methods used in the
+remainder:
 
 * `bool(val: Any) -> bool` converts a value `val` to a Boolean.
 * `bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) ->
@@ -315,39 +339,6 @@ a `list` instance.
 which is an unordered collection of unique elements. The optional `iterable`
 argument (e.g., list, tuple, or string) is used to initialize the set. If no
 argument is provided, an empty set is created.
-
-
-This document uses the following terms as defined in {{!VDAF}}:
-"Aggregator",
-"Client",
-"Collector",
-"aggregate result",
-"aggregate share",
-"aggregation parameter",
-"batch",
-"input share",
-"measurement",
-"output share",
-"prep message",
-"prep share", and
-"report".
-
-
-An instance of Mastic is determined by a desired bit-length of the input,
-denoted `BITS`, and a validity circuit, an instance of `Valid` as defined in
-{{Section 7.3.2 of !VDAF}}. The validity circuit is used to instantiate the FLP
-and defines the type of the weights generated by Clients and the type of the
-total weight for each prefix computed by the Collector.
-
-The Client's measurement has two components: the input string `alpha:
-tuple[bool, ...]` of length `BITS` and its weight. The weight's type is denoted
-by `W`. We use `beta: list[F]` to denote the encoded weight, obtained by
-invoking the FLP's encoder ({{Section 7.1.1 of !VDAF}}).
-
-The aggregate result has type `list[R]`, where `R` is likewise a type defined
-by the validity circuit. Each element of this list corresponds to the total
-weight for one of the candidate prefixes.
-
 
 # Specification of VIDPF {#vidpf}
 
@@ -704,6 +695,21 @@ def node_proof(self,
 ~~~
 
 # Specification of Mastic {#vdaf}
+
+An instance of Mastic is determined by a desired bit-length of the input,
+denoted `BITS`, and a validity circuit, an instance of `Valid` as defined in
+{{Section 7.3.2 of !VDAF}}. The validity circuit is used to instantiate the FLP
+and defines the type of the weights generated by Clients and the type of the
+total weight for each prefix computed by the Collector.
+
+The Client's measurement has two components: the input string `alpha:
+tuple[bool, ...]` of length `BITS` and its weight. The weight's type is denoted
+by `W`. We use `beta: list[F]` to denote the encoded weight, obtained by
+invoking the FLP's encoder ({{Section 7.1.1 of !VDAF}}).
+
+The aggregate result has type `list[R]`, where `R` is likewise a type defined
+by the validity circuit. Each element of this list corresponds to the total
+weight for one of the candidate prefixes.
 
 Mastic combines the VIDPF from {{vidpf}} with the FLP from {{Section 7.3 of
 !VDAF}}. An instance of Mastic is determined by a choice of length of the
