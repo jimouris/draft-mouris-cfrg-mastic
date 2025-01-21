@@ -1979,7 +1979,57 @@ the sequence of output shares for each prefix, and the evaluation proof.<a href=
 needed for Mastic).<a href="#section-3.2-2.1.2" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<div class="breakable lang-python sourcecode" id="section-3.2-3">
+<div class="lang-python sourcecode" id="section-3.2-3">
+<pre>
+def eval_next(self,
+                node: PrefixTreeEntry,
+                correction_word: CorrectionWord,
+                ctx: bytes,
+                nonce: bytes,
+                idx: PrefixTreeIndex,
+                ) -&gt; PrefixTreeEntry:
+    """
+    Extend a node in the tree, select and correct one of its
+    children, then convert it into a payload and the next seed.
+    """
+    (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
+    keep = int(idx.path[-1])
+
+    # Extend.
+    #
+    # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
+    (s, t) = self.extend(node.seed, ctx, nonce)
+
+    # Correct.
+    #
+    # Implementation note: avoid branching on the value of control
+    # bits, as its value may be leaked by a side channel.
+    if node.ctrl:
+        s[keep] = xor(s[keep], seed_cw)
+        t[keep] ^= ctrl_cw[keep]
+
+    # Convert and correct the payload.
+    #
+    # Implementation note: the conditional addition should be
+    # replaced with a constant-time select in practice in order to
+    # reduce leakage via timing side channels.
+    (next_seed, w) = self.convert(s[keep], ctx, nonce)
+    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
+    if next_ctrl:
+        w = vec_add(w, w_cw)
+
+    # Compute and correct the node proof.
+    #
+    # Implementation note: avoid branching on the control bit here.
+    node_proof = self.node_proof(next_seed, ctx, idx)
+    if next_ctrl:
+        node_proof = xor(node_proof, proof_cw)
+
+    return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
+</pre><a href="#section-3.2-3" class="pilcrow">¶</a>
+</div>
+<p id="section-3.2-4">Evaluating the prefix tree, plus the sibling of each n ode in the prefix tree:<a href="#section-3.2-4" class="pilcrow">¶</a></p>
+<div class="breakable lang-python sourcecode" id="section-3.2-5">
 <pre>
 def eval_with_siblings(self,
                         agg_id: int,
@@ -2030,53 +2080,29 @@ def eval_with_siblings(self,
         out_share.append(n.w if agg_id == 0 else vec_neg(n.w))
 
     return (out_share, root)
-
-def eval_next(self,
-                node: PrefixTreeEntry,
-                correction_word: CorrectionWord,
-                ctx: bytes,
-                nonce: bytes,
-                idx: PrefixTreeIndex,
-                ) -&gt; PrefixTreeEntry:
-    """
-    Extend a node in the tree, select and correct one of its
-    children, then convert it into a payload and the next seed.
-    """
-    (seed_cw, ctrl_cw, w_cw, proof_cw) = correction_word
-    keep = int(idx.path[-1])
-
-    # Extend.
-    #
-    # [MST24, Fig. 17]: (s^L, s^R), (t^L, t^R) = PRG(s^{i-1})
-    (s, t) = self.extend(node.seed, ctx, nonce)
-
-    # Correct.
-    #
-    # Implementation note: avoid branching on the value of control
-    # bits, as its value may be leaked by a side channel.
-    if node.ctrl:
-        s[keep] = xor(s[keep], seed_cw)
-        t[keep] ^= ctrl_cw[keep]
-
-    # Convert and correct the payload.
-    #
-    # Implementation note: the conditional addition should be
-    # replaced with a constant-time select in practice in order to
-    # reduce leakage via timing side channels.
-    (next_seed, w) = self.convert(s[keep], ctx, nonce)
-    next_ctrl = t[keep]  # [MST24]: s^i, W^i, t'^i
-    if next_ctrl:
-        w = vec_add(w, w_cw)
-
-    # Compute and correct the node proof.
-    #
-    # Implementation note: avoid branching on the control bit here.
-    node_proof = self.node_proof(next_seed, ctx, idx)
-    if next_ctrl:
-        node_proof = xor(node_proof, proof_cw)
-
-    return PrefixTreeEntry(next_seed, next_ctrl, w, node_proof)
-</pre><a href="#section-3.2-3" class="pilcrow">¶</a>
+</pre><a href="#section-3.2-5" class="pilcrow">¶</a>
+</div>
+<p id="section-3.2-6">Obtaining our share of <code>beta</code>, the payload programmed into the prefix tree:<a href="#section-3.2-6" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-3.2-7">
+<pre>
+def get_beta_share(
+        self,
+        agg_id: int,
+        correction_words: list[CorrectionWord],
+        key: bytes,
+        ctx: bytes,
+        nonce: bytes,
+) -&gt; list[F]:
+    root = PrefixTreeEntry.root(key, bool(agg_id))
+    left = self.eval_next(root, correction_words[0], ctx, nonce,
+                          PrefixTreeIndex((False,)))
+    right = self.eval_next(root, correction_words[0], ctx, nonce,
+                           PrefixTreeIndex((True,)))
+    beta_share = vec_add(left.w, right.w)
+    if agg_id == 1:
+        beta_share = vec_neg(beta_share)
+    return beta_share
+</pre><a href="#section-3.2-7" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
@@ -2161,20 +2187,13 @@ invoking the FLP's encoder (<span><a href="https://datatracker.ietf.org/doc/html
 <p id="section-4-3">The aggregate result has type <code>list[R]</code>, where <code>R</code> is likewise a type defined
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.<a href="#section-4-3" class="pilcrow">¶</a></p>
-<p id="section-4-4">Mastic combines the VIDPF from <a href="#vidpf" class="auto internal xref">Section 3</a> with the FLP from <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. An instance of Mastic is determined by a choice of length of the
-input, denoted <code>BITS</code>, and a validity circuit, an instance of <code>Valid</code> as
-defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-4-4" class="pilcrow">¶</a></p>
-<p id="section-4-5">The validity circuit determines the type of the weights submitted by Clients,
-denoted by <code>W</code>, the total weight computed by the Collector, denoted by <code>R</code>, and
-the field (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) in which the weights are encoded and
-aggregated. The field is denoted by <code>F</code>.<a href="#section-4-5" class="pilcrow">¶</a></p>
-<p id="section-4-6">The VIDPF is instantiated with bit length <code>BITS</code>, value length
+<p id="section-4-4">The VIDPF is instantiated with bit length <code>BITS</code>, value length
 <code>valid.MEAS_LEN</code>, and field <code>valid.field</code>, where <code>valid</code> is the validity
-circuit. We denote this instance of the VIDPF by <code>vidpf</code>.<a href="#section-4-6" class="pilcrow">¶</a></p>
-<p id="section-4-7">In the remainder, we write <code>xof</code> as shorthand for <code>XofTurboShake128</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2.1" class="relref">Section 6.2.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-7" class="pilcrow">¶</a></p>
-<p id="section-4-8">Mastic's implementation of the VDAF interface (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
+circuit. We denote this instance of the VIDPF by <code>vidpf</code>.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">In the remainder, we write <code>xof</code> as shorthand for <code>XofTurboShake128</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2.1" class="relref">Section 6.2.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-6">Mastic's implementation of the VDAF interface (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
 sepcified in the following sections. <a href="#mastic-aux" class="auto internal xref">Section 4.6</a> defines some auxiliary
-functions referenced in the sharding and preparation sections.<a href="#section-4-8" class="pilcrow">¶</a></p>
+functions referenced in the sharding and preparation sections.<a href="#section-4-6" class="pilcrow">¶</a></p>
 <div id="sharding">
 <section id="section-4.1">
         <h3 id="name-sharding">
@@ -2185,31 +2204,33 @@ nonce, and the sharding randomness. The size of the nonce is <code>16</code> byt
 size of the randomness is <code>vidpf.RAND_SIZE + 2 * xof.SEED_SIZE</code>, plus an
 additional <code>xof.SEED_SIZE</code> if the validity circuit takes joint randomness as
 input.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2">The public share, denoted <code>MasticPublicShare</code>, is a tuple comprised of the list
-correction words generated by the VIDPF key generation algorithm and the FLP
-"joint randomness parts" (defined below) used during preparation to compute the
-joint randomness.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
-<p id="section-4.1-3">The contents of each input share, denoted <code>MasticInputShare</code>, depends on the
-Aggregator who receives it. We refer to the first Aggregator as the "Leader";
-we refer to the second Aggregator as the "Helper". The components of the input
-share are:<a href="#section-4.1-3" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-4.1-4">
-<li id="section-4.1-4.1">
-            <p id="section-4.1-4.1.1">The Aggregator's VIDPF key share.<a href="#section-4.1-4.1.1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">The public share is the sequence of correction words output by the VIPDF key
+generation algirthm. The contents of each input share, denoted
+<code>MasticInputShare</code>, depends on the Aggregator who receives it. We refer to the
+first Aggregator as the "Leader"; we refer to the second Aggregator as the
+"Helper". The components of the input share are:<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1-3">
+<li id="section-4.1-3.1">
+            <p id="section-4.1-3.1.1">The Aggregator's VIDPF key share.<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-4.1-4.2">
-            <p id="section-4.1-4.2.1">An optional FLP proof share, a vector of field elements. This is set for the
-Leader only.<a href="#section-4.1-4.2.1" class="pilcrow">¶</a></p>
+          <li id="section-4.1-3.2">
+            <p id="section-4.1-3.2.1">An optional FLP proof share, a vector of field elements. This is set for the
+Leader only.<a href="#section-4.1-3.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-4.1-4.3">
-            <p id="section-4.1-4.3.1">An optional seed. This is always set for the Helper, who uses it to derive
+          <li id="section-4.1-3.3">
+            <p id="section-4.1-3.3.1">An optional seed. This is always set for the Helper, who uses it to derive
 its FLP proof share. This is set for the Leader of the circuit uses joint
-randomness.<a href="#section-4.1-4.3.1" class="pilcrow">¶</a></p>
+randomness.<a href="#section-4.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-4.1-3.4">
+            <p id="section-4.1-3.4.1">The peer's FLP joint randomness seed, used to derive joint randomness for
+the FLP's validity circuit. This is set for both the Leader and Helper only
+if joint randomness is required (i.e., <code>flp.JOINT_RAND_LEN &gt; 0</code>).<a href="#section-4.1-3.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-4.1-5">The behavior of the sharding algorithm depends on whether the circuit requires
-joint randomness:<a href="#section-4.1-5" class="pilcrow">¶</a></p>
-<div class="lang-python sourcecode" id="section-4.1-6">
+<p id="section-4.1-4">The behavior of the sharding algorithm depends on whether the circuit requires
+joint randomness:<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.1-5">
 <pre>
 def shard(self,
             ctx: bytes,
@@ -2222,24 +2243,36 @@ def shard(self,
             ctx, measurement, nonce, rand)
     return self.shard_without_joint_rand(
         ctx, measurement, nonce, rand)
-</pre><a href="#section-4.1-6" class="pilcrow">¶</a>
+</pre><a href="#section-4.1-5" class="pilcrow">¶</a>
 </div>
-<p id="section-4.1-7">When no FLP joint randomness is required, sharding involves the following
-steps:<a href="#section-4.1-7" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-4.1-8">
-<li id="section-4.1-8.1">
-            <p id="section-4.1-8.1.1">Encode the weight as <code>beta</code><a href="#section-4.1-8.1.1" class="pilcrow">¶</a></p>
+<p id="section-4.1-6">When no FLP joint randomness is required, sharding involves the following
+steps:<a href="#section-4.1-6" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.1-7">
+<li id="section-4.1-7.1">
+            <p id="section-4.1-7.1.1">Encode the weight <code>weight</code> as <code>beta = [field(1)] + flp.encode(weight)</code>. The
+prefix <code>[field(1)]</code>, is used to count how many reports share a prefix in
+common and is usesd during unsharding. More details in <a href="#unsharding" class="auto internal xref">Section 4.5</a>.<a href="#section-4.1-7.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-4.1-8.2">
-            <p id="section-4.1-8.2.1">Generate the VIDPF correction words and keys for <code>alpha</code> and <code>beta</code><a href="#section-4.1-8.2.1" class="pilcrow">¶</a></p>
+          <li id="section-4.1-7.2">
+            <p id="section-4.1-7.2.1">Generate the VIDPF correction words and keys for input <code>alpha</code> and <code>beta</code> as
+the payload.<a href="#section-4.1-7.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-4.1-8.3">
-            <p id="section-4.1-8.3.1">Generate the FLP proof of <code>beta</code>'s validity<a href="#section-4.1-8.3.1" class="pilcrow">¶</a></p>
+          <li id="section-4.1-7.3">
+            <p id="section-4.1-7.3.1">Generate the FLP proof of validity for <code>flp.encode(weight)</code>.<a href="#section-4.1-7.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-4.1-8.4">
-            <p id="section-4.1-8.4.1">Compute the Leader's share of the proof<a href="#section-4.1-8.4.1" class="pilcrow">¶</a></p>
+          <li id="section-4.1-7.4">
+            <p id="section-4.1-7.4.1">Compute the Leader's share of the proof.<a href="#section-4.1-7.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.1-8.1">
+            <p id="section-4.1-8.1.1">NOTE Each correction word has length <code>flp.MEAS_LEN</code>. We could save a
+little bit of communication by truncating the weights according to
+<code>flp.truncate()</code>. However, we still need to encode the full weight at
+least once, either separately or at the first level of the VIDPF tree.
+See issue #98 for details.<a href="#section-4.1-8.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
 <p id="section-4.1-9">The complete algorithm is listed below:<a href="#section-4.1-9" class="pilcrow">¶</a></p>
 <div class="lang-python sourcecode" id="section-4.1-10">
 <pre>
@@ -2281,41 +2314,32 @@ def shard_without_joint_rand(
 shares of <code>beta</code> sent to each Aggregator:<a href="#section-4.1-11" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.1-12">
 <li id="section-4.1-12.1">
-            <p id="section-4.1-12.1.1">Encode the weight as <code>beta</code><a href="#section-4.1-12.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-12.1.1">Encode the weight <code>weight</code> as <code>beta = [field(1)] + flp.encode(weight)</code>.<a href="#section-4.1-12.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.2">
-            <p id="section-4.1-12.2.1">Generate the VIDPF correction words and keys for <code>alpha</code> and <code>beta</code><a href="#section-4.1-12.2.1" class="pilcrow">¶</a></p>
-<ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-4.1-12.2.2.1">
-                <p id="section-4.1-12.2.2.1.1">NOTE Each correction word has length <code>flp.MEAS_LEN</code>. We could save a
-little bit of communication by truncating the weights according to
-<code>flp.truncate()</code>. However, we still need to encode the full weight at
-least once, either separately or at the first level of the VIDPF tree.
-See issue #98 for details.<a href="#section-4.1-12.2.2.1.1" class="pilcrow">¶</a></p>
-</li>
-            </ul>
+            <p id="section-4.1-12.2.1">Generate the VIDPF correction words and keys for <code>alpha</code> and <code>beta</code>.<a href="#section-4.1-12.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.3">
             <p id="section-4.1-12.3.1">Compute each Aggregator's FLP joint randomness part by hashing its share of
-<code>beta</code> with its FLP seed, its VIDPF key, and the VIDPF correction words<a href="#section-4.1-12.3.1" class="pilcrow">¶</a></p>
+<code>beta</code> with its FLP seed, its VIDPF key, and the VIDPF correction words.<a href="#section-4.1-12.3.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.4">
-            <p id="section-4.1-12.4.1">Compute the FLP joint randomness seed by hashing the joint randomness parts<a href="#section-4.1-12.4.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-12.4.1">Compute the FLP joint randomness seed by hashing the joint randomness parts.<a href="#section-4.1-12.4.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.5">
-            <p id="section-4.1-12.5.1">Derive the FLP joint randomness from the joint randomness seed<a href="#section-4.1-12.5.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-12.5.1">Derive the FLP joint randomness from the joint randomness seed.<a href="#section-4.1-12.5.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.6">
             <p id="section-4.1-12.6.1">Generate the FLP proof of <code>beta</code>'s validity using the derived joint
-randomness<a href="#section-4.1-12.6.1" class="pilcrow">¶</a></p>
+randomness.<a href="#section-4.1-12.6.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-12.7">
-            <p id="section-4.1-12.7.1">Compute the Leader's share of the proof<a href="#section-4.1-12.7.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-12.7.1">Compute the Leader's share of the proof.<a href="#section-4.1-12.7.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-4.1-13">The joint randomness is also needed to verify the FLP and must therefore be
-recomputed during preparation (<a href="#preparation" class="auto internal xref">Section 4.2</a>). The Client includes the parts
-in the public share for this purpose.<a href="#section-4.1-13" class="pilcrow">¶</a></p>
+recomputed during preparation (<a href="#preparation" class="auto internal xref">Section 4.2</a>). To accomplish this, the Client
+includes in each Aggregator's input share the joint randomness part of its peer.<a href="#section-4.1-13" class="pilcrow">¶</a></p>
 <p id="section-4.1-14">The complete algorithm is listed below:<a href="#section-4.1-14" class="pilcrow">¶</a></p>
 <div class="breakable lang-python sourcecode" id="section-4.1-15">
 <pre>
@@ -2369,24 +2393,6 @@ def shard_with_joint_rand(
             helper_seed), leader_joint_rand_part),
     ]
     return (correction_words, input_shares)
-
-def is_valid(self,
-                agg_param: MasticAggParam,
-                previous_agg_params: list[MasticAggParam],
-                ) -&gt; bool:
-    (level, _prefixes, do_weight_check) = agg_param
-
-    # Check that the weight check is done exactly once.
-    weight_checked = \
-        (do_weight_check and len(previous_agg_params) == 0) or \
-        (not do_weight_check and
-            any(agg_param[2] for agg_param in previous_agg_params))
-
-    # Check that the level is strictly increasing.
-    level_increased = len(previous_agg_params) == 0 or \
-        level &gt; previous_agg_params[-1][0]
-
-    return weight_checked and level_increased
 </pre><a href="#section-4.1-15" class="pilcrow">¶</a>
 </div>
 </section>
@@ -2423,16 +2429,15 @@ message in the next step.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.2-7">
 <li id="section-4.2-7.1">
             <p id="section-4.2-7.1.1">Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
-each corresponding payload. This step also produces our share of <code>beta</code>, to
-be used to verify the FLP, and the VIDPF proof.<a href="#section-4.2-7.1.1" class="pilcrow">¶</a></p>
+the prefix tree.<a href="#section-4.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-7.2">
-            <p id="section-4.2-7.2.1">If applicable, run the FLP query generation algorithm on our share of <code>beta</code>
-and proof to obtain our FLP verifier share. If joint randomness is required,
-then compute our joint randomness part and derive the joint randomness seed
-using our co-Aggregator's part provided by the Client. Note that the Client
-may have provided the wrong part, so we need to check that the seed was
-computed correctly before completing preparation.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.2-7.2.1">If applicable, run the FLP query generation algorithm on our share of the
+encoded weight to obtain our FLP verifier share. If joint randomness is
+required, then compute our joint randomness part and derive the joint
+randomness seed using our peer Aggregator's part provided by the Client.
+Note that the Client may have provided the wrong part, so we need to check
+that the seed was computed correctly before completing preparation.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-7.3">
             <p id="section-4.2-7.3.1">Truncate each payload share according to the FLP encoding scheme and flatten
@@ -2448,17 +2453,20 @@ properties of the prefix tree:<a href="#section-4.2-8" class="pilcrow">¶</a></p
 payload.<a href="#section-4.2-9.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-9.2">
-            <p id="section-4.2-9.2.1">Path consistency: each payload is equal to the sum of the payloads of its
+            <p id="section-4.2-9.2.1">Payload consistency: each payload is equal to the sum of the payloads of its
 children. If one-hotness holds, then this ensures the payload is equal to
-<code>[field(1)] + beta</code> for each node along the <code>alpha</code> path.<a href="#section-4.2-9.2.1" class="pilcrow">¶</a></p>
+<code>beta</code> for each node along the <code>alpha</code> path.<a href="#section-4.2-9.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-9.3">
             <p id="section-4.2-9.3.1">Counter consistency: the counter of the non-zero payload is equal to
 <code>field(1)</code>.<a href="#section-4.2-9.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-4.2-10">To verify one-hotness, payload consistency, and counter consistency, the
-Aggregators check that the proofs they computed are equal.<a href="#section-4.2-10" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.2-10.1">
+            <p id="section-4.2-10.1.1">TODO Define the "evaluation proof".<a href="#section-4.2-10.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
 <p id="section-4.2-11">The complete algorithm is listed below:<a href="#section-4.2-11" class="pilcrow">¶</a></p>
 <div class="breakable lang-python sourcecode" id="section-4.2-12">
 <pre>
@@ -2611,11 +2619,11 @@ def prep_shares_to_prep(
         raise ValueError('unexpected number of prep shares')
 
     (eval_proof_0,
-        verifier_share_0,
-        joint_rand_part_0) = prep_shares[0]
+     verifier_share_0,
+     joint_rand_part_0) = prep_shares[0]
     (eval_proof_1,
-        verifier_share_1,
-        joint_rand_part_1) = prep_shares[1]
+     verifier_share_1,
+     joint_rand_part_1) = prep_shares[1]
 
     # Verify the VIDPF output.
     if eval_proof_0 != eval_proof_1:
@@ -2848,10 +2856,10 @@ def joint_rand(self, ctx: bytes, seed: bytes) -&gt; list[F]:
     )
 
 def query_rand(self,
-                verify_key: bytes,
-                ctx: bytes,
-                nonce: bytes,
-                level: int) -&gt; list[F]:
+               verify_key: bytes,
+               ctx: bytes,
+               nonce: bytes,
+               level: int) -&gt; list[F]:
     return self.xof.expand_into_vec(
         self.field,
         verify_key,
