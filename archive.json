@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-19T00:51:12.328795+00:00",
+  "timestamp": "2025-01-21T00:46:04.148305+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -9,44 +9,19 @@
       "color": "d73a4a"
     },
     {
-      "name": "documentation",
-      "description": "Improvements or additions to documentation",
-      "color": "0075ca"
+      "name": "feature",
+      "description": "",
+      "color": "0e8a16"
     },
     {
-      "name": "duplicate",
-      "description": "This issue or pull request already exists",
-      "color": "cfd3d7"
+      "name": "editorial",
+      "description": "",
+      "color": "432EC8"
     },
     {
-      "name": "enhancement",
-      "description": "New feature or request",
-      "color": "a2eeef"
-    },
-    {
-      "name": "good first issue",
-      "description": "Good for newcomers",
-      "color": "7057ff"
-    },
-    {
-      "name": "help wanted",
-      "description": "Extra attention is needed",
-      "color": "008672"
-    },
-    {
-      "name": "invalid",
-      "description": "This doesn't seem right",
-      "color": "e4e669"
-    },
-    {
-      "name": "question",
-      "description": "Further information is requested",
-      "color": "d876e3"
-    },
-    {
-      "name": "wontfix",
-      "description": "This will not be worked on",
-      "color": "ffffff"
+      "name": "needs investigation",
+      "description": "",
+      "color": "006b75"
     }
   ],
   "issues": [
@@ -355,9 +330,7 @@
       "assignees": [
         "jimouris"
       ],
-      "labels": [
-        "enhancement"
-      ],
+      "labels": [],
       "body": "We can use different heavy hitter thresholds $T_i$ based on some pre-agreed strings `agg_param \u2208 agg_parameters` by the servers.\r\n\r\nExample from PLASMA paper: This can be beneficial for traffic avoidance since different roads may have different traffic densities. For example, highways are busier than smaller suburban roads. The servers can take that into consideration during evaluation, and use higher $T$ s for highways (since there are more vehicles), and lower thresholds for smaller roads.\r\n\r\nThe aggregation parameters can be tuples instead of single values:\r\n```\r\naggregation_params = [(0b0000, 7), (0b0001, 6), (0b0000000, _), (0b0000001, _)]\r\n```\r\nmeaning that the threshold $T$ for `aggregation_param = 0b0000` is 7, the $T$ for `0b0001` is 6, and so on. Nice to have: if an aggregation parameter does not have an explicit threshold (like `(0b0000000, _)`) it should inherit from its parent (so it'd be 7 in this case).",
       "createdAt": "2023-09-01T17:09:04Z",
       "updatedAt": "2023-10-25T20:19:03Z",
@@ -432,9 +405,7 @@
       "assignees": [
         "jimouris"
       ],
-      "labels": [
-        "enhancement"
-      ],
+      "labels": [],
       "body": "We're currently using 2 bytes to encode the level:\r\n```python\r\nsha3.update(str(node).encode('ascii') + to_le_bytes(current_level, 2) + next_seed)\r\n```\r\n\r\nThis can be abstracted out as a parameter and also detect if the level is less than 256 we can use just a single byte.\r\n\r\n",
       "createdAt": "2023-10-18T20:40:31Z",
       "updatedAt": "2024-09-13T16:53:38Z",
@@ -599,9 +570,7 @@
         "jimouris",
         "pratiksarkar93"
       ],
-      "labels": [
-        "enhancement"
-      ],
+      "labels": [],
       "body": "I think we should explicitly mention (in Section 5.2 or Section 5.4?) how we can perform functions like Variance and Standard Deviation as it involves changing the beta value in a non-trivial way. \r\nbeta = (x, x^2) and the FLP needs to prove that the relation holds. ",
       "createdAt": "2023-10-30T14:57:48Z",
       "updatedAt": "2024-09-24T22:42:15Z",
@@ -905,7 +874,7 @@
       "id": "I_kwDOJmRsfc6YF6s1",
       "title": "Idea: correction words for truncated weights",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/78",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [
@@ -915,8 +884,8 @@
       "labels": [],
       "body": "The FLP is run on the encoded measurement, which in general is longer than the truncated measurement. In some cases it might be much longer, e.g., for the `Sum` circuit, the encoded measurement is several field elements, while the truncated measurement is just one.\r\n\r\nThe encoded measurement is only needed when we verify the FLP. Suppose we modified Mastic as follows: \r\n\r\n1. Include shares of the encoded measurement, i.e., `flp.encode(weight)`,  in the input shares.\r\n2. Instead of setting `beta` to be the encoded measurement share, set `beta` to be the truncated measurement, i.e., `beta = flp.truncate(flp.encode(weight))`.\r\n3. Extend the path consistency check to make sure the left and right children of the root sum up to the encoded measurement.",
       "createdAt": "2024-09-26T23:26:36Z",
-      "updatedAt": "2025-01-15T18:09:32Z",
-      "closedAt": null,
+      "updatedAt": "2025-01-20T20:51:24Z",
+      "closedAt": "2025-01-20T20:51:24Z",
       "comments": [
         {
           "author": "jimouris",
@@ -1061,10 +1030,12 @@
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
-      "labels": [],
+      "labels": [
+        "needs investigation"
+      ],
       "body": "During the call with Google folks on 2024/10/3, @csharrison suggested it would nice to support a \"multihot histogram\" functionality, similar to [Prio3MultihotCountVec](https://cfrg.github.io/draft-irtf-cfrg-vdaf/draft-irtf-cfrg-vdaf.html#section-7.4.5), where there are multiple non-zero paths in the VIDPF tree. This is interesting for example when combining the VDAF with a local DP mechanism, where the client might probabilistically set a bounded number of buckets in the histogram.\r\n\r\n[[CP22]](https://eprint.iacr.org/2021/580) describe \"distributed, multi-point functions\", which might be suitable here. (Thanks @jimouris for pointing this out.)\r\n\r\nConsider extending VIDPF to be multi-point.",
       "createdAt": "2024-10-03T20:33:19Z",
-      "updatedAt": "2024-10-31T17:11:17Z",
+      "updatedAt": "2025-01-20T22:02:49Z",
       "closedAt": null,
       "comments": [
         {
@@ -1077,9 +1048,9 @@
         {
           "author": "cjpatton",
           "authorAssociation": "COLLABORATOR",
-          "body": "2024/10/14 call with Erik (Meta): This feature may yield an alternative to [Prio3L1BoundSum](https://martinthomson.github.io/prio-l1-bound-sum/draft-thomson-ppm-l1-bound-sum.html) for ([PPA](https://github.com/patcg/ppa-api).",
+          "body": "2024/10/14 call with Erik (Meta): This feature may yield an alternative to [Prio3L1BoundSum](https://martinthomson.github.io/prio-l1-bound-sum/draft-thomson-ppm-l1-bound-sum.html) for [PPA](https://github.com/patcg/ppa-api).",
           "createdAt": "2024-10-30T17:41:11Z",
-          "updatedAt": "2024-10-30T17:41:11Z"
+          "updatedAt": "2025-01-20T22:02:49Z"
         }
       ]
     },
@@ -1092,10 +1063,12 @@
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
-      "labels": [],
-      "body": "See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/pull/565.\r\n\r\nWe can already batch VIDPF proof evaluation; we just need a way to batch FLP proof evaluation. This is accomplished by [Whipser](https://eprint.iacr.org/2024/666).\r\n\r\nAdd support for Whisper-style batching and implement an API for batched preparation for Mastic.",
+      "labels": [
+        "feature"
+      ],
+      "body": "See https://github.com/ietf-wg-ppm/draft-ietf-ppm-dap/pull/565.\n\nWe can already batch VIDPF proof evaluation; we just need a way to batch FLP proof evaluation. This is accomplished by [Whisper](https://eprint.iacr.org/2024/666).\n\nAdd support for Whisper-style batching and implement an API for batched preparation for Mastic.",
       "createdAt": "2024-10-04T18:54:57Z",
-      "updatedAt": "2024-10-04T18:54:57Z",
+      "updatedAt": "2025-01-20T21:57:28Z",
       "closedAt": null,
       "comments": []
     },
@@ -1252,6 +1225,24 @@
       "createdAt": "2025-01-03T23:44:56Z",
       "updatedAt": "2025-01-13T15:15:35Z",
       "closedAt": "2025-01-13T15:15:34Z",
+      "comments": []
+    },
+    {
+      "number": 114,
+      "id": "I_kwDOJmRsfc6m42My",
+      "title": "Make sure all code excerpts wrap at column 72",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/114",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [
+        "editorial"
+      ],
+      "body": "We have some warnings about art being too wide:\n```\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L610), 5 characters longer than 72 characters:\n       The return value consists of the weights for each candidate prefix and\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L611), 5 characters longer than 72 characters:\n       the root of the prefix tree. The prefix tree includes the prefixes and\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L626), 5 characters longer than 72 characters:\n       # Evaluate our share of the prefix tree, including the sibling of each\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L629), 1 characters longer than 72 characters:\n       # Implementation note: we can save computation by storing the tree\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L638), 5 characters longer than 72 characters:\n                   n.left_child = self.eval_next(n, correction_words[i], ctx,\n/Users/chris/github.com/jimouris/draft-mouris-cfrg-mastic/draft-mouris-cfrg-mastic.xml(708): Warning: Too long line found (L639), 5 characters longer than 72 characters:\n                                                   nonce, idx.left_sibling())\n...\n```\n\nThis is because the text in the `~~~` blocks needs to end at column 72.\n\nEdit the reference code so that all code snippets used in the draft wrap at line 72, then copy and paste the snippets back into the draft.",
+      "createdAt": "2025-01-20T17:02:56Z",
+      "updatedAt": "2025-01-20T20:52:24Z",
+      "closedAt": null,
       "comments": []
     }
   ],
@@ -3976,9 +3967,7 @@
       "author": "jimouris",
       "authorAssociation": "OWNER",
       "assignees": [],
-      "labels": [
-        "enhancement"
-      ],
+      "labels": [],
       "body": "Addresses https://github.com/jimouris/draft-mouris-cfrg-mastic/issues/12\r\n\r\nWe had discussed this one before, it's not specific to Mastic but I think it's worth calling out. Right now, it has a lot of duplicate code with `example_weighted_heavy_hitters_mode`, I could merge some of the heavy hitter logic in functions and call these instead.",
       "createdAt": "2023-10-25T01:14:44Z",
       "updatedAt": "2023-10-25T20:18:45Z",
@@ -7322,24 +7311,26 @@
       "id": "PR_kwDOJmRsfc5_KRGW",
       "title": "Added function definitions, updated parameters",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/89",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "TrustworthyComputing",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "- Updated function definitions\r\n- Added missing parameters\r\n- Added IANA identifier\r\n- Updated Acks",
       "createdAt": "2024-10-19T05:10:34Z",
-      "updatedAt": "2025-01-15T23:15:18Z",
+      "updatedAt": "2025-01-20T18:07:04Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "786ea5617364862d38b07f7cddfae34749f6af8a",
+      "baseRefOid": "ee2300a80b0359eb78eb4acb553c8b1a2e1f1cf0",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "nekt/draft-edits-2",
-      "headRefOid": "d068e0794cbb0a4da826347b8f587dce6aef43ca",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "231a9d859ebd17ba6dcbbda4178dd6c86b541a2f",
+      "closedAt": "2025-01-20T18:07:04Z",
+      "mergedAt": "2025-01-20T18:07:04Z",
+      "mergedBy": "TrustworthyComputing",
+      "mergeCommit": {
+        "oid": "45c65e1281c3104ad122fd8b4d1a0c220ef8bfcc"
+      },
       "comments": [],
       "reviews": [
         {
@@ -8583,6 +8574,385 @@
               "updatedAt": "2025-01-15T23:15:18Z"
             }
           ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Yqn9H",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:38:04Z",
+          "updatedAt": "2025-01-20T04:38:04Z",
+          "comments": [
+            {
+              "originalPosition": 165,
+              "body": "I used the most recent reference code (i.e., commit fc295a7)",
+              "createdAt": "2025-01-20T04:38:04Z",
+              "updatedAt": "2025-01-20T04:38:04Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqoFO",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:38:16Z",
+          "updatedAt": "2025-01-20T04:38:16Z",
+          "comments": [
+            {
+              "originalPosition": 31,
+              "body": "Done",
+              "createdAt": "2025-01-20T04:38:16Z",
+              "updatedAt": "2025-01-20T04:38:17Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqoOI",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:38:32Z",
+          "updatedAt": "2025-01-20T04:38:32Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T04:38:32Z",
+              "updatedAt": "2025-01-20T04:38:32Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqofH",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:38:42Z",
+          "updatedAt": "2025-01-20T04:38:42Z",
+          "comments": [
+            {
+              "originalPosition": 105,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T04:38:42Z",
+              "updatedAt": "2025-01-20T04:38:42Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Yqoq1",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:38:52Z",
+          "updatedAt": "2025-01-20T04:38:53Z",
+          "comments": [
+            {
+              "originalPosition": 841,
+              "body": "Updated",
+              "createdAt": "2025-01-20T04:38:52Z",
+              "updatedAt": "2025-01-20T04:38:53Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqqEO",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:41:57Z",
+          "updatedAt": "2025-01-20T04:41:57Z",
+          "comments": [
+            {
+              "originalPosition": 867,
+              "body": "Revised the reference to the Appendix/Motivation section to make it clear. We have Pratik and David as contributors (line 45) -- I think this is OK. RE: NSF support, I think it makes sense to Ack if this was the case before.",
+              "createdAt": "2025-01-20T04:41:57Z",
+              "updatedAt": "2025-01-20T04:41:57Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqqMR",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:42:35Z",
+          "updatedAt": "2025-01-20T04:42:35Z",
+          "comments": [
+            {
+              "originalPosition": 44,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T04:42:35Z",
+              "updatedAt": "2025-01-20T04:42:35Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqqOF",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:42:44Z",
+          "updatedAt": "2025-01-20T04:42:44Z",
+          "comments": [
+            {
+              "originalPosition": 67,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T04:42:44Z",
+              "updatedAt": "2025-01-20T04:42:44Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Yqqqc",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:45:07Z",
+          "updatedAt": "2025-01-20T04:45:08Z",
+          "comments": [
+            {
+              "originalPosition": 38,
+              "body": "Removed `zeros`. We use `range`, `to_le_bytes` and `xor` in lines 463, 697, and 495 respectively.",
+              "createdAt": "2025-01-20T04:45:07Z",
+              "updatedAt": "2025-01-20T05:08:02Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqquX",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:45:28Z",
+          "updatedAt": "2025-01-20T04:45:28Z",
+          "comments": [
+            {
+              "originalPosition": 70,
+              "body": "Updated",
+              "createdAt": "2025-01-20T04:45:28Z",
+              "updatedAt": "2025-01-20T04:45:28Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Yqq1D",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T04:45:37Z",
+          "updatedAt": "2025-01-20T04:45:37Z",
+          "comments": [
+            {
+              "originalPosition": 85,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T04:45:37Z",
+              "updatedAt": "2025-01-20T04:45:38Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqugZ",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:02:49Z",
+          "updatedAt": "2025-01-20T05:02:49Z",
+          "comments": [
+            {
+              "originalPosition": 91,
+              "body": "Updated based on dst and dst_alg",
+              "createdAt": "2025-01-20T05:02:49Z",
+              "updatedAt": "2025-01-20T05:06:30Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqujY",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:03:05Z",
+          "updatedAt": "2025-01-20T05:03:05Z",
+          "comments": [
+            {
+              "originalPosition": 103,
+              "body": "Updated",
+              "createdAt": "2025-01-20T05:03:05Z",
+              "updatedAt": "2025-01-20T05:03:05Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqumA",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:03:15Z",
+          "updatedAt": "2025-01-20T05:03:15Z",
+          "comments": [
+            {
+              "originalPosition": 843,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T05:03:15Z",
+              "updatedAt": "2025-01-20T05:03:15Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqvBI",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:05:16Z",
+          "updatedAt": "2025-01-20T05:05:16Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "Fixed",
+              "createdAt": "2025-01-20T05:05:16Z",
+              "updatedAt": "2025-01-20T05:05:16Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqvOa",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:06:14Z",
+          "updatedAt": "2025-01-20T05:06:14Z",
+          "comments": [
+            {
+              "originalPosition": 88,
+              "body": "Moved text to line 286",
+              "createdAt": "2025-01-20T05:06:14Z",
+              "updatedAt": "2025-01-20T05:06:14Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YqvaD",
+          "commit": {
+            "abbreviatedOid": "d068e07"
+          },
+          "author": "TrustworthyComputing",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T05:07:04Z",
+          "updatedAt": "2025-01-20T05:07:05Z",
+          "comments": [
+            {
+              "originalPosition": 154,
+              "body": "Revised description in Mastic",
+              "createdAt": "2025-01-20T05:07:04Z",
+              "updatedAt": "2025-01-20T05:07:05Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6Ywh0y",
+          "commit": {
+            "abbreviatedOid": "231a9d8"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2025-01-20T16:59:29Z",
+          "updatedAt": "2025-01-20T17:00:42Z",
+          "comments": [
+            {
+              "originalPosition": 867,
+              "body": "Sounds good.",
+              "createdAt": "2025-01-20T16:59:29Z",
+              "updatedAt": "2025-01-20T17:00:42Z"
+            },
+            {
+              "originalPosition": 165,
+              "body": "Excellent.",
+              "createdAt": "2025-01-20T17:00:42Z",
+              "updatedAt": "2025-01-20T17:00:42Z"
+            }
+          ]
+        },
+        {
+          "id": "PRR_kwDOJmRsfc6YwlaM",
+          "commit": {
+            "abbreviatedOid": "231a9d8"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM.",
+          "createdAt": "2025-01-20T17:06:14Z",
+          "updatedAt": "2025-01-20T17:06:14Z",
+          "comments": []
         }
       ]
     },
@@ -10255,37 +10625,39 @@
       "id": "PR_kwDOJmRsfc6IM6g6",
       "title": "Add a NOTE about correction word optimization",
       "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/113",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "cjpatton",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Closes #78.",
       "createdAt": "2025-01-17T21:24:17Z",
-      "updatedAt": "2025-01-18T18:30:56Z",
+      "updatedAt": "2025-01-20T20:51:23Z",
       "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
       "baseRefName": "main",
-      "baseRefOid": "14944f754397eedc0fbd0242649d687cf2489f1c",
+      "baseRefOid": "45c65e1281c3104ad122fd8b4d1a0c220ef8bfcc",
       "headRepository": "jimouris/draft-mouris-cfrg-mastic",
       "headRefName": "cjpatton/78-forget-it",
-      "headRefOid": "fa209e90e8a0b1296194370fdf15c7ba2a563fb0",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "1c8bb1872b2e6ef6c7eb6359b79b54d67f60bef4",
+      "closedAt": "2025-01-20T20:51:23Z",
+      "mergedAt": "2025-01-20T20:51:23Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "c5f566611fa71f9091a056540847d8a0020b7e66"
+      },
       "comments": [],
       "reviews": [
         {
           "id": "PRR_kwDOJmRsfc6Ynioy",
           "commit": {
-            "abbreviatedOid": "fa209e9"
+            "abbreviatedOid": "1c8bb18"
           },
           "author": "jimouris",
           "authorAssociation": "OWNER",
           "state": "APPROVED",
           "body": "",
           "createdAt": "2025-01-18T18:30:56Z",
-          "updatedAt": "2025-01-18T18:30:56Z",
+          "updatedAt": "2025-01-20T20:46:14Z",
           "comments": []
         }
       ]
