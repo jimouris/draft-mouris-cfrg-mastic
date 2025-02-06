@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-02-04T00:46:54.145317+00:00",
+  "timestamp": "2025-02-06T00:47:46.672142+00:00",
   "repo": "jimouris/draft-mouris-cfrg-mastic",
   "labels": [
     {
@@ -10658,6 +10658,48 @@
           "body": "",
           "createdAt": "2025-01-18T18:30:56Z",
           "updatedAt": "2025-01-20T20:46:14Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 115,
+      "id": "PR_kwDOJmRsfc6KA8bZ",
+      "title": "Update GitHub Actions workflows",
+      "url": "https://github.com/jimouris/draft-mouris-cfrg-mastic/pull/115",
+      "state": "MERGED",
+      "author": "divergentdave",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This is the result of running `make update-workflows`. The `actions/upload-artifact@v3` action is no longer functional, see https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/.",
+      "createdAt": "2025-02-04T15:22:12Z",
+      "updatedAt": "2025-02-04T15:53:10Z",
+      "baseRepository": "jimouris/draft-mouris-cfrg-mastic",
+      "baseRefName": "main",
+      "baseRefOid": "7b06379bd66791347ebd247a047dd4283ed2b0ff",
+      "headRepository": "divergentdave/draft-mouris-cfrg-mastic",
+      "headRefName": "david/workflows",
+      "headRefOid": "013c5d886b781a1e07343a52925d5394b1e5f4b7",
+      "closedAt": "2025-02-04T15:53:10Z",
+      "mergedAt": "2025-02-04T15:53:10Z",
+      "mergedBy": "cjpatton",
+      "mergeCommit": {
+        "oid": "1ce5b05318215b60d12d6ebf671e1462e0f9883c"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOJmRsfc6akrX_",
+          "commit": {
+            "abbreviatedOid": "013c5d8"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-02-04T15:53:01Z",
+          "updatedAt": "2025-02-04T15:53:01Z",
           "comments": []
         }
       ]
