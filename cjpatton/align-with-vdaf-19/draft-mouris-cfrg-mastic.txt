@@ -332,71 +332,41 @@ Table of Contents
 
                        Table 4: XOF Functionalities.
 
-   Each invocation of an XOF is initialized with a domain separation
-   tag.  Mastic defines its own domain separation tag format, distinct
-   from the format_dst() function specified in Section 6.2 of [VDAF].
-   Using a separate format allows Mastic to be versioned independently
-   of [VDAF].
+   Each invocation of a XOF is initialized with a domain separation tag.
+   Each domain separation tag encodes the version of this document, the
+   application context string (Section 4.1 of [VDAF]), and a
+   distinguished byte identifying how the XOF output is used.  The tag
+   may also encode a VDAF algorithm ID (Section 5 of [VDAF]).
 
    The version of this document is a byte denoted VERSION.  Its value
    SHALL be 0.
 
-      NOTE We will bump VERSION whenever we publish a draft with
+      NOTE We'll bump VERSION whenever we publish a draft with
       incompatible changes from the previous draft.
 
-   A Mastic domain separation tag encodes the value b'mastic', the
-   document version, an "algorithm class" byte that distinguishes Mastic
-   the VDAF from its building blocks, the 4-byte algorithm identifier
-   within that class, and a 2-byte usage identifier.  The application
-   context string (Section 4.1 of [VDAF]) is then appended.
-
-   Mastic uses the following algorithm classes:
-
-   *  ALGO_CLASS_VDAF = 0: identifies Mastic the VDAF, with algo set to
-      the VDAF algorithm identifier (see Section 5 of [VDAF]).  This is
-      the same convention used by VDAFs in [VDAF].
-
-   *  ALGO_CLASS_VIDPF = 2: identifies the VIDPF defined in Section 3,
-      with algo = 0.  (We avoid using algo_class = 1 to mirror the
-      IDPF's class in [VDAF]'s format_dst(); see Section 8.3 of [VDAF].)
+   Note that Mastic defines its own domain separation tag format,
+   distinct from the format_dst() function specified in Section 6.2 of
+   [VDAF].  This allows Mastic to be versioned independently of [VDAF].
 
    Algorithms in the remainder will use the following helpers:
 
-   ALGO_CLASS_VDAF: int = 0
-   ALGO_CLASS_VIDPF: int = 2
-   VIDPF_ALGO_ID: int = 0
+   def dst(ctx: bytes, usage: int) -> bytes:
+       return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
-   def format_dst(algo_class: int,
-                  algo: int,
-                  usage: int) -> bytes:
+   def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
        return b'mastic' \
            + byte(VERSION) \
-           + byte(algo_class) \
-           + to_be_bytes(algo, 4) \
-           + to_be_bytes(usage, 2)
-
-   def dst_vdaf(ctx: bytes, algo_id: int, usage: int) -> bytes:
-       return format_dst(ALGO_CLASS_VDAF, algo_id, usage) + ctx
-
-   def dst_vidpf(ctx: bytes, usage: int) -> bytes:
-       return format_dst(ALGO_CLASS_VIDPF, VIDPF_ALGO_ID, usage) + ctx
-
-   For Mastic the VDAF, the Vdaf.domain_separation_tag() method
-   (Section 5 of [VDAF]) is overridden to use dst_vdaf() rather than
-   [VDAF]'s format_dst():
-
-   def domain_separation_tag(self, usage: int, ctx: bytes) -> bytes:
-       return dst_vdaf(ctx, self.ID, usage)
-
-   For the VIDPF, the dst_vidpf() helper is used directly.
+           + byte(usage) \
+           + to_be_bytes(algorithm_id, 4) \
+           + ctx
 
    When using Mastic or VIDPF, the length of the application context
-   string (denoted ctx) MUST be in range [0, 2^16 - 14).
+   string (denoted ctx) MUST be in range [0, 2^16 - 12).
 
       NOTE This range was computed by taking the maximum size of the
       domain separation tag supported by both XofFixedKeyAes128 and
-      XofTurboShake128 (2^16 - 1 bytes) and subtracting the length of
-      the 14-byte format_dst() output.
+      XofTurboShake128 (2^16 - 1 bytes) and subtracting the maximum
+      length of the prefix (12 bytes for dst_alg()).
 
    Finally, for completeness, we define some Python methods used in the
    remainder:
@@ -781,7 +751,7 @@ Table of Contents
        Extend a seed into the seed and control bits for its left and
        right children in the VIDPF tree.
        '''
-       xof = XofFixedKeyAes128(seed, dst_vidpf(ctx, USAGE_EXTEND), nonce)
+       xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_EXTEND), nonce)
        s = [
            bytearray(xof.next(self.KEY_SIZE)),
            bytearray(xof.next(self.KEY_SIZE)),
@@ -803,7 +773,7 @@ Table of Contents
        Convert a selected seed into a payload and the seed for the next
        level.
        '''
-       xof = XofFixedKeyAes128(seed, dst_vidpf(ctx, USAGE_CONVERT), nonce)
+       xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
        next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
        payload = xof.next_vec(self.field, self.VALUE_LEN)
        return (next_seed, payload)
@@ -820,7 +790,7 @@ Table of Contents
            to_le_bytes(idx.level(), 2) + \
            idx.encode()
        xof = XofTurboShake128(seed,
-                               dst_vidpf(ctx, USAGE_NODE_PROOF),
+                               dst(ctx, USAGE_NODE_PROOF),
                                binder)
        return xof.next(PROOF_SIZE)
 
@@ -1170,13 +1140,13 @@ Table of Contents
 
        payload_check = self.xof(
            b'',
-           self.domain_separation_tag(USAGE_PAYLOAD_CHECK, ctx),
+           dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
            payload_check_binder,
        ).next(PROOF_SIZE)
 
        onehot_check = self.xof(
            b'',
-           self.domain_separation_tag(USAGE_ONEHOT_CHECK, ctx),
+           dst_alg(ctx, USAGE_ONEHOT_CHECK, self.ID),
            onehot_check_binder,
        ).next(PROOF_SIZE)
 
@@ -1195,7 +1165,7 @@ Table of Contents
        # the payload.
        eval_proof = self.xof(
            verify_key,
-           self.domain_separation_tag(USAGE_EVAL_PROOF, ctx),
+           dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
            onehot_check + counter_check + payload_check,
        ).next(PROOF_SIZE)
 
@@ -1663,7 +1633,7 @@ Table of Contents
        return self.xof.expand_into_vec(
            self.field,
            seed,
-           self.domain_separation_tag(USAGE_PROOF_SHARE, ctx),
+           dst_alg(ctx, USAGE_PROOF_SHARE, self.ID),
            b'',
            self.flp.PROOF_LEN,
        )
@@ -1672,7 +1642,7 @@ Table of Contents
        return self.xof.expand_into_vec(
            self.field,
            seed,
-           self.domain_separation_tag(USAGE_PROVE_RAND, ctx),
+           dst_alg(ctx, USAGE_PROVE_RAND, self.ID),
            b'',
            self.flp.PROVE_RAND_LEN,
        )
@@ -1686,14 +1656,14 @@ Table of Contents
    ) -> bytes:
        return self.xof.derive_seed(
            seed,
-           self.domain_separation_tag(USAGE_JOINT_RAND_PART, ctx),
+           dst_alg(ctx, USAGE_JOINT_RAND_PART, self.ID),
            nonce + self.field.encode_vec(weight_share),
        )
 
    def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -> bytes:
        return self.xof.derive_seed(
            b'',
-           self.domain_separation_tag(USAGE_JOINT_RAND_SEED, ctx),
+           dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
            concat(parts),
        )
 
@@ -1701,7 +1671,7 @@ Table of Contents
        return self.xof.expand_into_vec(
            self.field,
            seed,
-           self.domain_separation_tag(USAGE_JOINT_RAND, ctx),
+           dst_alg(ctx, USAGE_JOINT_RAND, self.ID),
            b'',
            self.flp.JOINT_RAND_LEN,
        )
@@ -1714,7 +1684,7 @@ Table of Contents
        return self.xof.expand_into_vec(
            self.field,
            verify_key,
-           self.domain_separation_tag(USAGE_QUERY_RAND, ctx),
+           dst_alg(ctx, USAGE_QUERY_RAND, self.ID),
            nonce + to_le_bytes(level, 2),
            self.flp.QUERY_RAND_LEN,
        )

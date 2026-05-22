@@ -1739,107 +1739,75 @@ denotes an instance of class <code>Xof</code>):<a href="#section-2-9" class="pil
         </tbody>
       </table>
 </div>
-<p id="section-2-11">Each invocation of an XOF is initialized with a domain separation tag. Mastic
-defines its own domain separation tag format, distinct from the <code>format_dst()</code>
-function specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. Using a separate format allows
-Mastic to be versioned independently of <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-11" class="pilcrow">¶</a></p>
-<p id="section-2-12">The version of this document is a byte denoted <code>VERSION</code>. Its value <span class="bcp14">SHALL</span> be
-<code>0</code>.<a href="#section-2-12" class="pilcrow">¶</a></p>
+<p id="section-2-11">Each invocation of a XOF is initialized with a domain separation tag. Each
+domain separation tag encodes the version of this document, the application
+context string (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), and a distinguished byte identifying
+how the XOF output is used. The tag may also encode a VDAF algorithm ID
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-2-11" class="pilcrow">¶</a></p>
+<p id="section-2-12">The version of this document is a byte denoted <code>VERSION</code>. Its value <span class="bcp14">SHALL</span> be <code>0</code>.<a href="#section-2-12" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-2-13.1">
-          <p id="section-2-13.1.1">NOTE We will bump <code>VERSION</code> whenever we publish a draft with incompatible
+          <p id="section-2-13.1.1">NOTE We'll bump <code>VERSION</code> whenever we publish a draft with incompatible
 changes from the previous draft.<a href="#section-2-13.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-2-14">A Mastic domain separation tag encodes the value <code>b'mastic'</code>, the document
-version, an "algorithm class" byte that distinguishes Mastic the VDAF from its
-building blocks, the 4-byte algorithm identifier within that class, and a
-2-byte usage identifier. The application context string (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is then appended.<a href="#section-2-14" class="pilcrow">¶</a></p>
-<p id="section-2-15">Mastic uses the following algorithm classes:<a href="#section-2-15" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-2-16.1">
-          <p id="section-2-16.1.1"><code>ALGO_CLASS_VDAF = 0</code>: identifies Mastic the VDAF, with <code>algo</code> set to the
-VDAF algorithm identifier (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). This is the same
-convention used by VDAFs in <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-16.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-2-16.2">
-          <p id="section-2-16.2.1"><code>ALGO_CLASS_VIDPF = 2</code>: identifies the VIDPF defined in <a href="#vidpf" class="auto internal xref">Section 3</a>, with <code>algo
-= 0</code>. (We avoid using <code>algo_class = 1</code> to mirror the IDPF's class in
-<span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>'s <code>format_dst()</code>; see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8.3" class="relref">Section 8.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.)<a href="#section-2-16.2.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
-<p id="section-2-17">Algorithms in the remainder will use the following helpers:<a href="#section-2-17" class="pilcrow">¶</a></p>
-<div class="lang-python sourcecode" id="section-2-18">
+<p id="section-2-14">Note that Mastic defines its own domain separation tag format, distinct from
+the <code>format_dst()</code> function specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. This allows
+Mastic to be versioned independently of <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-14" class="pilcrow">¶</a></p>
+<p id="section-2-15">Algorithms in the remainder will use the following helpers:<a href="#section-2-15" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-2-16">
 <pre>
-ALGO_CLASS_VDAF: int = 0
-ALGO_CLASS_VIDPF: int = 2
-VIDPF_ALGO_ID: int = 0
+def dst(ctx: bytes, usage: int) -&gt; bytes:
+    return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
-def format_dst(algo_class: int,
-               algo: int,
-               usage: int) -&gt; bytes:
+def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -&gt; bytes:
     return b'mastic' \
         + byte(VERSION) \
-        + byte(algo_class) \
-        + to_be_bytes(algo, 4) \
-        + to_be_bytes(usage, 2)
-
-def dst_vdaf(ctx: bytes, algo_id: int, usage: int) -&gt; bytes:
-    return format_dst(ALGO_CLASS_VDAF, algo_id, usage) + ctx
-
-def dst_vidpf(ctx: bytes, usage: int) -&gt; bytes:
-    return format_dst(ALGO_CLASS_VIDPF, VIDPF_ALGO_ID, usage) + ctx
-</pre><a href="#section-2-18" class="pilcrow">¶</a>
+        + byte(usage) \
+        + to_be_bytes(algorithm_id, 4) \
+        + ctx
+</pre><a href="#section-2-16" class="pilcrow">¶</a>
 </div>
-<p id="section-2-19">For Mastic the VDAF, the <code>Vdaf.domain_separation_tag()</code> method (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is overridden to use <code>dst_vdaf()</code> rather than <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>'s
-<code>format_dst()</code>:<a href="#section-2-19" class="pilcrow">¶</a></p>
-<div class="lang-python sourcecode" id="section-2-20">
-<pre>
-def domain_separation_tag(self, usage: int, ctx: bytes) -&gt; bytes:
-    return dst_vdaf(ctx, self.ID, usage)
-</pre><a href="#section-2-20" class="pilcrow">¶</a>
-</div>
-<p id="section-2-21">For the VIDPF, the <code>dst_vidpf()</code> helper is used directly.<a href="#section-2-21" class="pilcrow">¶</a></p>
-<p id="section-2-22">When using Mastic or VIDPF, the length of the application context string
-(denoted <code>ctx</code>) <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 14)</code>.<a href="#section-2-22" class="pilcrow">¶</a></p>
+<p id="section-2-17">When using Mastic or VIDPF, the length of the application context string
+(denoted <code>ctx</code>) <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 12)</code>.<a href="#section-2-17" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-2-23.1">
-          <p id="section-2-23.1.1">NOTE This range was computed by taking the maximum size of the domain
+<li class="normal ulEmpty" id="section-2-18.1">
+          <p id="section-2-18.1.1">NOTE This range was computed by taking the maximum size of the domain
 separation tag supported by both <code>XofFixedKeyAes128</code> and <code>XofTurboShake128</code>
-(<code>2^16 - 1</code> bytes) and subtracting the length of the 14-byte
-<code>format_dst()</code> output.<a href="#section-2-23.1.1" class="pilcrow">¶</a></p>
+(<code>2^16 - 1</code> bytes) and subtracting the maximum length of the prefix (12
+bytes for <code>dst_alg()</code>).<a href="#section-2-18.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-2-24">Finally, for completeness, we define some Python methods used in the remainder:<a href="#section-2-24" class="pilcrow">¶</a></p>
+<p id="section-2-19">Finally, for completeness, we define some Python methods used in the remainder:<a href="#section-2-19" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-2-25.1">
-          <p id="section-2-25.1.1"><code>bool(val: Any) -&gt; bool</code> converts a value <code>val</code> to a Boolean.<a href="#section-2-25.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-2-20.1">
+          <p id="section-2-20.1.1"><code>bool(val: Any) -&gt; bool</code> converts a value <code>val</code> to a Boolean.<a href="#section-2-20.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.2">
-          <p id="section-2-25.2.1"><code>bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt;
-bytearray</code> returns a mutable sequence of bytes.<a href="#section-2-25.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.2">
+          <p id="section-2-20.2.1"><code>bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt;
+bytearray</code> returns a mutable sequence of bytes.<a href="#section-2-20.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.3">
-          <p id="section-2-25.3.1"><code>bytes(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt; bytes</code>
-returns a immutable sequence of bytes.<a href="#section-2-25.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.3">
+          <p id="section-2-20.3.1"><code>bytes(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt; bytes</code>
+returns a immutable sequence of bytes.<a href="#section-2-20.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.4">
-          <p id="section-2-25.4.1"><code>len(obj: Sized) -&gt; int</code> returns the number of items in <code>obj</code>. The object
+        <li class="normal" id="section-2-20.4">
+          <p id="section-2-20.4.1"><code>len(obj: Sized) -&gt; int</code> returns the number of items in <code>obj</code>. The object
 argument can be a sequence (e.g., string, list, or tuple) or a collection
-(e.g., dictionary, set).<a href="#section-2-25.4.1" class="pilcrow">¶</a></p>
+(e.g., dictionary, set).<a href="#section-2-20.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.5">
-          <p id="section-2-25.5.1"><code>list.append(elem: Any) -&gt; None</code> adds a single element <code>elem</code> to the end of
-a <code>list</code> instance.<a href="#section-2-25.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.5">
+          <p id="section-2-20.5.1"><code>list.append(elem: Any) -&gt; None</code> adds a single element <code>elem</code> to the end of
+a <code>list</code> instance.<a href="#section-2-20.5.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.6">
-          <p id="section-2-25.6.1"><code>list.copy() -&gt; list</code> returns a shallow copy of a <code>list</code> instance.<a href="#section-2-25.6.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.6">
+          <p id="section-2-20.6.1"><code>list.copy() -&gt; list</code> returns a shallow copy of a <code>list</code> instance.<a href="#section-2-20.6.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-25.7">
-          <p id="section-2-25.7.1"><code>set(iterable: Optional[Iterable] = None) -&gt; set</code> creates a new set object,
+        <li class="normal" id="section-2-20.7">
+          <p id="section-2-20.7.1"><code>set(iterable: Optional[Iterable] = None) -&gt; set</code> creates a new set object,
 which is an unordered collection of unique elements. The optional <code>iterable</code>
 argument (e.g., list, tuple, or string) is used to initialize the set. If no
-argument is provided, an empty set is created.<a href="#section-2-25.7.1" class="pilcrow">¶</a></p>
+argument is provided, an empty set is created.<a href="#section-2-20.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -2269,7 +2237,7 @@ def extend(self,
     Extend a seed into the seed and control bits for its left and
     right children in the VIDPF tree.
     '''
-    xof = XofFixedKeyAes128(seed, dst_vidpf(ctx, USAGE_EXTEND), nonce)
+    xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_EXTEND), nonce)
     s = [
         bytearray(xof.next(self.KEY_SIZE)),
         bytearray(xof.next(self.KEY_SIZE)),
@@ -2291,7 +2259,7 @@ def convert(self,
     Convert a selected seed into a payload and the seed for the next
     level.
     '''
-    xof = XofFixedKeyAes128(seed, dst_vidpf(ctx, USAGE_CONVERT), nonce)
+    xof = XofFixedKeyAes128(seed, dst(ctx, USAGE_CONVERT), nonce)
     next_seed = xof.next(XofFixedKeyAes128.SEED_SIZE)
     payload = xof.next_vec(self.field, self.VALUE_LEN)
     return (next_seed, payload)
@@ -2308,7 +2276,7 @@ def node_proof(self,
         to_le_bytes(idx.level(), 2) + \
         idx.encode()
     xof = XofTurboShake128(seed,
-                            dst_vidpf(ctx, USAGE_NODE_PROOF),
+                            dst(ctx, USAGE_NODE_PROOF),
                             binder)
     return xof.next(PROOF_SIZE)
 </pre><a href="#section-3.3-1" class="pilcrow">¶</a>
@@ -2693,13 +2661,13 @@ def verify_init(
 
     payload_check = self.xof(
         b'',
-        self.domain_separation_tag(USAGE_PAYLOAD_CHECK, ctx),
+        dst_alg(ctx, USAGE_PAYLOAD_CHECK, self.ID),
         payload_check_binder,
     ).next(PROOF_SIZE)
 
     onehot_check = self.xof(
         b'',
-        self.domain_separation_tag(USAGE_ONEHOT_CHECK, ctx),
+        dst_alg(ctx, USAGE_ONEHOT_CHECK, self.ID),
         onehot_check_binder,
     ).next(PROOF_SIZE)
 
@@ -2718,7 +2686,7 @@ def verify_init(
     # the payload.
     eval_proof = self.xof(
         verify_key,
-        self.domain_separation_tag(USAGE_EVAL_PROOF, ctx),
+        dst_alg(ctx, USAGE_EVAL_PROOF, self.ID),
         onehot_check + counter_check + payload_check,
     ).next(PROOF_SIZE)
 
@@ -3294,7 +3262,7 @@ def helper_proof_share(self, ctx: bytes, seed: bytes) -&gt; list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        self.domain_separation_tag(USAGE_PROOF_SHARE, ctx),
+        dst_alg(ctx, USAGE_PROOF_SHARE, self.ID),
         b'',
         self.flp.PROOF_LEN,
     )
@@ -3303,7 +3271,7 @@ def prove_rand(self, ctx: bytes, seed: bytes) -&gt; list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        self.domain_separation_tag(USAGE_PROVE_RAND, ctx),
+        dst_alg(ctx, USAGE_PROVE_RAND, self.ID),
         b'',
         self.flp.PROVE_RAND_LEN,
     )
@@ -3317,14 +3285,14 @@ def joint_rand_part(
 ) -&gt; bytes:
     return self.xof.derive_seed(
         seed,
-        self.domain_separation_tag(USAGE_JOINT_RAND_PART, ctx),
+        dst_alg(ctx, USAGE_JOINT_RAND_PART, self.ID),
         nonce + self.field.encode_vec(weight_share),
     )
 
 def joint_rand_seed(self, ctx: bytes, parts: list[bytes]) -&gt; bytes:
     return self.xof.derive_seed(
         b'',
-        self.domain_separation_tag(USAGE_JOINT_RAND_SEED, ctx),
+        dst_alg(ctx, USAGE_JOINT_RAND_SEED, self.ID),
         concat(parts),
     )
 
@@ -3332,7 +3300,7 @@ def joint_rand(self, ctx: bytes, seed: bytes) -&gt; list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
-        self.domain_separation_tag(USAGE_JOINT_RAND, ctx),
+        dst_alg(ctx, USAGE_JOINT_RAND, self.ID),
         b'',
         self.flp.JOINT_RAND_LEN,
     )
@@ -3345,7 +3313,7 @@ def query_rand(self,
     return self.xof.expand_into_vec(
         self.field,
         verify_key,
-        self.domain_separation_tag(USAGE_QUERY_RAND, ctx),
+        dst_alg(ctx, USAGE_QUERY_RAND, self.ID),
         nonce + to_le_bytes(level, 2),
         self.flp.QUERY_RAND_LEN,
     )
