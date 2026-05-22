@@ -4,9 +4,9 @@ import itertools
 from random import randrange
 from typing import Generic, Self, TypeAlias, TypeVar
 
-from vdaf_poc.common import to_le_bytes, vec_add, vec_neg, vec_sub, xor
+from vdaf_poc.common import front, to_le_bytes, vec_add, vec_neg, vec_sub, xor
 from vdaf_poc.field import NttField
-from vdaf_poc.idpf_bbcggi21 import pack_bits
+from vdaf_poc.idpf_bbcggi21 import pack_bits, unpack_bits
 from vdaf_poc.xof import XofFixedKeyAes128, XofTurboShake128
 
 from dst import USAGE_CONVERT, USAGE_EXTEND, USAGE_NODE_PROOF, dst
@@ -36,7 +36,7 @@ class PrefixTreeIndex:
             for (bit_position, bit) in enumerate(chunk):
                 byte_out |= bit << (7 - bit_position)
             encoded.append(byte_out)
-        return encoded
+        return bytes(encoded)
 
     def level(self) -> int:
         return len(self.path) - 1
@@ -392,6 +392,36 @@ class Vidpf(Generic[F]):
         for proof in proofs:
             encoded += proof
         return encoded
+
+    def decode_public_share(
+            self,
+            encoded: bytes) -> list[CorrectionWord]:
+        ctrl: list[list[bool]] = []
+        (encoded_ctrl, encoded) = front((2 * self.BITS + 7) // 8, encoded)
+        flattened_ctrl = unpack_bits(encoded_ctrl, 2 * self.BITS)
+        for level in range(self.BITS):
+            ctrl.append([
+                flattened_ctrl[2 * level],
+                flattened_ctrl[2 * level + 1],
+            ])
+        seeds = []
+        for _ in range(self.BITS):
+            (seed, encoded) = front(self.KEY_SIZE, encoded)
+            seeds.append(seed)
+        payloads = []
+        for _ in range(self.BITS):
+            (encoded_payload, encoded) = front(
+                self.field.ENCODED_SIZE * self.VALUE_LEN,
+                encoded,
+            )
+            payloads.append(self.field.decode_vec(encoded_payload))
+        proofs = []
+        for _ in range(self.BITS):
+            (proof, encoded) = front(PROOF_SIZE, encoded)
+            proofs.append(proof)
+        if len(encoded) != 0:
+            raise ValueError('trailing bytes in VIDPF public share')
+        return list(zip(seeds, ctrl, payloads, proofs))
 
     def is_prefix(self,
                   x: tuple[bool, ...],

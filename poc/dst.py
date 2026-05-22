@@ -28,14 +28,11 @@ USAGE_CONVERT: int = 11
 
 
 def dst(ctx: bytes, usage: int) -> bytes:
-    assert usage in range(12)
     return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
 
 def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
-    assert usage in range(12)
-    assert algorithm_id in range(2 ** 32 - 1)
-    return b'mastic'\
+    return b'mastic' \
         + byte(VERSION) \
         + byte(usage) \
         + to_be_bytes(algorithm_id, 4) \

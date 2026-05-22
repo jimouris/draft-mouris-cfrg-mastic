@@ -3,8 +3,8 @@
 import itertools
 from typing import Any, Optional, TypeAlias, TypeVar, cast
 
-from vdaf_poc.common import (concat, front, to_be_bytes, to_le_bytes, vec_add,
-                             vec_sub)
+from vdaf_poc.common import (concat, from_be_bytes, front, to_be_bytes,
+                             to_le_bytes, vec_add, vec_sub)
 from vdaf_poc.field import Field64, Field128, NttField
 from vdaf_poc.flp_bbcggi19 import (Count, FlpBBCGGI19, Histogram,
                                    MultihotCountVec, Sum, SumVec, Valid)
@@ -35,32 +35,33 @@ MasticInputShare: TypeAlias = tuple[
     Optional[bytes],    # FLP peer joint rand part
 ]
 
-MasticPrepState: TypeAlias = tuple[
+MasticVerifyState: TypeAlias = tuple[
     list[F],          # Truncated output share
     Optional[bytes],  # Predicted FLP joint rand seed
+    bool,             # Whether the weight check was performed
 ]
 
-MasticPrepShare: TypeAlias = tuple[
-    bytes,              # VIDPF proof
+MasticVerifierShare: TypeAlias = tuple[
+    bytes,              # VIDPF evaluation proof
     Optional[list[F]],  # FLP verifier share
     Optional[bytes],    # FLP joint randomness part
 ]
 
-MasticPrepMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
+MasticVerifierMessage: TypeAlias = Optional[bytes]  # FLP joint rand seed
 
 
 class Mastic(
         Vdaf[
-            tuple[tuple[bool, ...], W],  # W
+            tuple[tuple[bool, ...], W],  # Measurement
             MasticAggParam,
             list[CorrectionWord],  # PublicShare
             MasticInputShare,
             list[F],  # OutShare
             list[F],  # AggShare
-            list[R],  # R
-            MasticPrepState,
-            MasticPrepShare,
-            MasticPrepMessage,
+            list[R],  # AggResult
+            MasticVerifyState,
+            MasticVerifierShare,
+            MasticVerifierMessage,
         ]):
 
     # NOTE We'd like to make this generic, but this appears to be blocked
@@ -202,16 +203,17 @@ class Mastic(
 
         return weight_checked and level_increased
 
-    def prep_init(
+    def verify_init(
             self,
             verify_key: bytes,
             ctx: bytes,
             agg_id: int,
             agg_param: MasticAggParam,
             nonce: bytes,
-            correction_words: list[CorrectionWord],
+            public_share: list[CorrectionWord],
             input_share: MasticInputShare,
-    ) -> tuple[MasticPrepState, MasticPrepShare]:
+    ) -> tuple[MasticVerifyState, MasticVerifierShare]:
+        correction_words = public_share
         (level, prefixes, do_weight_check) = agg_param
         (key, proof_share, seed, peer_joint_rand_part) = \
             self.expand_input_share(ctx, agg_id, input_share)
@@ -313,27 +315,27 @@ class Mastic(
             truncated_out_share += [val_share[0]] + \
                 self.flp.truncate(val_share[1:])
 
-        prep_state = (truncated_out_share, joint_rand_seed)
-        prep_share = (eval_proof, verifier_share, joint_rand_part)
-        return (prep_state, prep_share)
+        verify_state = (truncated_out_share, joint_rand_seed, do_weight_check)
+        verifier_share = (eval_proof, verifier_share, joint_rand_part)
+        return (verify_state, verifier_share)
 
-    def prep_shares_to_prep(
+    def verifier_shares_to_message(
             self,
             ctx: bytes,
             agg_param: MasticAggParam,
-            prep_shares: list[MasticPrepShare],
-    ) -> MasticPrepMessage:
+            verifier_shares: list[MasticVerifierShare],
+    ) -> MasticVerifierMessage:
         (_level, _prefixes, do_weight_check) = agg_param
 
-        if len(prep_shares) != 2:
-            raise ValueError('unexpected number of prep shares')
+        if len(verifier_shares) != 2:
+            raise ValueError('unexpected number of verifier shares')
 
         (eval_proof_0,
-         verifier_share_0,
-         joint_rand_part_0) = prep_shares[0]
+         flp_verifier_share_0,
+         joint_rand_part_0) = verifier_shares[0]
         (eval_proof_1,
-         verifier_share_1,
-         joint_rand_part_1) = prep_shares[1]
+         flp_verifier_share_1,
+         joint_rand_part_1) = verifier_shares[1]
 
         # Verify the VIDPF output.
         if eval_proof_0 != eval_proof_1:
@@ -341,11 +343,11 @@ class Mastic(
 
         if not do_weight_check:
             return None
-        if verifier_share_0 is None or verifier_share_1 is None:
+        if flp_verifier_share_0 is None or flp_verifier_share_1 is None:
             raise ValueError('expected FLP verifier shares')
 
         # Verify the FLP.
-        verifier = vec_add(verifier_share_0, verifier_share_1)
+        verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
         if not self.flp.decide(verifier):
             raise Exception('FLP verification failed')
 
@@ -355,23 +357,24 @@ class Mastic(
             raise ValueError('expected FLP joint randomness parts')
 
         # Confirm the FLP joint randomness was computed properly.
-        prep_msg = self.joint_rand_seed(ctx, [
+        verifier_message = self.joint_rand_seed(ctx, [
             joint_rand_part_0,
             joint_rand_part_1,
         ])
-        return prep_msg
+        return verifier_message
 
-    def prep_next(self,
-                  _ctx: bytes,
-                  prep_state: MasticPrepState,
-                  prep_msg: MasticPrepMessage,
-                  ) -> list[F]:
-        (truncated_out_share, joint_rand_seed) = prep_state
+    def verify_next(
+            self,
+            _ctx: bytes,
+            verify_state: MasticVerifyState,
+            verifier_message: MasticVerifierMessage,
+    ) -> tuple[MasticVerifyState, MasticVerifierShare] | list[F]:
+        (truncated_out_share, joint_rand_seed, _do_weight_check) = verify_state
         if joint_rand_seed is not None:
-            if prep_msg is None:
+            if verifier_message is None:
                 raise ValueError('expected joint rand confirmation')
 
-            if prep_msg != joint_rand_seed:
+            if verifier_message != joint_rand_seed:
                 raise Exception('joint rand confirmation failed')
 
         return truncated_out_share
@@ -434,6 +437,45 @@ class Mastic(
         encoded += to_be_bytes(int(do_weight_check), 1)
         return encoded
 
+    def decode_agg_param(self, encoded: bytes) -> MasticAggParam:
+        encoded_level, encoded = front(2, encoded)
+        level = from_be_bytes(encoded_level)
+        encoded_num_prefixes, encoded = front(4, encoded)
+        num_prefixes = from_be_bytes(encoded_num_prefixes)
+        prefixes_len = ((level + 1) + 7) // 8 * num_prefixes
+        encoded_prefixes, encoded = front(prefixes_len, encoded)
+
+        prefixes = []
+        last_byte_mask = 0
+        leftover_bits = (level + 1) % 8
+        if leftover_bits > 0:
+            for bit_index in range(8 - leftover_bits, 8):
+                last_byte_mask |= 1 << bit_index
+            last_byte_mask ^= 255
+
+        bytes_per_prefix = ((level + 1) + 7) // 8
+        for chunk in itertools.batched(encoded_prefixes, bytes_per_prefix):
+            if chunk[-1] & last_byte_mask > 0:
+                raise ValueError('trailing bits in prefix')
+
+            prefix = []
+            for i in range(level + 1):
+                byte_index = i // 8
+                bit_offset = 7 - (i % 8)
+                bit = (chunk[byte_index] >> bit_offset) & 1 != 0
+                prefix.append(bit)
+            prefixes.append(tuple(prefix))
+
+        encoded_do_weight_check, encoded = front(1, encoded)
+        do_weight_check_int = from_be_bytes(encoded_do_weight_check)
+        if do_weight_check_int not in (0, 1):
+            raise ValueError('invalid do_weight_check value')
+        do_weight_check = bool(do_weight_check_int)
+
+        if len(encoded) != 0:
+            raise ValueError('trailing bytes')
+        return (level, tuple(prefixes), do_weight_check)
+
     def expand_input_share(
             self,
             ctx: bytes,
@@ -449,7 +491,7 @@ class Mastic(
             proof_share = self.helper_proof_share(ctx, seed)
         return (key, proof_share, seed, peer_joint_rand_part)
 
-    def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
+    def helper_proof_share(self, ctx: bytes, seed: bytes) -> list[F]:
         return self.xof.expand_into_vec(
             self.field,
             seed,
@@ -513,7 +555,7 @@ class Mastic(
         test_vec['vidpf_bits'] = int(self.vidpf.BITS)
         return ['vidpf_bits'] + self.flp.test_vec_set_type_param(test_vec)
 
-    def test_vec_encode_input_share(
+    def encode_input_share(
         self,
         input_share: MasticInputShare,
     ) -> bytes:
@@ -528,35 +570,137 @@ class Mastic(
             encoded += peer_joint_rand_part
         return encoded
 
-    def test_vec_encode_public_share(
-        self,
-        correction_words: list[CorrectionWord],
-    ) -> bytes:
-        return self.vidpf.encode_public_share(correction_words)
+    def decode_input_share(
+            self,
+            agg_id: int,
+            encoded: bytes) -> MasticInputShare:
+        key, encoded = front(self.vidpf.KEY_SIZE, encoded)
+        proof_share: Optional[list[F]]
+        seed: Optional[bytes]
+        if agg_id == 0:
+            proof_bytes, encoded = front(
+                self.field.ENCODED_SIZE * self.flp.PROOF_LEN,
+                encoded,
+            )
+            proof_share = self.field.decode_vec(proof_bytes)
+            seed = None
+        else:
+            proof_share = None
+            seed, encoded = front(self.xof.SEED_SIZE, encoded)
+        peer_joint_rand_part: Optional[bytes] = None
+        if self.flp.JOINT_RAND_LEN > 0:
+            if agg_id == 0:
+                seed_bytes, encoded = front(self.xof.SEED_SIZE, encoded)
+                seed = seed_bytes
+            peer_joint_rand_part, encoded = front(
+                self.xof.SEED_SIZE, encoded)
+        if len(encoded) != 0:
+            raise ValueError('input share is too long')
+        return (key, proof_share, seed, peer_joint_rand_part)
 
-    def test_vec_encode_agg_share(self, agg_share: list[F]) -> bytes:
+    def encode_public_share(
+        self,
+        public_share: list[CorrectionWord],
+    ) -> bytes:
+        return self.vidpf.encode_public_share(public_share)
+
+    def decode_public_share(
+            self,
+            encoded: bytes) -> list[CorrectionWord]:
+        return self.vidpf.decode_public_share(encoded)
+
+    def encode_agg_share(self, agg_share: list[F]) -> bytes:
         encoded = bytes()
         if len(agg_share) > 0:
             encoded += self.field.encode_vec(agg_share)
         return encoded
 
-    def test_vec_encode_prep_share(
-            self, prep_share: MasticPrepShare) -> bytes:
-        (eval_proof, verifier_share, joint_rand_part) = prep_share
+    def decode_agg_share(
+            self,
+            agg_param: MasticAggParam,
+            encoded: bytes) -> list[F]:
+        (_level, prefixes, _do_weight_check) = agg_param
+        agg_share_len = len(prefixes) * (1 + self.flp.OUTPUT_LEN)
+        if agg_share_len == 0:
+            if len(encoded) != 0:
+                raise ValueError('aggregate share is too long')
+            return []
+        if len(encoded) != self.field.ENCODED_SIZE * agg_share_len:
+            raise ValueError('aggregate share has incorrect length')
+        return self.field.decode_vec(encoded)
+
+    def encode_verifier_share(
+            self, verifier_share: MasticVerifierShare) -> bytes:
+        (eval_proof, flp_verifier_share, joint_rand_part) = verifier_share
         encoded = bytes()
         encoded += eval_proof
+        if flp_verifier_share is not None:
+            encoded += self.field.encode_vec(flp_verifier_share)
         if joint_rand_part is not None:
             encoded += joint_rand_part
-        if verifier_share is not None:
-            encoded += self.field.encode_vec(verifier_share)
         return encoded
 
-    def test_vec_encode_prep_msg(
-            self, prep_message: MasticPrepMessage) -> bytes:
+    def decode_verifier_share(
+            self,
+            verify_state: MasticVerifyState,
+            encoded: bytes) -> MasticVerifierShare:
+        (_truncated_out_share, _joint_rand_seed, do_weight_check) = \
+            verify_state
+        eval_proof, encoded = front(PROOF_SIZE, encoded)
+        flp_verifier_share: Optional[list[F]] = None
+        joint_rand_part: Optional[bytes] = None
+        if do_weight_check:
+            verifier_bytes, encoded = front(
+                self.field.ENCODED_SIZE * self.flp.VERIFIER_LEN,
+                encoded,
+            )
+            flp_verifier_share = self.field.decode_vec(verifier_bytes)
+            if self.flp.JOINT_RAND_LEN > 0:
+                joint_rand_part, encoded = front(self.xof.SEED_SIZE, encoded)
+        if len(encoded) != 0:
+            raise ValueError('verifier share is too long')
+        return (eval_proof, flp_verifier_share, joint_rand_part)
+
+    def encode_verifier_message(
+            self, verifier_message: MasticVerifierMessage) -> bytes:
         encoded = bytes()
-        if prep_message is not None:
-            encoded += prep_message
+        if verifier_message is not None:
+            encoded += verifier_message
         return encoded
+
+    def decode_verifier_message(
+            self,
+            verify_state: MasticVerifyState,
+            encoded: bytes) -> MasticVerifierMessage:
+        (_truncated_out_share, _joint_rand_seed, do_weight_check) = \
+            verify_state
+        if not do_weight_check or self.flp.JOINT_RAND_LEN == 0:
+            if len(encoded) != 0:
+                raise ValueError('verifier message is too long')
+            return None
+        if len(encoded) != self.xof.SEED_SIZE:
+            raise ValueError('verifier message has incorrect length')
+        return encoded
+
+    def encode_out_share(self, out_share: list[F]) -> bytes:
+        encoded = bytes()
+        if len(out_share) > 0:
+            encoded += self.field.encode_vec(out_share)
+        return encoded
+
+    def decode_out_share(
+            self,
+            agg_param: MasticAggParam,
+            encoded: bytes) -> list[F]:
+        (_level, prefixes, _do_weight_check) = agg_param
+        out_share_len = len(prefixes) * (1 + self.flp.OUTPUT_LEN)
+        if out_share_len == 0:
+            if len(encoded) != 0:
+                raise ValueError('output share is too long')
+            return []
+        if len(encoded) != self.field.ENCODED_SIZE * out_share_len:
+            raise ValueError('output share has incorrect length')
+        return self.field.decode_vec(encoded)
 
 
 ##
