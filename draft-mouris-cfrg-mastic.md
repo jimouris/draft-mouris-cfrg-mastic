@@ -144,7 +144,7 @@ This problem can be solved by combining a binary search with a subroutine
 solving the simpler "prefix histogram" problem. The goal of this problem is to
 count how many of the input strings begin with each of a sequence of candidate
 prefixes. This problem can be solved using a Verifiable Distributed Aggregation
-Function, or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-14}}.
+Function, or VDAF {{!VDAF=I-D.draft-irtf-cfrg-vdaf-19}}.
 
 The Poplar1 VDAF specified in {{Section 8 of !VDAF}} describes how to
 distribute this computation amongst two aggregation servers such that, as long
@@ -165,7 +165,7 @@ functionality gives rise to two types of applications:
    performance issue in the browser. Because weighted heavy hitters is more
    general, Mastic can be used as a drop-in replacement for Poplar1. It is is
    also more efficient, requiring just one round of communication for
-   preparation ({{Section 5.2 of !VDAF}}) compared to Poplar1's two rounds.
+   verification ({{Section 5.2 of !VDAF}}) compared to Poplar1's two rounds.
 
 1. "attribute-based metrics": The Prio3 VDAF ({{Section 7 of !VDAF}}) can be
    used for a variety of aggregation tasks, ranging from simple summary
@@ -209,7 +209,7 @@ into Mastic in {{vidpf}}. The appendix includes supplementary material:
 functionality.
 
 * {{additional-modes}} describes extensions and optimizations for Mastic,
-  including a batched "preparation" ({{Section 5.2 of !VDAF}}) mode of
+  including a batched "verification" ({{Section 5.2 of !VDAF}}) mode of
   operation that reduces communication cost, and a 3-party variant of the
   protocol that ensures robustness against poisoning attacks in the presence of
   one malicious aggregation server.
@@ -230,9 +230,11 @@ This document uses the same conventions and definitions as {{Section 2 of
 "input share",
 "measurement",
 "output share",
-"prep message",
-"prep share", and
-"report".
+"public share",
+"report",
+"verification state",
+"verifier message", and
+"verifier share".
 
 The following functions are as defined therein:
 
@@ -255,8 +257,10 @@ on fields, defined in {{Section 6.1 of !VDAF}}:
 | Functionality       | Type            | Definition    |
 |:--------------------|:----------------|:--------------|
 | `Field`             | Constructor     | Section 6.1   |
+| `field.decode_vec`  | Instance Method | Section 6.1.1 |
 | `field.encode_vec`  | Instance Method | Section 6.1.1 |
 | `field.zeros`       | Instance Method | Section 6.1   |
+| `field.ENCODED_SIZE`| Class Attribute | Section 6.1   |
 | `vec_add`           | Function        | Section 6.1.1 |
 | `vec_neg`           | Function        | Section 6.1.1 |
 | `vec_sub`           | Function        | Section 6.1.1 |
@@ -266,27 +270,36 @@ Mastic uses the Fully Linear Proof (FLP) system specified in {{Section 7.3 of
 !VDAF}}. The draft refers to the following methods on an instance `flp` of the
 class `Flp` defined in {{!VDAF}}:
 
-| Functionality   | Type  --        | Definition    |
-|:----------------|:----------------|:--------------|
-| `flp.decide`    | Instance Method | Section 7.1   |
-| `flp.decode`    | Instance Method | Section 7.1.1 |
-| `flp.encode`    | Instance Method | Section 7.1.1 |
-| `flp.prove`     | Instance Method | Section 7.1   |
-| `flp.query`     | Instance Method | Section 7.1   |
-| `flp.truncate`  | Instance Method | Section 7.1.1 |
-| `MEAS_LEN`      | integer         | Section 7.3.2 |
-| `OUTPUT_LEN`    | integer         | Section 7.3.2 |
+| Functionality         | Type            | Definition    |
+|:----------------------|:----------------|:--------------|
+| `flp.decide`          | Instance Method | Section 7.1   |
+| `flp.decode`          | Instance Method | Section 7.1.1 |
+| `flp.encode`          | Instance Method | Section 7.1.1 |
+| `flp.prove`           | Instance Method | Section 7.1   |
+| `flp.query`           | Instance Method | Section 7.1   |
+| `flp.truncate`        | Instance Method | Section 7.1.1 |
+| `flp.MEAS_LEN`        | integer         | Section 7.1   |
+| `flp.OUTPUT_LEN`      | integer         | Section 7.1   |
+| `flp.PROOF_LEN`       | integer         | Section 7.1   |
+| `flp.PROVE_RAND_LEN`  | integer         | Section 7.1   |
+| `flp.QUERY_RAND_LEN`  | integer         | Section 7.1   |
+| `flp.JOINT_RAND_LEN`  | integer         | Section 7.1   |
+| `flp.VERIFIER_LEN`    | integer         | Section 7.1   |
 {: #FLP-functionalities title="FLP methods and parameters."}
 
 Mastic also uses eXtendable Output Functions (XOFs) as specified in {{Section
 6.2 of !VDAF}}. The following functionalities are as defined therein (`xof`
 denotes an instance of class `Xof`):
 
-| Functionality       | Type            | Definition  |
-|:--------------------|:----------------|:------------|
-| `XofFixedKeyAes128` | Constructor     | Section 6.2 |
-| `XofTurboShake128`  | Constructor     | Section 6.2 |
-| `xof.next`          | Instance Method | Section 6.2 |
+| Functionality         | Type            | Definition  |
+|:----------------------|:----------------|:------------|
+| `XofFixedKeyAes128`   | Constructor     | Section 6.2 |
+| `XofTurboShake128`    | Constructor     | Section 6.2 |
+| `xof.next`            | Instance Method | Section 6.2 |
+| `xof.next_vec`        | Instance Method | Section 6.2 |
+| `xof.derive_seed`     | Class Method    | Section 6.2 |
+| `xof.expand_into_vec` | Class Method    | Section 6.2 |
+| `xof.SEED_SIZE`       | Class Attribute | Section 6.2 |
 {: #XOF-functionalities title="XOF Functionalities."}
 
 Each invocation of a XOF is initialized with a domain separation tag. Each
@@ -300,14 +313,18 @@ The version of this document is a byte denoted `VERSION`. Its value SHALL be `0`
 > NOTE We'll bump `VERSION` whenever we publish a draft with incompatible
 > changes from the previous draft.
 
-Algorithms in the remainder will use the following algorithms:
+Note that Mastic defines its own domain separation tag format, distinct from
+the `format_dst()` function specified in {{Section 6.2 of !VDAF}}. This allows
+Mastic to be versioned independently of {{!VDAF}}.
+
+Algorithms in the remainder will use the following helpers:
 
 ~~~ python
 def dst(ctx: bytes, usage: int) -> bytes:
     return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
 def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -> bytes:
-    return b'mastic'\
+    return b'mastic' \
         + byte(VERSION) \
         + byte(usage) \
         + to_be_bytes(algorithm_id, 4) \
@@ -318,8 +335,9 @@ When using Mastic or VIDPF, the length of the application context string
 (denoted `ctx`) MUST be in range `[0, 2^16 - 12)`.
 
 > NOTE This range was computed by taking the maximum size of the domain
-> separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
-> subtracting the length of the prefix.
+> separation tag supported by both `XofFixedKeyAes128` and `XofTurboShake128`
+> (`2^16 - 1` bytes) and subtracting the maximum length of the prefix (12
+> bytes for `dst_alg()`).
 
 Finally, for completeness, we define some Python methods used in the remainder:
 
@@ -346,6 +364,7 @@ argument is provided, an empty set is created.
 | `KEY_SIZE: int`   | the size of each VIDPF key                            | `XofFixedKeyAes128.SEED_SIZE` ({{Section 6.2.2 of !VDAF}}) |
 | `NONCE_SIZE: int` | the size of the VIDPF nonce                           | `KEY_SIZE`                                                 |
 | `RAND_SIZE: int`  | the number of random bytes consumed by `gen()`        | `2 * KEY_SIZE`                                             |
+| `PROOF_SIZE: int` | the size of each VIDPF node proof and evaluation proof | `32`                                                      |
 | `BITS: int`       | bit length of the input string `alpha`                | set by constructor                                         |
 | `VALUE_LEN: int`  | length of `beta`                                      | set by constructor                                         |
 | `field: type[F]`  | class object for the field ({{Section 6.1 of !VDAF}}) | set by constructor                                         |
@@ -744,9 +763,9 @@ In the remainder, we write `xof` as shorthand for `XofTurboShake128` ({{Section
 
 Mastic's implementation of the VDAF interface ({{Section 5 of !VDAF}}) is
 specified in the following sections. {{mastic-aux}} defines some auxiliary
-functions referenced in the sharding and preparation sections.
+functions referenced in the sharding and verification sections.
 
-## Sharding
+## Sharding {#sharding}
 
 The sharding algorithm takes in the measurement (the input and weight), the
 nonce, and the sharding randomness. The size of the nonce is `16` bytes; the
@@ -858,8 +877,9 @@ shares of `beta` sent to each Aggregator:
 1. Compute the Leader's share of the proof.
 
 The joint randomness is also needed to verify the FLP and must therefore be
-recomputed during preparation ({{preparation}}). To accomplish this, the Client
-includes in each Aggregator's input share the joint randomness part of its peer.
+recomputed during verification ({{verification}}). To accomplish this, the
+Client includes in each Aggregator's input share the joint randomness part of
+its peer.
 
 The complete algorithm is listed below:
 
@@ -916,9 +936,9 @@ def shard_with_joint_rand(
     return (correction_words, input_shares)
 ~~~
 
-## Preparation
+## Verification {#verification}
 
-Each Aggregator initializes preparation with: the verification key shared by
+Each Aggregator initializes verification with: the verification key shared by
 both Aggregators; its own ID, either `0` for the Leader and `1` for the Helper;
 the aggregation parameter; the report's nonce; the public share sent to each
 Aggregator; and the Aggregator's own input share.
@@ -932,13 +952,13 @@ The aggregation parameter has the following components:
 The FLP is verified exactly once, the first time the report is aggregated. See
 {{agg-param-validity}}.
 
-The outputs of the initialization algorithm include the Aggregator's prep
-state, denoted `MasticPrepState`, and its outbound prep share, denoted
-`MasticPrepShare`. The prep share includes the Aggregator's FLP verifier share,
-joint randomness part, and VIDPF proof. These are combined into the prep
-message in the next step.
+The outputs of the initialization algorithm include the Aggregator's
+verification state, denoted `MasticVerifyState`, and its outbound verifier
+share, denoted `MasticVerifierShare`. The verifier share includes the
+Aggregator's FLP verifier share, joint randomness part, and VIDPF evaluation
+proof. These are combined into the verifier message in the next step.
 
-Preparation initialization involves the following steps:
+Verification initialization involves the following steps:
 
 1. Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
    the prefix tree.
@@ -948,7 +968,7 @@ Preparation initialization involves the following steps:
    required, then compute our joint randomness part and derive the joint
    randomness seed using our peer Aggregator's part provided by the Client.
    Note that the Client may have provided the wrong part, so we need to check
-   that the seed was computed correctly before completing preparation.
+   that the seed was computed correctly before completing verification.
 
 1. Truncate each payload share according to the FLP encoding scheme and flatten
    them into a single vector of field elements. This constitutes Mastic's
@@ -972,16 +992,17 @@ properties of the prefix tree:
 The complete algorithm is listed below:
 
 ~~~ python
-def prep_init(
+def verify_init(
         self,
         verify_key: bytes,
         ctx: bytes,
         agg_id: int,
         agg_param: MasticAggParam,
         nonce: bytes,
-        correction_words: list[CorrectionWord],
+        public_share: list[CorrectionWord],
         input_share: MasticInputShare,
-) -> tuple[MasticPrepState, MasticPrepShare]:
+) -> tuple[MasticVerifyState, MasticVerifierShare]:
+    correction_words = public_share
     (level, prefixes, do_weight_check) = agg_param
     (key, proof_share, seed, peer_joint_rand_part) = \
         self.expand_input_share(ctx, agg_id, input_share)
@@ -1083,13 +1104,13 @@ def prep_init(
         truncated_out_share += [val_share[0]] + \
             self.flp.truncate(val_share[1:])
 
-    prep_state = (truncated_out_share, joint_rand_seed)
-    prep_share = (eval_proof, verifier_share, joint_rand_part)
-    return (prep_state, prep_share)
+    verify_state = (truncated_out_share, joint_rand_seed, do_weight_check)
+    verifier_share = (eval_proof, verifier_share, joint_rand_part)
+    return (verify_state, verifier_share)
 ~~~
 
-Next, the Aggregators' prep shares are combined into the prep message, denoted
-`MasticPrepMessage`:
+Next, the Aggregators' verifier shares are combined into the verifier message,
+denoted `MasticVerifierMessage`:
 
 1. Check that both Aggregators computed the same VIDPF proof. If so, then it is
    presumed that the output share is one-hot, has path consistency, and has
@@ -1101,27 +1122,27 @@ Next, the Aggregators' prep shares are combined into the prep message, denoted
 
 1. If applicable, compute the FLP joint randomness seed from the parts.
 
-The prep message consists of the optional joint randomness seed. The complete
-algorithm is listed below:
+The verifier message consists of the optional joint randomness seed. The
+complete algorithm is listed below:
 
 ~~~ python
-def prep_shares_to_prep(
+def verifier_shares_to_message(
         self,
         ctx: bytes,
         agg_param: MasticAggParam,
-        prep_shares: list[MasticPrepShare],
-) -> MasticPrepMessage:
+        verifier_shares: list[MasticVerifierShare],
+) -> MasticVerifierMessage:
     (_level, _prefixes, do_weight_check) = agg_param
 
-    if len(prep_shares) != 2:
-        raise ValueError('unexpected number of prep shares')
+    if len(verifier_shares) != 2:
+        raise ValueError('unexpected number of verifier shares')
 
     (eval_proof_0,
-     verifier_share_0,
-     joint_rand_part_0) = prep_shares[0]
+     flp_verifier_share_0,
+     joint_rand_part_0) = verifier_shares[0]
     (eval_proof_1,
-     verifier_share_1,
-     joint_rand_part_1) = prep_shares[1]
+     flp_verifier_share_1,
+     joint_rand_part_1) = verifier_shares[1]
 
     # Verify the VIDPF output.
     if eval_proof_0 != eval_proof_1:
@@ -1129,11 +1150,11 @@ def prep_shares_to_prep(
 
     if not do_weight_check:
         return None
-    if verifier_share_0 is None or verifier_share_1 is None:
+    if flp_verifier_share_0 is None or flp_verifier_share_1 is None:
         raise ValueError('expected FLP verifier shares')
 
     # Verify the FLP.
-    verifier = vec_add(verifier_share_0, verifier_share_1)
+    verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
     if not self.flp.decide(verifier):
         raise Exception('FLP verification failed')
 
@@ -1143,34 +1164,39 @@ def prep_shares_to_prep(
         raise ValueError('expected FLP joint randomness parts')
 
     # Confirm the FLP joint randomness was computed properly.
-    prep_msg = self.joint_rand_seed(ctx, [
+    verifier_message = self.joint_rand_seed(ctx, [
         joint_rand_part_0,
         joint_rand_part_1,
     ])
-    return prep_msg
+    return verifier_message
 ~~~
 
-Finally, each Aggregator completes preparation by checking that the true FLP
+Finally, each Aggregator completes verification by checking that the true FLP
 joint randomness seed is equal to the value they computed in the initialization
-step, `prep_init()`. This is only done if a weight check was required by the
+step, `verify_init()`. This is only done if a weight check was required by the
 aggregation parameter and joint randomness was required by the FLP:
 
 ~~~ python
-def prep_next(self,
-                _ctx: bytes,
-                prep_state: MasticPrepState,
-                prep_msg: MasticPrepMessage,
-                ) -> list[F]:
-    (truncated_out_share, joint_rand_seed) = prep_state
+def verify_next(
+        self,
+        _ctx: bytes,
+        verify_state: MasticVerifyState,
+        verifier_message: MasticVerifierMessage,
+) -> tuple[MasticVerifyState, MasticVerifierShare] | list[F]:
+    (truncated_out_share, joint_rand_seed, _do_weight_check) = verify_state
     if joint_rand_seed is not None:
-        if prep_msg is None:
+        if verifier_message is None:
             raise ValueError('expected joint rand confirmation')
 
-        if prep_msg != joint_rand_seed:
+        if verifier_message != joint_rand_seed:
             raise Exception('joint rand confirmation failed')
 
     return truncated_out_share
 ~~~
+
+Note that Mastic uses one round of verification, so `verify_next()` always
+returns the output share (rather than a new verification state and verifier
+share).
 
 ## Validity of Aggregation Parameters {#agg-param-validity}
 
@@ -1262,6 +1288,308 @@ def unshard(self,
     return agg_result
 ~~~
 
+## Message Serialization {#mastic-msg-serialization}
+
+This section defines serialization formats for messages exchanged over the
+network while executing Mastic. Messages are defined in the presentation
+language of TLS as defined in {{Section 3 of !RFC8446}}.
+
+Let `mastic` denote an instance of Mastic. In the remainder, let `S` be an
+alias for `mastic.xof.SEED_SIZE`, `F` an alias for
+`mastic.field.ENCODED_SIZE`, `K` an alias for `mastic.vidpf.KEY_SIZE`, `B` an
+alias for `mastic.vidpf.BITS`, `V` an alias for `mastic.vidpf.VALUE_LEN`
+(which equals `1 + mastic.flp.MEAS_LEN`), and `P` an alias for `PROOF_SIZE`
+(see {{vidpf}}).
+
+XOF seeds are represented as follows:
+
+~~~
+opaque MasticSeed[S];
+~~~
+
+Field elements are encoded in little-endian byte order (as defined in
+{{Section 6.1 of !VDAF}}) and represented as follows:
+
+~~~
+opaque MasticField[F];
+~~~
+
+VIDPF keys are represented as follows:
+
+~~~
+opaque MasticVidpfKey[K];
+~~~
+
+Node proofs ({{vidpf}}) are represented as follows:
+
+~~~
+opaque MasticNodeProof[P];
+~~~
+
+### Public Share {#mastic-msg-public-share}
+
+The public share is the sequence of VIDPF correction words output by VIDPF
+key generation ({{vidpf-key-gen}}). Each correction word has four
+components:
+
+1. an XOF seed;
+
+1. a pair of control bits;
+
+1. a payload of `V` field elements; and
+
+1. a node proof.
+
+The encoding is a structure-of-arrays, with the control bits for all levels
+packed together as tightly as possible:
+
+~~~
+struct {
+    opaque packed_control_bits[packed_len];
+    MasticSeed seed[B];
+    MasticField payload[F*V*B];
+    MasticNodeProof node_proof[B];
+} MasticPublicShare;
+~~~
+
+Here `packed_len = (2*B + 7) // 8` is the length in bytes of the packed
+control bits. Field `packed_control_bits` is encoded with the same procedure
+used for Poplar1 (see {{Section 8.2.6.1 of !VDAF}}), reproduced here for
+convenience:
+
+~~~ python
+packed_control_buf = [int(0)] * packed_len
+for i, bit in enumerate(control_bits):
+    packed_control_buf[i // 8] |= bit << (i % 8)
+packed_control_bits = bytes(packed_control_buf)
+~~~
+
+It encodes each group of eight bits into a byte, in LSB to MSB order,
+padding the most significant bits of the last byte with zeros as necessary.
+The order of the control bits is `(cw_0_left, cw_0_right, cw_1_left,
+cw_1_right, ..., cw_{B-1}_left, cw_{B-1}_right)`, where `cw_i_left` and
+`cw_i_right` are the left and right control bits of the `i`-th correction
+word. Decoding performs the reverse operation: it takes in a byte array and
+a number of bits, and returns a list of bits, extracting eight bits from
+each byte in turn, in LSB to MSB order, and stopping after the requested
+number of bits. If the byte array has an incorrect length, or if unused
+bits in the last byte are not zero, it throws an error:
+
+~~~ python
+control_bits = []
+for i in range(length):
+    control_bits.append(bool(
+        (packed_control_bits[i // 8] >> (i % 8)) & 1
+    ))
+leftover_bits = packed_control_bits[-1] >> (
+    (length + 7) % 8 + 1
+)
+if (length + 7) // 8 != len(packed_control_bits) or \
+        leftover_bits != 0:
+    raise ValueError('trailing bits')
+~~~
+
+### Input Share {#mastic-msg-input-share}
+
+The contents of the input share depend on (1) which Aggregator is receiving
+the message and (2) whether joint randomness is required for the underlying
+FLP (i.e., `mastic.flp.JOINT_RAND_LEN > 0`).
+
+When joint randomness is not used, the Leader's share is structured as
+follows:
+
+~~~
+struct {
+    MasticVidpfKey key;
+    MasticField proof_share[F*mastic.flp.PROOF_LEN];
+} MasticLeaderShare;
+~~~
+
+When joint randomness is not used, the Helper's share is structured as
+follows:
+
+~~~
+struct {
+    MasticVidpfKey key;
+    MasticSeed helper_seed;
+} MasticHelperShare;
+~~~
+
+When joint randomness is used, the Leader's input share is structured as
+follows:
+
+~~~
+struct {
+    MasticLeaderShare inner;
+    MasticSeed leader_seed;
+    MasticSeed peer_joint_rand_part;
+} MasticLeaderShareWithJointRand;
+~~~
+
+When joint randomness is used, the Helper's input share is structured as
+follows:
+
+~~~
+struct {
+    MasticHelperShare inner;
+    MasticSeed peer_joint_rand_part;
+} MasticHelperShareWithJointRand;
+~~~
+
+The interpretation of `leader_seed` and `helper_seed` depends on the
+Aggregator and on whether joint randomness is used:
+
+* The Helper's `helper_seed` is always used to derive its FLP proof share
+  ({{sharding}}). When joint randomness is used, the Helper additionally
+  uses `helper_seed` to derive its FLP joint randomness part.
+
+* The Leader's `leader_seed` is present only when joint randomness is used,
+  in which case it is used to derive the Leader's FLP joint randomness
+  part.
+
+In both cases, `peer_joint_rand_part` is the joint randomness part of the
+peer Aggregator, supplied by the Client so that each Aggregator can
+recompute the FLP joint randomness seed during verification.
+
+### Verifier Share {#mastic-msg-verifier-share}
+
+The shape of the verifier share depends on whether the FLP weight check is
+being performed, as indicated by the `do_weight_check` component of the
+aggregation parameter (see {{mastic-msg-agg-param}}).
+
+When the weight check is not performed, the verifier share consists only of
+the VIDPF evaluation proof:
+
+~~~
+struct {
+    MasticNodeProof eval_proof;
+} MasticVerifierShare;
+~~~
+
+When the weight check is performed but joint randomness is not used, the
+verifier share additionally includes the FLP verifier share:
+
+~~~
+struct {
+    MasticNodeProof eval_proof;
+    MasticField flp_verifier_share[F*mastic.flp.VERIFIER_LEN];
+} MasticVerifierShareWithWeightCheck;
+~~~
+
+When the weight check is performed and joint randomness is used, the
+verifier share additionally includes the Aggregator's joint randomness
+part:
+
+~~~
+struct {
+    MasticNodeProof eval_proof;
+    MasticField flp_verifier_share[F*mastic.flp.VERIFIER_LEN];
+    MasticSeed joint_rand_part;
+} MasticVerifierShareWithJointRand;
+~~~
+
+### Verifier Message {#mastic-msg-verifier-message}
+
+When the weight check is not performed, or when the FLP does not use joint
+randomness, the verifier message is the empty string. Otherwise the
+verifier message consists of the joint randomness seed computed by the
+Aggregators:
+
+~~~
+struct {
+    MasticSeed joint_rand_seed;
+} MasticVerifierMessageWithJointRand;
+~~~
+
+### Aggregate Share {#mastic-msg-agg-share}
+
+The aggregate share is a flat vector of field elements: for each candidate
+prefix, the encoding contains the prefix's measurement counter followed by
+the prefix's truncated weight. Let `prefix_count` denote the number of
+candidate prefixes specified in the aggregation parameter. The aggregate
+share is structured as follows:
+
+~~~
+struct {
+    MasticField agg_share[F*prefix_count*(1+mastic.flp.OUTPUT_LEN)];
+} MasticAggShare;
+~~~
+
+When `prefix_count` is `0`, the aggregate share is the empty string. The
+output share has the same structure and is encoded the same way:
+
+~~~
+struct {
+    MasticField out_share[F*prefix_count*(1+mastic.flp.OUTPUT_LEN)];
+} MasticOutShare;
+~~~
+
+### Aggregation Parameter {#mastic-msg-agg-param}
+
+The aggregation parameter is encoded as follows:
+
+~~~
+struct {
+    uint16_t level;
+    uint32_t num_prefixes;
+    opaque encoded_prefixes[prefixes_len];
+    uint8_t do_weight_check;
+} MasticAggParam;
+~~~
+
+The fields are: `level`, the level of the VIDPF tree being evaluated;
+`num_prefixes`, the number of candidate prefixes; `encoded_prefixes`, the
+sequence of prefixes encoded into a byte string of length `prefixes_len`;
+and `do_weight_check`, a byte that is `1` if the FLP weight check is to be
+performed and `0` otherwise. Any other value of `do_weight_check` MUST be
+rejected when decoding.
+
+The prefix encoding is identical to that used by Poplar1 (see {{Section
+8.2.6.6 of !VDAF}}). Each prefix is packed into a byte string with the
+bits assigned in MSB-to-LSB order, and the per-prefix byte strings are
+concatenated together. The encoding and decoding procedures are reproduced
+here for convenience:
+
+~~~ python
+prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
+encoded_prefixes = bytearray()
+for prefix in prefixes:
+    for chunk in itertools.batched(prefix, 8):
+        byte_out = 0
+        for (bit_position, bit) in enumerate(chunk):
+            byte_out |= bit << (7 - bit_position)
+        encoded_prefixes.append(byte_out)
+~~~
+
+Decoding involves the following procedure:
+
+~~~ python
+prefixes = []
+
+last_byte_mask = 0
+leftover_bits = (level + 1) % 8
+if leftover_bits > 0:
+    for bit_index in range(8 - leftover_bits, 8):
+        last_byte_mask |= 1 << bit_index
+    last_byte_mask ^= 255
+
+bytes_per_prefix = ((level + 1) + 7) // 8
+for chunk in itertools.batched(encoded_prefixes, bytes_per_prefix):
+    if chunk[-1] & last_byte_mask > 0:
+        raise ValueError('trailing bits in prefix')
+
+    prefix = []
+    for i in range(level + 1):
+        byte_index = i // 8
+        bit_offset = 7 - (i % 8)
+        bit = (chunk[byte_index] >> bit_offset) & 1 != 0
+        prefix.append(bit)
+    prefixes.append(tuple(prefix))
+~~~
+
+> NOTE The only difference between Mastic's and Poplar1's aggregation
+> parameter encoding is the trailing `do_weight_check` byte.
+
 ## Auxiliary Functions {#mastic-aux}
 
 ~~~ python
@@ -1280,7 +1608,7 @@ def expand_input_share(
         proof_share = self.helper_proof_share(ctx, seed)
     return (key, proof_share, seed, peer_joint_rand_part)
 
-def helper_proof_share(self, ctx, seed: bytes) -> list[F]:
+def helper_proof_share(self, ctx: bytes, seed: bytes) -> list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
@@ -1346,7 +1674,7 @@ def query_rand(self,
 Mastic inherits its security considerations from {{Section 9 of !VDAF}}. A
 security analysis of Mastic is provided in {{MPDST25}}.
 
-> TODO Contrast with Poplar1, especially {{Section 9.4.2 of !VDAF}} ("Safe
+> TODO Contrast with Poplar1, especially {{Section 9.5 of !VDAF}} ("Safe
 > Usage of IDPF Outputs"). In particular, it's perfectly safe to use Mastic's
 > intermediate outputs.
 

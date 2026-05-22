@@ -1,11 +1,12 @@
 import os
+from typing import Any
 
-from vdaf_poc.test_utils import gen_test_vec_for_vdaf
+from vdaf_poc.test_utils import VdafTestVectorDict, gen_test_vec_for_vdaf
 
-from mastic import (F, Mastic, MasticAggParam, MasticCount, MasticHistogram,
+from mastic import (Mastic, MasticAggParam, MasticCount, MasticHistogram,
                     MasticMultihotCountVec, MasticSum, MasticSumVec, W)
 
-# # The path where test vectors are generated.
+# The path where test vectors are generated.
 TEST_VECTOR_PATH = os.environ.get('TEST_VECTOR_PATH', '../test_vec/')
 
 
@@ -16,8 +17,17 @@ def gen_test_vec_for_mastic(
         ctx: bytes,
         measurements: list[tuple[tuple[bool, ...], W]],
         test_vec_instance: int,
-        print_test_vec: bool = True) -> list[F]:
-    return gen_test_vec_for_vdaf(test_vec_path, mastic, agg_param, ctx, measurements, test_vec_instance, print_test_vec)
+        print_test_vec: bool = True,
+) -> VdafTestVectorDict[tuple[tuple[bool, ...], W], list[Any]]:
+    return gen_test_vec_for_vdaf(
+        test_vec_path,
+        mastic,
+        agg_param,
+        ctx,
+        measurements,
+        test_vec_instance,
+        print_test_vec,
+    )
 
 
 if __name__ == '__main__':

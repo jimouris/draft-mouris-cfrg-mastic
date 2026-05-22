@@ -47,9 +47,9 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
         # Aggregators prepare reports for aggregation.
         agg_shares = [mastic.agg_init(agg_param) for _ in range(mastic.SHARES)]
         for (nonce, public_share, input_shares) in reports:
-            # Each aggregator broadcast its prep share.
-            (prep_state, prep_shares) = zip(*[
-                mastic.prep_init(
+            # Each aggregator broadcasts its verifier share.
+            (verify_states, verifier_shares) = zip(*[
+                mastic.verify_init(
                     verify_key,
                     ctx,
                     agg_id,
@@ -59,12 +59,14 @@ def compute_heavy_hitters(mastic, ctx, thresholds, reports):
                     input_shares[agg_id]) for agg_id in range(mastic.SHARES)
             ])
 
-            # Each aggregator computes the prep message.
-            prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
+            # Each aggregator computes the verifier message.
+            verifier_message = mastic.verifier_shares_to_message(
+                ctx, agg_param, list(verifier_shares))
 
             # Each Aggregator computes and aggregates its output share.
             for agg_id in range(mastic.SHARES):
-                out_share = mastic.prep_next(ctx, prep_state[agg_id], prep_msg)
+                out_share = mastic.verify_next(
+                    ctx, verify_states[agg_id], verifier_message)
                 assert not isinstance(out_share, tuple)
                 agg_shares[agg_id] = mastic.agg_update(agg_param,
                                                        agg_shares[agg_id],
@@ -231,9 +233,9 @@ def example_attribute_based_metrics_mode():
     # Aggregators prepare reports for aggregation.
     agg_shares = [mastic.agg_init(agg_param) for _ in range(mastic.SHARES)]
     for (nonce, public_share, input_shares) in reports:
-        # Each aggregator broadcast its prep share.
-        (prep_state, prep_shares) = zip(*[
-            mastic.prep_init(
+        # Each aggregator broadcasts its verifier share.
+        (verify_states, verifier_shares) = zip(*[
+            mastic.verify_init(
                 verify_key,
                 ctx,
                 agg_id,
@@ -243,12 +245,14 @@ def example_attribute_based_metrics_mode():
                 input_shares[agg_id]) for agg_id in range(mastic.SHARES)
         ])
 
-        # Each aggregator computes the prep message.
-        prep_msg = mastic.prep_shares_to_prep(ctx, agg_param, prep_shares)
+        # Each aggregator computes the verifier message.
+        verifier_message = mastic.verifier_shares_to_message(
+            ctx, agg_param, list(verifier_shares))
 
         # Each Aggregator computes and aggregates its output share.
         for agg_id in range(mastic.SHARES):
-            out_share = mastic.prep_next(ctx, prep_state[agg_id], prep_msg)
+            out_share = mastic.verify_next(
+                ctx, verify_states[agg_id], verifier_message)
             assert not isinstance(out_share, tuple)
             agg_shares[agg_id] = mastic.agg_update(agg_param,
                                                    agg_shares[agg_id],
@@ -269,13 +273,13 @@ def example_poplar1_overhead():
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
-    p = len(cls.test_vec_encode_public_share(public_share))
+    p = len(cls.encode_public_share(public_share))
     b += p
     print('Poplar1(256) public share len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    p = len(cls.encode_input_share(input_shares[0]))
     b += p
     print('Poplar1(256) input share 0 len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    p = len(cls.encode_input_share(input_shares[1]))
     b += p
     print('Poplar1(256) input share 1 len:', p)
     poplar1_bytes_uploaded = b
@@ -286,13 +290,13 @@ def example_poplar1_overhead():
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
-    p = len(cls.test_vec_encode_public_share(public_share))
+    p = len(cls.encode_public_share(public_share))
     b += p
     print('Mastic(256,Count()) public share len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    p = len(cls.encode_input_share(input_shares[0]))
     b += p
     print('Mastic(256,Count()) input share 0 len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    p = len(cls.encode_input_share(input_shares[1]))
     b += p
     print('Mastic(256,Count()) input share 1 len:', p)
     mastic_count_bytes_uploaded = b
@@ -303,13 +307,13 @@ def example_poplar1_overhead():
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
-    p = len(cls.test_vec_encode_public_share(public_share))
+    p = len(cls.encode_public_share(public_share))
     b += p
     print('Mastic(256,Sum(8)) public share len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    p = len(cls.encode_input_share(input_shares[0]))
     b += p
     print('Mastic(256,Sum(8)) input share 0 len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    p = len(cls.encode_input_share(input_shares[1]))
     b += p
     print('Mastic(256,Sum(8)) input share 1 len:', p)
     mastic_sum8_bytes_uploaded = b
@@ -325,13 +329,13 @@ def example_poplar1_overhead():
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
-    p = len(cls.test_vec_encode_public_share(public_share))
+    p = len(cls.encode_public_share(public_share))
     b += p
     print('Mastic(32,Histogram(100, 10)) public share len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    p = len(cls.encode_input_share(input_shares[0]))
     b += p
     print('Mastic(32,Histogram(100, 10)) input share 0 len:', p)
-    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    p = len(cls.encode_input_share(input_shares[1]))
     b += p
     print('Mastic(32,Histogram(100, 10)) input share 1 len:', p)
     print('Mastic(32,Histogram(100, 10)) total upload len:', b)
@@ -345,15 +349,15 @@ def example_poplar1_overhead():
                                              nonce,
                                              gen_rand(cls.RAND_SIZE))
     b = 0
-    p = len(cls.test_vec_encode_public_share(public_share))
+    p = len(cls.encode_public_share(public_share))
     b += p
     print('Prio3Histogram({}, {}) public share len:'.format(
         length, chunk_length), p)
-    p = len(cls.test_vec_encode_input_share(input_shares[0]))
+    p = len(cls.encode_input_share(input_shares[0]))
     b += p
     print('Prio3Histogram({}, {}) input share 0 len:'.format(
         length, chunk_length), p)
-    p = len(cls.test_vec_encode_input_share(input_shares[1]))
+    p = len(cls.encode_input_share(input_shares[1]))
     b += p
     print('Prio3Histogram({}, {}) input share 1 len:'.format(
         length, chunk_length), p)

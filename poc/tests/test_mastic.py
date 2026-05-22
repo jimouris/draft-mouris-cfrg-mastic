@@ -94,8 +94,8 @@ class TestMalformedReport(unittest.TestCase):
             ),
         )
 
-        # Attempt preparation w/o the weight check.
-        (_prep_state_0, prep_share_0) = mastic.prep_init(
+        # Attempt verification w/o the weight check.
+        (_verify_state_0, verifier_share_0) = mastic.verify_init(
             verify_key,
             ctx,
             0,
@@ -104,7 +104,7 @@ class TestMalformedReport(unittest.TestCase):
             public_share,
             input_shares[0],
         )
-        (_prep_state_1, prep_share_1) = mastic.prep_init(
+        (_verify_state_1, verifier_share_1) = mastic.verify_init(
             verify_key,
             ctx,
             1,
@@ -115,8 +115,8 @@ class TestMalformedReport(unittest.TestCase):
         )
 
         def test():
-            return mastic.prep_shares_to_prep(ctx, agg_param,
-                                              [prep_share_0, prep_share_1])
+            return mastic.verifier_shares_to_message(
+                ctx, agg_param, [verifier_share_0, verifier_share_1])
         if expect_success:
             test()
         else:
