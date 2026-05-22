@@ -1463,7 +1463,7 @@ Table of Contents
 
    struct {
        MasticVidpfKey key;
-       MasticSeed proof_share_seed;
+       MasticSeed helper_seed;
    } MasticHelperShare;
 
    When joint randomness is used, the Leader's input share is structured
@@ -1471,13 +1471,9 @@ Table of Contents
 
    struct {
        MasticLeaderShare inner;
-       MasticSeed blind;
+       MasticSeed leader_seed;
        MasticSeed peer_joint_rand_part;
    } MasticLeaderShareWithJointRand;
-
-   Here blind is the Leader's seed for computing its joint randomness
-   part, and peer_joint_rand_part is the Helper's joint randomness part,
-   supplied by the Client.
 
    When joint randomness is used, the Helper's input share is structured
    as follows:
@@ -1487,8 +1483,21 @@ Table of Contents
        MasticSeed peer_joint_rand_part;
    } MasticHelperShareWithJointRand;
 
-   Note that the Helper does not need a separate blind: it reuses
-   inner.proof_share_seed for computing its joint randomness part.
+   The interpretation of leader_seed and helper_seed depends on the
+   Aggregator and on whether joint randomness is used:
+
+   *  The Helper's helper_seed is always used to derive its FLP proof
+      share (Section 4.1).  When joint randomness is used, the Helper
+      additionally uses helper_seed to derive its FLP joint randomness
+      part.
+
+   *  The Leader's leader_seed is present only when joint randomness is
+      used, in which case it is used to derive the Leader's FLP joint
+      randomness part.
+
+   In both cases, peer_joint_rand_part is the joint randomness part of
+   the peer Aggregator, supplied by the Client so that each Aggregator
+   can recompute the FLP joint randomness seed during verification.
 
 4.6.3.  Verifier Share
 
