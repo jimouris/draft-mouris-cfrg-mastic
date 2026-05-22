@@ -329,44 +329,74 @@ Table of Contents
           +---------------------+-----------------+-------------+
           | xof.SEED_SIZE       | Class Attribute | Section 6.2 |
           +---------------------+-----------------+-------------+
-          | format_dst          | Function        | Section 6.2 |
-          +---------------------+-----------------+-------------+
 
                        Table 4: XOF Functionalities.
 
    Each invocation of an XOF is initialized with a domain separation
-   tag.  Mastic constructs each domain separation tag using the
-   format_dst() function specified in Section 6.2 of [VDAF].  This
-   function takes as input an "algorithm class" byte that distinguishes
-   Mastic from other VDAFs and from its building blocks, an algorithm
-   identifier for the instance, and a 2-byte usage identifier; the
-   application context string (Section 4.1 of [VDAF]) is appended to the
-   output.  Mastic uses the following algorithm classes:
+   tag.  Mastic defines its own domain separation tag format, distinct
+   from the format_dst() function specified in Section 6.2 of [VDAF].
+   Using a separate format allows Mastic to be versioned independently
+   of [VDAF].
+
+   The version of this document is a byte denoted VERSION.  Its value
+   SHALL be 0.
+
+      NOTE We will bump VERSION whenever we publish a draft with
+      incompatible changes from the previous draft.
+
+   A Mastic domain separation tag encodes the value b'mastic', the
+   document version, an "algorithm class" byte that distinguishes Mastic
+   the VDAF from its building blocks, the 4-byte algorithm identifier
+   within that class, and a 2-byte usage identifier.  The application
+   context string (Section 4.1 of [VDAF]) is then appended.
+
+   Mastic uses the following algorithm classes:
 
    *  ALGO_CLASS_VDAF = 0: identifies Mastic the VDAF, with algo set to
       the VDAF algorithm identifier (see Section 5 of [VDAF]).  This is
       the same convention used by VDAFs in [VDAF].
 
    *  ALGO_CLASS_VIDPF = 2: identifies the VIDPF defined in Section 3,
-      with algo = 0.  (We avoid using algo_class = 1 because that is
-      used by the IDPF; see Section 8.3 of [VDAF].)
+      with algo = 0.  (We avoid using algo_class = 1 to mirror the
+      IDPF's class in [VDAF]'s format_dst(); see Section 8.3 of [VDAF].)
 
-   For Mastic, the VDAF's domain_separation_tag() method (Section 5 of
-   [VDAF]) is used.  For the VIDPF, the following helper is used:
+   Algorithms in the remainder will use the following helpers:
 
+   ALGO_CLASS_VDAF: int = 0
    ALGO_CLASS_VIDPF: int = 2
    VIDPF_ALGO_ID: int = 0
+
+   def format_dst(algo_class: int,
+                  algo: int,
+                  usage: int) -> bytes:
+       return b'mastic' \
+           + byte(VERSION) \
+           + byte(algo_class) \
+           + to_be_bytes(algo, 4) \
+           + to_be_bytes(usage, 2)
+
+   def dst_vdaf(ctx: bytes, algo_id: int, usage: int) -> bytes:
+       return format_dst(ALGO_CLASS_VDAF, algo_id, usage) + ctx
 
    def dst_vidpf(ctx: bytes, usage: int) -> bytes:
        return format_dst(ALGO_CLASS_VIDPF, VIDPF_ALGO_ID, usage) + ctx
 
+   For Mastic the VDAF, the Vdaf.domain_separation_tag() method
+   (Section 5 of [VDAF]) is overridden to use dst_vdaf() rather than
+   [VDAF]'s format_dst():
+
+   def domain_separation_tag(self, usage: int, ctx: bytes) -> bytes:
+       return dst_vdaf(ctx, self.ID, usage)
+
+   For the VIDPF, the dst_vidpf() helper is used directly.
+
    When using Mastic or VIDPF, the length of the application context
-   string (denoted ctx) MUST be in range [0, 2^16 - 16).
+   string (denoted ctx) MUST be in range [0, 2^16 - 14).
 
       NOTE This range was computed by taking the maximum size of the
       domain separation tag supported by both XofFixedKeyAes128 and
-      XofTurboShake128 and subtracting the length of the format_dst()
-      output.
+      XofTurboShake128 (2^16 - 1 bytes) and subtracting the length of
+      the 14-byte format_dst() output.
 
    Finally, for completeness, we define some Python methods used in the
    remainder:
