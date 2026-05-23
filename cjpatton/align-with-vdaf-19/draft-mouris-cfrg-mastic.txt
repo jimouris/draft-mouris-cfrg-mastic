@@ -5,12 +5,12 @@
 Crypto Forum                                                    H. Davis
 Internet-Draft                                                   Seagate
 Intended status: Informational                                 D. Mouris
-Expires: 23 November 2026                                        Nillion
+Expires: 24 November 2026                                        Nillion
                                                                C. Patton
                                                               Cloudflare
                                                           N. G. Tsoutsos
                                                   University of Delaware
-                                                             22 May 2026
+                                                             23 May 2026
 
 
                             The Mastic VDAF
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 November 2026.
+   This Internet-Draft will expire on 24 November 2026.
 
 Copyright Notice
 
