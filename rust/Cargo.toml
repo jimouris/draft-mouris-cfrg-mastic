@@ -1,0 +1,30 @@
+[package]
+name = "mastic"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.86"
+description = "Reference implementation of Mastic (draft-mouris-cfrg-mastic)."
+license = "MIT"
+repository = "https://github.com/jimouris/draft-mouris-cfrg-mastic"
+publish = false
+
+# NOTE: This Mastic implementation was originally part of libprio-rs and was
+# extracted at commit 4e497a290fbd81298ada708135e7957322051f25 (the last commit
+# before Mastic was removed from libprio-rs in PR #1411). We pin `prio` to that
+# exact commit so the code can build verbatim during the move. We will upgrade
+# `prio` to a newer release (and address breaking changes) in follow-up commits.
+
+[dependencies]
+prio = { git = "https://github.com/divviup/libprio-rs.git", rev = "4e497a290fbd81298ada708135e7957322051f25", features = ["experimental", "crypto-dependencies"] }
+bitvec = "1.0.1"
+rand = "0.10"
+subtle = "2.6.1"
+thiserror = "2.0"
+
+[dev-dependencies]
+prio = { git = "https://github.com/divviup/libprio-rs.git", rev = "4e497a290fbd81298ada708135e7957322051f25", features = ["experimental", "crypto-dependencies", "test-util"] }
+assert_matches = "1.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = { version = "0.4.3", features = ["serde"] }
+rand = { version = "0.10", features = ["std_rng"] }
