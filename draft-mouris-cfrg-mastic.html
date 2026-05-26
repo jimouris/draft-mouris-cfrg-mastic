@@ -19,23 +19,22 @@ client attributes without revealing which clients have which attributes.
 Second, it solves the weighted heavy hitters problem, where the goal is to
 compute the subset of inputs that have the highest total weight. 
     " name="description">
-<meta content="xml2rfc 3.26.0" name="generator">
+<meta content="xml2rfc 3.33.0" name="generator">
 <meta content="Internet-Draft" name="keyword">
 <meta content="draft-mouris-cfrg-mastic-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.26.0
-    Python 3.12.8
+  xml2rfc 3.33.0
+    Python 3.12.13
     ConfigArgParse 1.7
     google-i18n-address 3.1.1
-    intervaltree 3.1.0
-    Jinja2 3.1.5
-    lxml 5.3.0
-    platformdirs 4.3.6
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.0.2
+    platformdirs 4.9.6
     pycountry 24.6.1
-    PyYAML 6.0.2
-    requests 2.32.3
-    setuptools 70.3.0
-    wcwidth 0.2.13
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.7.0
 -->
 <link href="draft-mouris-cfrg-mastic.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -176,7 +175,7 @@ compute the subset of inputs that have the highest total weight.
   font-weight: 400;
   font-display: swap;
   src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'Oxygen Mono';
@@ -184,7 +183,8 @@ compute the subset of inputs that have the highest total weight.
   font-weight: 400;
   font-display: swap;
   src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 }
 
 @font-face {
@@ -301,16 +301,19 @@ h1, h2, h3, h4, h5, h6 {
   font-size-adjust: 0.5;
   color: var(--title-color);
 }
-h1#title {
-  font-size: 32px;
-  line-height: 40px;
-  clear: both;
-}
-h1#title, h1#rfcnum {
-  margin: 1.5em 0 0.2em;
-}
-h1#rfcnum + h1#title {
-  margin: 0.2em 0;
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
 }
 
 h1, h2, h3 {
@@ -330,10 +333,10 @@ h4, h5, h6 {
 #abstract+p {
   font-size: 18px;
   line-height: 24px;
-}
-#abstract+p code, #abstract+p samp, #abstract+p tt {
-  font-size: 16px;
-  line-height: 0;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
 }
 
 p {
@@ -344,59 +347,59 @@ p {
 div {
   margin: 0;
 }
-.alignRight.art-text {
-  background-color: var(--highlight-color);
-  border: 1px solid var(--line-color);
-  border-radius: 3px;
-  padding: 0.5em 1em 0;
-  margin-bottom: 0.5em;
-}
-.alignRight.art-text pre {
-  padding: 0;
-  width: auto;
-}
 .alignRight {
   margin: 1em 0;
-}
-.alignRight > *:first-child {
-  border: none;
-  margin: 0;
-  float: right;
-  clear: both;
-}
-.alignRight > *:nth-child(2) {
-  clear: both;
-  display: block;
-  border: none;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
 }
 svg {
   display: block;
-}
-/* font-family isn't space-separated, but =~ will have to do */
-svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
-  font-family: var(--font-mono);
-}
-.alignCenter.art-text {
-  background-color: var(--highlight-color);
-  border: 1px solid var(--line-color);
-  border-radius: 3px;
-  padding: 0.5em 1em 0;
-  margin-bottom: 0.5em;
-}
-.alignCenter.art-text pre {
-  padding: 0;
-  width: auto;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
 }
 .alignCenter {
   margin: 1em 0;
-}
-.alignCenter > *:first-child {
-  border: none;
-  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
-     support flexbox yet.
-  */
-  display: table;
-  margin: 0 auto;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
 }
 
 /* lists */
@@ -434,26 +437,25 @@ dl {
     --indent: 5ch;
     & > dt {
       min-width: calc(var(--indent) - 2ch);
+      float: none;
     }
-  }
-  &.olPercent > dt {
-    float: none;
   }
 
   dl > dd > & {
     margin-top: 0.5em;
     margin-bottom: 0;
   }
-}
-dl > dt {
-  float: left;
-  margin-right: 2ch;
-  min-width: 8ch;
-}
-dl > dd {
-  margin-bottom: .8em;
-  margin-left: var(--indent) !important; /* stupid element overrides */
-  min-height: 2ex;
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
 }
 :is(dl.compact, .dlCompact) > dd {
   margin-bottom: 0;
@@ -469,20 +471,22 @@ dl > dd {
 }
 
 /* links */
-a, a[href].selfRef:hover {
+a {
   text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
 }
-a[href] {
-  color: var(--link-color);
-}
-a[href].selfRef, .iref + a[href].internal {
+.iref + a[href].internal {
   color: var(--text-color);
-}
-a[href]:hover {
-  text-decoration: underline;
-}
-a[href].selfRef:hover {
-  background-color: var(--highlight-color);
 }
 a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
   white-space: nowrap;
@@ -518,9 +522,9 @@ img {
 figure {
   margin: 0.5em 0;
   padding: 0;
-}
-figure blockquote {
-  margin: 0.8em 0.4em 0.4em;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
 }
 figcaption, caption {
   font-style: italic;
@@ -530,17 +534,19 @@ figcaption, caption {
 }
 @media screen {
   /* Auto-collapse boilerplate. */
-  :is(#status-of-memo, #copyright) p {
-    margin: -2px 0;
-    max-height: 0;
-    transition: max-height 2s ease, margin 0.5s ease 0.5s;
-    overflow: hidden;
-  }
-  :is(#status-of-memo, #copyright):hover p,
-  :is(#status-of-memo, #copyright) h2:target ~ p {
-    margin: 0.5em 0;
-    max-height: 500px;
-    overflow: auto;
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
   }
   pre, svg {
     display: inline-block;
@@ -576,6 +582,7 @@ aside, blockquote {
 }
 blockquote {
   margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
 }
 cite {
   display: block;
@@ -589,25 +596,17 @@ table {
   max-width: 100%;
   margin: 0 0 1em;
   border-collapse: collapse;
-}
-table.right {
-  margin-left: auto;
-}
-table.center {
-  margin-left: auto;
-  margin-right: auto;
-}
-table.left {
-  margin-right: auto;
-}
-table .text-left {
-  text-align: left;
-}
-table .text-center {
-  text-align: center;
-}
-table .text-right {
-  text-align: right;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
 }
 
 thead, tbody {
@@ -627,13 +626,6 @@ th {
 :is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
   background-color: var(--highlight-color);
 }
-table caption {
-  margin: 0;
-  padding: 3px 0 3px 1em;
-}
-table p {
-  margin: 0;
-}
 
 /* pilcrow */
 a.pilcrow {
@@ -644,18 +636,16 @@ a.pilcrow {
     color: var(--pilcrow-weak);
     &:hover { text-decoration: none; }
   }
-}
-@media not print {
-  :hover > a.pilcrow {
-    opacity: 1;
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
   }
-  a.pilcrow[href]:hover {
-    color: var(--pilcrow-strong);
-    background-color: transparent;
-  }
-}
-@media print {
-  a.pilcrow {
+  @media print {
     display: none;
   }
 }
@@ -714,9 +704,9 @@ sub, sup {
   font-size: 0.9em;
   font-style: italic;
   margin-top: 2em;
-}
-.docInfo .prepared {
-  float: right;
+  & .prepared {
+    float: right;
+  }
 }
 
 /* table of contents */
@@ -806,23 +796,27 @@ hr.addr {
   max-width: calc(100% - 16px);
 }
 @media (min-width: 500px) {
-  #authors-addresses > section {
-    column-count: 2;
-    column-gap: 20px;
-  }
-  #authors-addresses > section > h2 {
-    column-span: all;
-  }
-  /* hack for break-inside: avoid-column */
-  #authors-addresses address {
-    display: inline-block;
-    break-inside: avoid-column;
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
   }
 }
 
 /* Comments */
-.rfcEditorRemove p:first-of-type {
-  font-style: italic;
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
 }
 .cref {
   background-color: rgba(249, 232, 105, 0.3);
@@ -833,19 +827,21 @@ hr.addr {
 }
 
 @media screen {
-  #toc nav {
-    font-family: var(--font-title);
-    font-weight: 360;
-    & > ul { margin-bottom: 2em; }
-    & ul {
-      margin: 0 0 0 4px;
-      & :is(p, li) {
-        margin: 2px 0;
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
       }
     }
-  }
-  #toc a.toplink {
-    float: right;
+    & a.toplink {
+      float: right;
+    }
   }
 }
 @media not screen {
@@ -866,54 +862,54 @@ hr.addr {
     margin: 0;
     border-bottom: 1px solid #ccc;
     opacity: 0.6;
-  }
-  #toc h2 {
-    margin: 0;
-    padding: 2px 0 2px 6px;
-    padding-right: 1em;
-    font-size: 18px;
-    line-height: 24px;
-    min-width: 190px;
-    text-align: right;
-    background-color: #444;
-    color: white;
-    cursor: pointer;
-    &::before { /* css hamburger */
-      float: right;
-      position: relative;
-      width: 1em;
-      height: 1px;
-      left: -164px;
-      margin: 8px 0 0 0;
-      background: white none repeat scroll 0 0;
-      box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
-      content: "";
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
     }
-  }
-  #toc nav {
-    display: none;
-    background-color: var(--background-color);
-    padding: 0.5em 1em 1em;
-    overflow: auto;
-    overscroll-behavior: contain;
-    height: calc(100vh - 48px);
-    border-left: 1px solid #ddd;
-  }
-  #toc.active {
-    opacity: 1;
-    & nav { display: block; }
-  }
-  /* Make the collapsed ToC header render white on gray also when it's a link */
-  #toc h2 a,
-  #toc h2 a:is(:link, :focus, :hover),
-  #toc a.toplink,
-  #toc a.toplink:hover {
-    color: white;
-    background-color: #444;
-    text-decoration: none;
-  }
-  #toc a.toplink {
-    margin: 2px 0.5em 0;
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
   }
 }
 
@@ -932,26 +928,26 @@ hr.addr {
     margin: 0;
     padding: 0;
     z-index: 1;
-  }
-  #toc h2 {
-    margin: 0;
-    padding: 0.25em 1em 1em 0;
-  }
-  #toc nav {
-    display: block;
-    height: calc(90vh - 84px);
-    bottom: 0;
-    padding: 0.5em 0 2em;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
   }
   img { /* future proofing */
     max-width: 100%;
     height: auto;
-  }
-  #toc a.toplink {
-    margin: 8px 0.5em 0;
   }
 }
 
@@ -967,12 +963,13 @@ hr.addr {
   #n-copyright-notice {
     border-bottom: none;
   }
-  #toc, #n-introduction {
-    page-break-before: always;
-  }
   #toc {
+    page-break-before: always;
     border-top: none;
     padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
   }
   figure, pre, .vcard {
     page-break-inside: avoid;
@@ -1034,17 +1031,19 @@ hr.addr {
 }
 
 /* SVG Trick: a prefix match works because only black and white are allowed */
-svg :is([stroke="black"], [stroke^="#000"]) {
-  stroke: var(--text-color);
-}
-svg :is([stroke="white"], [stroke^="#fff"]) {
-  stroke: var(--background-color);
-}
-svg :is([fill="black"], [fill^="#000"], :not([fill])) {
-  fill: var(--text-color);
-}
-svg :is([fill="white"], [fill^="#fff"]) {
-  fill: var(--background-color);
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
 }
 </style>
 
@@ -1054,11 +1053,11 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">Mastic</td>
-<td class="right">February 2025</td>
+<td class="right">May 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Davis, et al.</td>
-<td class="center">Expires 8 August 2025</td>
+<td class="center">Expires 27 November 2026</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1071,12 +1070,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-mouris-cfrg-mastic-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2025-02-04" class="published">4 February 2025</time>
+<time datetime="2026-05-26" class="published">26 May 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2025-08-08">8 August 2025</time></dd>
+<dd class="expires"><time datetime="2026-11-27">27 November 2026</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1144,7 +1143,7 @@ compute the subset of inputs that have the highest total weight.<a href="#sectio
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 8 August 2025.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 27 November 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1153,7 +1152,7 @@ compute the subset of inputs that have the highest total weight.<a href="#sectio
 <a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
         </h2>
 <p id="section-boilerplate.2-1">
-            Copyright (c) 2025 IETF Trust and the persons identified as the
+            Copyright (c) 2026 IETF Trust and the persons identified as the
             document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.2-2">
             This document is subject to BCP 78 and the IETF Trust's Legal
@@ -1197,7 +1196,7 @@ compute the subset of inputs that have the highest total weight.<a href="#sectio
                 <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-sharding" class="internal xref">Sharding</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
-                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-preparation" class="internal xref">Preparation</a></p>
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-verification" class="internal xref">Verification</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
                 <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-validity-of-aggregation-par" class="internal xref">Validity of Aggregation Parameters</a></p>
@@ -1209,7 +1208,30 @@ compute the subset of inputs that have the highest total weight.<a href="#sectio
                 <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-unsharding" class="internal xref">Unsharding</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6">
-                <p id="section-toc.1-1.4.2.6.1"><a href="#section-4.6" class="auto internal xref">4.6</a>.  <a href="#name-auxiliary-functions-2" class="internal xref">Auxiliary Functions</a></p>
+                <p id="section-toc.1-1.4.2.6.1"><a href="#section-4.6" class="auto internal xref">4.6</a>.  <a href="#name-message-serialization" class="internal xref">Message Serialization</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.1">
+                    <p id="section-toc.1-1.4.2.6.2.1.1"><a href="#section-4.6.1" class="auto internal xref">4.6.1</a>.  <a href="#name-public-share" class="internal xref">Public Share</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.2">
+                    <p id="section-toc.1-1.4.2.6.2.2.1"><a href="#section-4.6.2" class="auto internal xref">4.6.2</a>.  <a href="#name-input-share" class="internal xref">Input Share</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.3">
+                    <p id="section-toc.1-1.4.2.6.2.3.1"><a href="#section-4.6.3" class="auto internal xref">4.6.3</a>.  <a href="#name-verifier-share" class="internal xref">Verifier Share</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.4">
+                    <p id="section-toc.1-1.4.2.6.2.4.1"><a href="#section-4.6.4" class="auto internal xref">4.6.4</a>.  <a href="#name-verifier-message" class="internal xref">Verifier Message</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.5">
+                    <p id="section-toc.1-1.4.2.6.2.5.1"><a href="#section-4.6.5" class="auto internal xref">4.6.5</a>.  <a href="#name-aggregate-share" class="internal xref">Aggregate Share</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.6.2.6">
+                    <p id="section-toc.1-1.4.2.6.2.6.1"><a href="#section-4.6.6" class="auto internal xref">4.6.6</a>.  <a href="#name-aggregation-parameter" class="internal xref">Aggregation Parameter</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.7">
+                <p id="section-toc.1-1.4.2.7.1"><a href="#section-4.7" class="auto internal xref">4.7</a>.  <a href="#name-auxiliary-functions-2" class="internal xref">Auxiliary Functions</a></p>
 </li>
             </ul>
 </li>
@@ -1296,7 +1318,7 @@ solving the simpler "prefix histogram" problem. The goal of this problem is to
 count how many of the input strings begin with each of a sequence of candidate
 prefixes. This problem can be solved using a Verifiable Distributed Aggregation
 Function, or VDAF <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
-<p id="section-1-4">The Poplar1 VDAF specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> describes how to
+<p id="section-1-4">The Poplar1 VDAF specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> describes how to
 distribute this computation amongst two aggregation servers such that, as long
 as one server is honest, no individual's input is observed in the clear. At the
 same time, Poplar1 allows the servers to detect and remove any invalid
@@ -1315,10 +1337,10 @@ which web pages have the highest average load time, perhaps indicating a
 performance issue in the browser. Because weighted heavy hitters is more
 general, Mastic can be used as a drop-in replacement for Poplar1. It is is
 also more efficient, requiring just one round of communication for
-preparation (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5.2" class="relref">Section 5.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) compared to Poplar1's two rounds.<a href="#section-1-6.1.1" class="pilcrow">¶</a></p>
+verification (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5.2" class="relref">Section 5.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) compared to Poplar1's two rounds.<a href="#section-1-6.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-1-6.2">
-          <p id="section-1-6.2.1">"attribute-based metrics": The Prio3 VDAF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) can be
+          <p id="section-1-6.2.1">"attribute-based metrics": The Prio3 VDAF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) can be
 used for a variety of aggregation tasks, ranging from simple summary
 statistics, like average or standard deviation, to more sophisticated
 representations of data, like histograms or linear regression. In many
@@ -1329,7 +1351,7 @@ aggregation servers or data collector.<a href="#section-1-6.2.1" class="pilcrow"
 </li>
       </ol>
 <p id="section-1-7">The main component of Mastic is the Verifiable Incremental Distributed Point
-Function (VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. VIDPF extends IDPF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-8.3" class="relref">Section 8.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>),
+Function (VIDPF) of <span>[<a href="#MST24" class="cite xref">MST24</a>]</span>. VIDPF extends IDPF (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8.3" class="relref">Section 8.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>),
 the main building block of Poplar1. Both IDPF and VIDPF are a form of function
 secret sharing <span>[<a href="#BGI15" class="cite xref">BGI15</a>]</span>, where a client generates shares of a secret function
 <code>F</code> such that each server can compute shares of <code>F(X)</code> for a chosen <code>X</code>. In our
@@ -1345,7 +1367,7 @@ to make sure each weight is within a sensible range, say within seconds rather
 than hours or days. Otherwise, misbehaving clients would be able to poison the
 computation by reporting out of range values.<a href="#section-1-8" class="pilcrow">¶</a></p>
 <p id="section-1-9">This range check is accomplished with the Fully Linear Proof (FLP) system of
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. An FLP allows properties of secret shared data to be
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. An FLP allows properties of secret shared data to be
 validated without revealing the data itself. In Mastic, the client generates an
 FLP of its <code>beta</code>'s validity; when the servers are ready to evaluate the VIDPF,
 they first compute shares of <code>beta</code> and verify the FLP, which itself is secret
@@ -1360,7 +1382,7 @@ functionality.<a href="#section-1-11.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-11.2">
           <p id="section-1-11.2.1"><a href="#additional-modes" class="auto internal xref">Appendix "Modes of Operation"</a> describes extensions and optimizations for Mastic,
-including a batched "preparation" (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5.2" class="relref">Section 5.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) mode of
+including a batched "verification" (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5.2" class="relref">Section 5.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) mode of
 operation that reduces communication cost, and a 3-party variant of the
 protocol that ensures robustness against poisoning attacks in the presence of
 one malicious aggregation server.<a href="#section-1-11.2.1" class="pilcrow">¶</a></p>
@@ -1377,7 +1399,7 @@ one malicious aggregation server.<a href="#section-1-11.2.1" class="pilcrow">¶<
 "<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
 described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
-<p id="section-2-2">This document uses the same conventions and definitions as <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-2" class="relref">Section 2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The following terms as defined in therein:
+<p id="section-2-2">This document uses the same conventions and definitions as <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-2" class="relref">Section 2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The following terms as defined in therein:
 "Aggregator",
 "Client",
 "Collector",
@@ -1388,9 +1410,11 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 "input share",
 "measurement",
 "output share",
-"prep message",
-"prep share", and
-"report".<a href="#section-2-2" class="pilcrow">¶</a></p>
+"public share",
+"report",
+"verification state",
+"verifier message", and
+"verifier share".<a href="#section-2-2" class="pilcrow">¶</a></p>
 <p id="section-2-3">The following functions are as defined therein:<a href="#section-2-3" class="pilcrow">¶</a></p>
 <span id="name-common-functionalities"></span><div id="common-functions">
 <table class="center" id="table-1">
@@ -1458,10 +1482,10 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         </tbody>
       </table>
 </div>
-<p id="section-2-5">Mastic also uses finite fields as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. We
+<p id="section-2-5">Mastic also uses finite fields as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. We
 usually denote a finite field by <code>F</code> and its Python class object, a subclass of
 <code>Field</code>, as <code>field: type[F]</code>. This document references the following operations
-on fields, defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-5" class="pilcrow">¶</a></p>
+on fields, defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-5" class="pilcrow">¶</a></p>
 <span id="name-finite-field-functionalitie"></span><div id="field-functionalities">
 <table class="center" id="table-2">
         <caption>
@@ -1485,6 +1509,13 @@ on fields, defined in <span><a href="https://datatracker.ietf.org/doc/html/draft
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
+              <code>field.decode_vec</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
               <code>field.encode_vec</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
@@ -1495,6 +1526,13 @@ on fields, defined in <span><a href="https://datatracker.ietf.org/doc/html/draft
               <code>field.zeros</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>field.ENCODED_SIZE</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Class Attribute</td>
             <td class="text-left" rowspan="1" colspan="1">Section 6.1</td>
           </tr>
           <tr>
@@ -1521,7 +1559,7 @@ on fields, defined in <span><a href="https://datatracker.ietf.org/doc/html/draft
         </tbody>
       </table>
 </div>
-<p id="section-2-7">Mastic uses the Fully Linear Proof (FLP) system specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The draft refers to the following methods on an instance <code>flp</code> of the
+<p id="section-2-7">Mastic uses the Fully Linear Proof (FLP) system specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.3" class="relref">Section 7.3</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The draft refers to the following methods on an instance <code>flp</code> of the
 class <code>Flp</code> defined in <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>:<a href="#section-2-7" class="pilcrow">¶</a></p>
 <span id="name-flp-methods-and-parameters"></span><div id="FLP-functionalities">
 <table class="center" id="table-3">
@@ -1532,7 +1570,7 @@ class <code>Flp</code> defined in <span>[<a href="#VDAF" class="cite xref">VDAF<
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Functionality</th>
-            <th class="text-left" rowspan="1" colspan="1">Type  --</th>
+            <th class="text-left" rowspan="1" colspan="1">Type</th>
             <th class="text-left" rowspan="1" colspan="1">Definition</th>
           </tr>
         </thead>
@@ -1581,22 +1619,57 @@ class <code>Flp</code> defined in <span>[<a href="#VDAF" class="cite xref">VDAF<
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
-              <code>MEAS_LEN</code>
+              <code>flp.MEAS_LEN</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">integer</td>
-            <td class="text-left" rowspan="1" colspan="1">Section 7.3.2</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
-              <code>OUTPUT_LEN</code>
+              <code>flp.OUTPUT_LEN</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">integer</td>
-            <td class="text-left" rowspan="1" colspan="1">Section 7.3.2</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.PROOF_LEN</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">integer</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.PROVE_RAND_LEN</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">integer</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.QUERY_RAND_LEN</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">integer</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.JOINT_RAND_LEN</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">integer</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>flp.VERIFIER_LEN</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">integer</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 7.1</td>
           </tr>
         </tbody>
       </table>
 </div>
-<p id="section-2-9">Mastic also uses eXtendable Output Functions (XOFs) as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The following functionalities are as defined therein (<code>xof</code>
+<p id="section-2-9">Mastic also uses eXtendable Output Functions (XOFs) as specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The following functionalities are as defined therein (<code>xof</code>
 denotes an instance of class <code>Xof</code>):<a href="#section-2-9" class="pilcrow">¶</a></p>
 <span id="name-xof-functionalities"></span><div id="XOF-functionalities">
 <table class="center" id="table-4">
@@ -1633,14 +1706,42 @@ denotes an instance of class <code>Xof</code>):<a href="#section-2-9" class="pil
             <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
             <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
           </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xof.next_vec</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Instance Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xof.derive_seed</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Class Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xof.expand_into_vec</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Class Method</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>xof.SEED_SIZE</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Class Attribute</td>
+            <td class="text-left" rowspan="1" colspan="1">Section 6.2</td>
+          </tr>
         </tbody>
       </table>
 </div>
 <p id="section-2-11">Each invocation of a XOF is initialized with a domain separation tag. Each
 domain separation tag encodes the version of this document, the application
-context string (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), and a distinguished byte identifying
+context string (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), and a distinguished byte identifying
 how the XOF output is used. The tag may also encode a VDAF algorithm ID
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-2-11" class="pilcrow">¶</a></p>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-2-11" class="pilcrow">¶</a></p>
 <p id="section-2-12">The version of this document is a byte denoted <code>VERSION</code>. Its value <span class="bcp14">SHALL</span> be <code>0</code>.<a href="#section-2-12" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-2-13.1">
@@ -1648,59 +1749,63 @@ how the XOF output is used. The tag may also encode a VDAF algorithm ID
 changes from the previous draft.<a href="#section-2-13.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-2-14">Algorithms in the remainder will use the following algorithms:<a href="#section-2-14" class="pilcrow">¶</a></p>
-<div class="lang-python sourcecode" id="section-2-15">
+<p id="section-2-14">Note that Mastic defines its own domain separation tag format, distinct from
+the <code>format_dst()</code> function specified in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2" class="relref">Section 6.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. This allows
+Mastic to be versioned independently of <span>[<a href="#VDAF" class="cite xref">VDAF</a>]</span>.<a href="#section-2-14" class="pilcrow">¶</a></p>
+<p id="section-2-15">Algorithms in the remainder will use the following helpers:<a href="#section-2-15" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-2-16">
 <pre>
 def dst(ctx: bytes, usage: int) -&gt; bytes:
     return b'mastic' + byte(VERSION) + byte(usage) + ctx
 
 def dst_alg(ctx: bytes, usage: int, algorithm_id: int) -&gt; bytes:
-    return b'mastic'\
+    return b'mastic' \
         + byte(VERSION) \
         + byte(usage) \
         + to_be_bytes(algorithm_id, 4) \
         + ctx
-</pre><a href="#section-2-15" class="pilcrow">¶</a>
+</pre><a href="#section-2-16" class="pilcrow">¶</a>
 </div>
-<p id="section-2-16">When using Mastic or VIDPF, the length of the application context string
-(denoted <code>ctx</code>) <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 12)</code>.<a href="#section-2-16" class="pilcrow">¶</a></p>
+<p id="section-2-17">When using Mastic or VIDPF, the length of the application context string
+(denoted <code>ctx</code>) <span class="bcp14">MUST</span> be in range <code>[0, 2^16 - 12)</code>.<a href="#section-2-17" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
-<li class="normal ulEmpty" id="section-2-17.1">
-          <p id="section-2-17.1.1">NOTE This range was computed by taking the maximum size of the domain
-separation tag supported by both XofFixedKeyAes128 and XofTurboShake128 and
-subtracting the length of the prefix.<a href="#section-2-17.1.1" class="pilcrow">¶</a></p>
+<li class="normal ulEmpty" id="section-2-18.1">
+          <p id="section-2-18.1.1">NOTE This range was computed by taking the maximum size of the domain
+separation tag supported by both <code>XofFixedKeyAes128</code> and <code>XofTurboShake128</code>
+(<code>2^16 - 1</code> bytes) and subtracting the maximum length of the prefix (12
+bytes for <code>dst_alg()</code>).<a href="#section-2-18.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-2-18">Finally, for completeness, we define some Python methods used in the remainder:<a href="#section-2-18" class="pilcrow">¶</a></p>
+<p id="section-2-19">Finally, for completeness, we define some Python methods used in the remainder:<a href="#section-2-19" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-2-19.1">
-          <p id="section-2-19.1.1"><code>bool(val: Any) -&gt; bool</code> converts a value <code>val</code> to a Boolean.<a href="#section-2-19.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-2-20.1">
+          <p id="section-2-20.1.1"><code>bool(val: Any) -&gt; bool</code> converts a value <code>val</code> to a Boolean.<a href="#section-2-20.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.2">
-          <p id="section-2-19.2.1"><code>bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt;
-bytearray</code> returns a mutable sequence of bytes.<a href="#section-2-19.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.2">
+          <p id="section-2-20.2.1"><code>bytearray(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt;
+bytearray</code> returns a mutable sequence of bytes.<a href="#section-2-20.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.3">
-          <p id="section-2-19.3.1"><code>bytes(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt; bytes</code>
-returns a immutable sequence of bytes.<a href="#section-2-19.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.3">
+          <p id="section-2-20.3.1"><code>bytes(source: Union[str, bytes, bytearray, Iterable[int]]) -&gt; bytes</code>
+returns a immutable sequence of bytes.<a href="#section-2-20.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.4">
-          <p id="section-2-19.4.1"><code>len(obj: Sized) -&gt; int</code> returns the number of items in <code>obj</code>. The object
+        <li class="normal" id="section-2-20.4">
+          <p id="section-2-20.4.1"><code>len(obj: Sized) -&gt; int</code> returns the number of items in <code>obj</code>. The object
 argument can be a sequence (e.g., string, list, or tuple) or a collection
-(e.g., dictionary, set).<a href="#section-2-19.4.1" class="pilcrow">¶</a></p>
+(e.g., dictionary, set).<a href="#section-2-20.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.5">
-          <p id="section-2-19.5.1"><code>list.append(elem: Any) -&gt; None</code> adds a single element <code>elem</code> to the end of
-a <code>list</code> instance.<a href="#section-2-19.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.5">
+          <p id="section-2-20.5.1"><code>list.append(elem: Any) -&gt; None</code> adds a single element <code>elem</code> to the end of
+a <code>list</code> instance.<a href="#section-2-20.5.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.6">
-          <p id="section-2-19.6.1"><code>list.copy() -&gt; list</code> returns a shallow copy of a <code>list</code> instance.<a href="#section-2-19.6.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-2-20.6">
+          <p id="section-2-20.6.1"><code>list.copy() -&gt; list</code> returns a shallow copy of a <code>list</code> instance.<a href="#section-2-20.6.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-2-19.7">
-          <p id="section-2-19.7.1"><code>set(iterable: Optional[Iterable] = None) -&gt; set</code> creates a new set object,
+        <li class="normal" id="section-2-20.7">
+          <p id="section-2-20.7.1"><code>set(iterable: Optional[Iterable] = None) -&gt; set</code> creates a new set object,
 which is an unordered collection of unique elements. The optional <code>iterable</code>
 argument (e.g., list, tuple, or string) is used to initialize the set. If no
-argument is provided, an empty set is created.<a href="#section-2-19.7.1" class="pilcrow">¶</a></p>
+argument is provided, an empty set is created.<a href="#section-2-20.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -1730,7 +1835,7 @@ argument is provided, an empty set is created.<a href="#section-2-19.7.1" class=
 </td>
             <td class="text-left" rowspan="1" colspan="1">the size of each VIDPF key</td>
             <td class="text-left" rowspan="1" colspan="1">
-              <code>XofFixedKeyAes128.SEED_SIZE</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2.2" class="relref">Section 6.2.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
+              <code>XofFixedKeyAes128.SEED_SIZE</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2.2" class="relref">Section 6.2.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
@@ -1753,6 +1858,15 @@ argument is provided, an empty set is created.<a href="#section-2-19.7.1" class=
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">
+              <code>PROOF_SIZE: int</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">the size of each VIDPF node proof and evaluation proof</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>32</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
               <code>BITS: int</code>
 </td>
             <td class="text-left" rowspan="1" colspan="1">bit length of the input string <code>alpha</code>
@@ -1771,7 +1885,7 @@ argument is provided, an empty set is created.<a href="#section-2-19.7.1" class=
             <td class="text-left" rowspan="1" colspan="1">
               <code>field: type[F]</code>
 </td>
-            <td class="text-left" rowspan="1" colspan="1">class object for the field (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
+            <td class="text-left" rowspan="1" colspan="1">class object for the field (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>)</td>
             <td class="text-left" rowspan="1" colspan="1">set by constructor</td>
           </tr>
         </tbody>
@@ -1829,7 +1943,7 @@ prefix tree.<a href="#section-3-10" class="pilcrow">¶</a></p>
 specification invokes auxiliary functions, namely <code>extend()</code>, <code>convert()</code>, and
 <code>node_proof()</code>, which are defined in <a href="#vidpf-aux" class="auto internal xref">Section 3.3</a>. Its inputs are the input
 string <code>alpha</code>, the encoded weight <code>beta</code>, the application context string <code>ctx</code>
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length <code>NONCE_SIZE</code>, and the
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-4.1" class="relref">Section 4.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), a public nonce of length <code>NONCE_SIZE</code>, and the
 randomness consumed by the algorithm of length <code>RAND_SIZE</code>. Its outputs are the
 public sequence of "correction words", one for each level of the tree, and the
 secret keys, one for each Aggregator.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
@@ -1842,7 +1956,7 @@ to VIDPF.<a href="#section-3.1-2.1.1" class="pilcrow">¶</a></p>
 <p id="section-3.1-2.1.2">TODO Specify bounds on the inputs, namely that the nonce has to be random.
 (This is inherited from IDPF security considerations.)<a href="#section-3.1-2.1.2" class="pilcrow">¶</a></p>
 <p id="section-3.1-2.1.3">TODO Explain functional differences between VIDPF and IDPF in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. Namely, there is no distinction between inner and
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. Namely, there is no distinction between inner and
 leaf nodes and the payload is supposed to be the same at each level.<a href="#section-3.1-2.1.3" class="pilcrow">¶</a></p>
 </li>
         </ul>
@@ -2176,23 +2290,23 @@ def node_proof(self,
       </h2>
 <p id="section-4-1">An instance of Mastic is determined by a desired bit-length of the input,
 denoted <code>BITS</code>, and a validity circuit, an instance of <code>Valid</code> as defined in
-<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The validity circuit is used to instantiate the FLP
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The validity circuit is used to instantiate the FLP
 and defines the type of the weights generated by Clients and the type of the
 total weight for each prefix computed by the Collector.<a href="#section-4-1" class="pilcrow">¶</a></p>
 <p id="section-4-2">The Client's measurement has two components: the input string <code>alpha:
 tuple[bool, ...]</code> of length <code>BITS</code> and its weight. The weight's type is denoted
 by <code>W</code>. We use <code>beta: list[F]</code> to denote the encoded weight, obtained by
-invoking the FLP's encoder (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.1.1" class="relref">Section 7.1.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-2" class="pilcrow">¶</a></p>
+invoking the FLP's encoder (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.1.1" class="relref">Section 7.1.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-2" class="pilcrow">¶</a></p>
 <p id="section-4-3">The aggregate result has type <code>list[R]</code>, where <code>R</code> is likewise a type defined
 by the validity circuit. Each element of this list corresponds to the total
 weight for one of the candidate prefixes.<a href="#section-4-3" class="pilcrow">¶</a></p>
 <p id="section-4-4">The VIDPF is instantiated with bit length <code>BITS</code>, value length
 <code>valid.MEAS_LEN</code>, and field <code>valid.field</code>, where <code>valid</code> is the validity
 circuit. We denote this instance of the VIDPF by <code>vidpf</code>.<a href="#section-4-4" class="pilcrow">¶</a></p>
-<p id="section-4-5">In the remainder, we write <code>xof</code> as shorthand for <code>XofTurboShake128</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-6.2.1" class="relref">Section 6.2.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-5" class="pilcrow">¶</a></p>
-<p id="section-4-6">Mastic's implementation of the VDAF interface (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
-specified in the following sections. <a href="#mastic-aux" class="auto internal xref">Section 4.6</a> defines some auxiliary
-functions referenced in the sharding and preparation sections.<a href="#section-4-6" class="pilcrow">¶</a></p>
+<p id="section-4-5">In the remainder, we write <code>xof</code> as shorthand for <code>XofTurboShake128</code> (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.2.1" class="relref">Section 6.2.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-6">Mastic's implementation of the VDAF interface (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-5" class="relref">Section 5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
+specified in the following sections. <a href="#mastic-aux" class="auto internal xref">Section 4.7</a> defines some auxiliary
+functions referenced in the sharding and verification sections.<a href="#section-4-6" class="pilcrow">¶</a></p>
 <div id="sharding">
 <section id="section-4.1">
         <h3 id="name-sharding">
@@ -2337,8 +2451,9 @@ randomness.<a href="#section-4.1-12.6.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-4.1-13">The joint randomness is also needed to verify the FLP and must therefore be
-recomputed during preparation (<a href="#preparation" class="auto internal xref">Section 4.2</a>). To accomplish this, the Client
-includes in each Aggregator's input share the joint randomness part of its peer.<a href="#section-4.1-13" class="pilcrow">¶</a></p>
+recomputed during verification (<a href="#verification" class="auto internal xref">Section 4.2</a>). To accomplish this, the
+Client includes in each Aggregator's input share the joint randomness part of
+its peer.<a href="#section-4.1-13" class="pilcrow">¶</a></p>
 <p id="section-4.1-14">The complete algorithm is listed below:<a href="#section-4.1-14" class="pilcrow">¶</a></p>
 <div class="breakable lang-python sourcecode" id="section-4.1-15">
 <pre>
@@ -2396,12 +2511,12 @@ def shard_with_joint_rand(
 </div>
 </section>
 </div>
-<div id="preparation">
+<div id="verification">
 <section id="section-4.2">
-        <h3 id="name-preparation">
-<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-preparation" class="section-name selfRef">Preparation</a>
+        <h3 id="name-verification">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-verification" class="section-name selfRef">Verification</a>
         </h3>
-<p id="section-4.2-1">Each Aggregator initializes preparation with: the verification key shared by
+<p id="section-4.2-1">Each Aggregator initializes verification with: the verification key shared by
 both Aggregators; its own ID, either <code>0</code> for the Leader and <code>1</code> for the Helper;
 the aggregation parameter; the report's nonce; the public share sent to each
 Aggregator; and the Aggregator's own input share.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
@@ -2419,12 +2534,12 @@ Aggregator; and the Aggregator's own input share.<a href="#section-4.2-1" class=
         </ol>
 <p id="section-4.2-4">The FLP is verified exactly once, the first time the report is aggregated. See
 <a href="#agg-param-validity" class="auto internal xref">Section 4.3</a>.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
-<p id="section-4.2-5">The outputs of the initialization algorithm include the Aggregator's prep
-state, denoted <code>MasticPrepState</code>, and its outbound prep share, denoted
-<code>MasticPrepShare</code>. The prep share includes the Aggregator's FLP verifier share,
-joint randomness part, and VIDPF proof. These are combined into the prep
-message in the next step.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
-<p id="section-4.2-6">Preparation initialization involves the following steps:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2-5">The outputs of the initialization algorithm include the Aggregator's
+verification state, denoted <code>MasticVerifyState</code>, and its outbound verifier
+share, denoted <code>MasticVerifierShare</code>. The verifier share includes the
+Aggregator's FLP verifier share, joint randomness part, and VIDPF evaluation
+proof. These are combined into the verifier message in the next step.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">Verification initialization involves the following steps:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.2-7">
 <li id="section-4.2-7.1">
             <p id="section-4.2-7.1.1">Evaluate the VIDPF share on the sequence of prefixes, obtaining our share of
@@ -2436,7 +2551,7 @@ encoded weight to obtain our FLP verifier share. If joint randomness is
 required, then compute our joint randomness part and derive the joint
 randomness seed using our peer Aggregator's part provided by the Client.
 Note that the Client may have provided the wrong part, so we need to check
-that the seed was computed correctly before completing preparation.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
+that the seed was computed correctly before completing verification.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-7.3">
             <p id="section-4.2-7.3.1">Truncate each payload share according to the FLP encoding scheme and flatten
@@ -2469,16 +2584,17 @@ children. If one-hotness holds, then this ensures the payload is equal to
 <p id="section-4.2-11">The complete algorithm is listed below:<a href="#section-4.2-11" class="pilcrow">¶</a></p>
 <div class="breakable lang-python sourcecode" id="section-4.2-12">
 <pre>
-def prep_init(
+def verify_init(
         self,
         verify_key: bytes,
         ctx: bytes,
         agg_id: int,
         agg_param: MasticAggParam,
         nonce: bytes,
-        correction_words: list[CorrectionWord],
+        public_share: list[CorrectionWord],
         input_share: MasticInputShare,
-) -&gt; tuple[MasticPrepState, MasticPrepShare]:
+) -&gt; tuple[MasticVerifyState, MasticVerifierShare]:
+    correction_words = public_share
     (level, prefixes, do_weight_check) = agg_param
     (key, proof_share, seed, peer_joint_rand_part) = \
         self.expand_input_share(ctx, agg_id, input_share)
@@ -2580,13 +2696,13 @@ def prep_init(
         truncated_out_share += [val_share[0]] + \
             self.flp.truncate(val_share[1:])
 
-    prep_state = (truncated_out_share, joint_rand_seed)
-    prep_share = (eval_proof, verifier_share, joint_rand_part)
-    return (prep_state, prep_share)
+    verify_state = (truncated_out_share, joint_rand_seed, do_weight_check)
+    verifier_share = (eval_proof, verifier_share, joint_rand_part)
+    return (verify_state, verifier_share)
 </pre><a href="#section-4.2-12" class="pilcrow">¶</a>
 </div>
-<p id="section-4.2-13">Next, the Aggregators' prep shares are combined into the prep message, denoted
-<code>MasticPrepMessage</code>:<a href="#section-4.2-13" class="pilcrow">¶</a></p>
+<p id="section-4.2-13">Next, the Aggregators' verifier shares are combined into the verifier message,
+denoted <code>MasticVerifierMessage</code>:<a href="#section-4.2-13" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.2-14">
 <li id="section-4.2-14.1">
             <p id="section-4.2-14.1.1">Check that both Aggregators computed the same VIDPF proof. If so, then it is
@@ -2602,27 +2718,27 @@ weight is valid.<a href="#section-4.2-14.2.1" class="pilcrow">¶</a></p>
             <p id="section-4.2-14.3.1">If applicable, compute the FLP joint randomness seed from the parts.<a href="#section-4.2-14.3.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-4.2-15">The prep message consists of the optional joint randomness seed. The complete
-algorithm is listed below:<a href="#section-4.2-15" class="pilcrow">¶</a></p>
+<p id="section-4.2-15">The verifier message consists of the optional joint randomness seed. The
+complete algorithm is listed below:<a href="#section-4.2-15" class="pilcrow">¶</a></p>
 <div class="lang-python sourcecode" id="section-4.2-16">
 <pre>
-def prep_shares_to_prep(
+def verifier_shares_to_message(
         self,
         ctx: bytes,
         agg_param: MasticAggParam,
-        prep_shares: list[MasticPrepShare],
-) -&gt; MasticPrepMessage:
+        verifier_shares: list[MasticVerifierShare],
+) -&gt; MasticVerifierMessage:
     (_level, _prefixes, do_weight_check) = agg_param
 
-    if len(prep_shares) != 2:
-        raise ValueError('unexpected number of prep shares')
+    if len(verifier_shares) != 2:
+        raise ValueError('unexpected number of verifier shares')
 
     (eval_proof_0,
-     verifier_share_0,
-     joint_rand_part_0) = prep_shares[0]
+     flp_verifier_share_0,
+     joint_rand_part_0) = verifier_shares[0]
     (eval_proof_1,
-     verifier_share_1,
-     joint_rand_part_1) = prep_shares[1]
+     flp_verifier_share_1,
+     joint_rand_part_1) = verifier_shares[1]
 
     # Verify the VIDPF output.
     if eval_proof_0 != eval_proof_1:
@@ -2630,11 +2746,11 @@ def prep_shares_to_prep(
 
     if not do_weight_check:
         return None
-    if verifier_share_0 is None or verifier_share_1 is None:
+    if flp_verifier_share_0 is None or flp_verifier_share_1 is None:
         raise ValueError('expected FLP verifier shares')
 
     # Verify the FLP.
-    verifier = vec_add(verifier_share_0, verifier_share_1)
+    verifier = vec_add(flp_verifier_share_0, flp_verifier_share_1)
     if not self.flp.decide(verifier):
         raise Exception('FLP verification failed')
 
@@ -2644,35 +2760,39 @@ def prep_shares_to_prep(
         raise ValueError('expected FLP joint randomness parts')
 
     # Confirm the FLP joint randomness was computed properly.
-    prep_msg = self.joint_rand_seed(ctx, [
+    verifier_message = self.joint_rand_seed(ctx, [
         joint_rand_part_0,
         joint_rand_part_1,
     ])
-    return prep_msg
+    return verifier_message
 </pre><a href="#section-4.2-16" class="pilcrow">¶</a>
 </div>
-<p id="section-4.2-17">Finally, each Aggregator completes preparation by checking that the true FLP
+<p id="section-4.2-17">Finally, each Aggregator completes verification by checking that the true FLP
 joint randomness seed is equal to the value they computed in the initialization
-step, <code>prep_init()</code>. This is only done if a weight check was required by the
+step, <code>verify_init()</code>. This is only done if a weight check was required by the
 aggregation parameter and joint randomness was required by the FLP:<a href="#section-4.2-17" class="pilcrow">¶</a></p>
 <div class="lang-python sourcecode" id="section-4.2-18">
 <pre>
-def prep_next(self,
-                _ctx: bytes,
-                prep_state: MasticPrepState,
-                prep_msg: MasticPrepMessage,
-                ) -&gt; list[F]:
-    (truncated_out_share, joint_rand_seed) = prep_state
+def verify_next(
+        self,
+        _ctx: bytes,
+        verify_state: MasticVerifyState,
+        verifier_message: MasticVerifierMessage,
+) -&gt; tuple[MasticVerifyState, MasticVerifierShare] | list[F]:
+    (truncated_out_share, joint_rand_seed, _do_weight_check) = verify_state
     if joint_rand_seed is not None:
-        if prep_msg is None:
+        if verifier_message is None:
             raise ValueError('expected joint rand confirmation')
 
-        if prep_msg != joint_rand_seed:
+        if verifier_message != joint_rand_seed:
             raise Exception('joint rand confirmation failed')
 
     return truncated_out_share
 </pre><a href="#section-4.2-18" class="pilcrow">¶</a>
 </div>
+<p id="section-4.2-19">Note that Mastic uses one round of verification, so <code>verify_next()</code> always
+returns the output share (rather than a new verification state and verifier
+share).<a href="#section-4.2-19" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="agg-param-validity">
@@ -2761,7 +2881,7 @@ one of the prefixes. To compute it:<a href="#section-4.5-1" class="pilcrow">¶</
 </li>
           <li id="section-4.5-2.2">
             <p id="section-4.5-2.2.1">For each prefix, decode the corresponding vector chunk using the FLP's
-decoding algorithm (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.1.1" class="relref">Section 7.1.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). This requires the prefix
+decoding algorithm (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.1.1" class="relref">Section 7.1.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). This requires the prefix
 count, which is also encoded by the chunk.<a href="#section-4.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
@@ -2785,12 +2905,353 @@ def unshard(self,
 </div>
 </section>
 </div>
-<div id="mastic-aux">
+<div id="mastic-msg-serialization">
 <section id="section-4.6">
-        <h3 id="name-auxiliary-functions-2">
-<a href="#section-4.6" class="section-number selfRef">4.6. </a><a href="#name-auxiliary-functions-2" class="section-name selfRef">Auxiliary Functions</a>
+        <h3 id="name-message-serialization">
+<a href="#section-4.6" class="section-number selfRef">4.6. </a><a href="#name-message-serialization" class="section-name selfRef">Message Serialization</a>
         </h3>
-<div class="breakable lang-python sourcecode" id="section-4.6-1">
+<p id="section-4.6-1">This section defines serialization formats for messages exchanged over the
+network while executing Mastic. Messages are defined in the presentation
+language of TLS as defined in <span><a href="https://rfc-editor.org/rfc/rfc8446#section-3" class="relref">Section 3</a> of [<a href="#RFC8446" class="cite xref">RFC8446</a>]</span>.<a href="#section-4.6-1" class="pilcrow">¶</a></p>
+<p id="section-4.6-2">Let <code>mastic</code> denote an instance of Mastic. In the remainder, let <code>S</code> be an
+alias for <code>mastic.xof.SEED_SIZE</code>, <code>F</code> an alias for
+<code>mastic.field.ENCODED_SIZE</code>, <code>K</code> an alias for <code>mastic.vidpf.KEY_SIZE</code>, <code>B</code> an
+alias for <code>mastic.vidpf.BITS</code>, <code>V</code> an alias for <code>mastic.vidpf.VALUE_LEN</code>
+(which equals <code>1 + mastic.flp.MEAS_LEN</code>), and <code>P</code> an alias for <code>PROOF_SIZE</code>
+(see <a href="#vidpf" class="auto internal xref">Section 3</a>).<a href="#section-4.6-2" class="pilcrow">¶</a></p>
+<p id="section-4.6-3">XOF seeds are represented as follows:<a href="#section-4.6-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6-4">
+<pre>
+opaque MasticSeed[S];
+</pre><a href="#section-4.6-4" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6-5">Field elements are encoded in little-endian byte order (as defined in
+<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-6.1" class="relref">Section 6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) and represented as follows:<a href="#section-4.6-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6-6">
+<pre>
+opaque MasticField[F];
+</pre><a href="#section-4.6-6" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6-7">VIDPF keys are represented as follows:<a href="#section-4.6-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6-8">
+<pre>
+opaque MasticVidpfKey[K];
+</pre><a href="#section-4.6-8" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6-9">Node proofs (<a href="#vidpf" class="auto internal xref">Section 3</a>) are represented as follows:<a href="#section-4.6-9" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6-10">
+<pre>
+opaque MasticNodeProof[P];
+</pre><a href="#section-4.6-10" class="pilcrow">¶</a>
+</div>
+<div id="mastic-msg-public-share">
+<section id="section-4.6.1">
+          <h4 id="name-public-share">
+<a href="#section-4.6.1" class="section-number selfRef">4.6.1. </a><a href="#name-public-share" class="section-name selfRef">Public Share</a>
+          </h4>
+<p id="section-4.6.1-1">The public share is the sequence of VIDPF correction words output by VIDPF
+key generation (<a href="#vidpf-key-gen" class="auto internal xref">Section 3.1</a>). Each correction word has four
+components:<a href="#section-4.6.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.6.1-2">
+<li id="section-4.6.1-2.1">
+              <p id="section-4.6.1-2.1.1">an XOF seed;<a href="#section-4.6.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.6.1-2.2">
+              <p id="section-4.6.1-2.2.1">a pair of control bits;<a href="#section-4.6.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.6.1-2.3">
+              <p id="section-4.6.1-2.3.1">a payload of <code>V</code> field elements; and<a href="#section-4.6.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.6.1-2.4">
+              <p id="section-4.6.1-2.4.1">a node proof.<a href="#section-4.6.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+<p id="section-4.6.1-3">The encoding is a structure-of-arrays, with the control bits for all levels
+packed together as tightly as possible:<a href="#section-4.6.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.1-4">
+<pre>
+struct {
+    opaque packed_control_bits[packed_len];
+    MasticSeed seed[B];
+    MasticField payload[F*V*B];
+    MasticNodeProof node_proof[B];
+} MasticPublicShare;
+</pre><a href="#section-4.6.1-4" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.1-5">Here <code>packed_len = (2*B + 7) // 8</code> is the length in bytes of the packed
+control bits. Field <code>packed_control_bits</code> is encoded with the same procedure
+used for Poplar1 (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8.2.6.1" class="relref">Section 8.2.6.1</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>), reproduced here for
+convenience:<a href="#section-4.6.1-5" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.6.1-6">
+<pre>
+packed_control_buf = [int(0)] * packed_len
+for i, bit in enumerate(control_bits):
+    packed_control_buf[i // 8] |= bit &lt;&lt; (i % 8)
+packed_control_bits = bytes(packed_control_buf)
+</pre><a href="#section-4.6.1-6" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.1-7">It encodes each group of eight bits into a byte, in LSB to MSB order,
+padding the most significant bits of the last byte with zeros as necessary.
+The order of the control bits is <code>(cw_0_left, cw_0_right, cw_1_left,
+cw_1_right, ..., cw_{B-1}_left, cw_{B-1}_right)</code>, where <code>cw_i_left</code> and
+<code>cw_i_right</code> are the left and right control bits of the <code>i</code>-th correction
+word. Decoding performs the reverse operation: it takes in a byte array and
+a number of bits, and returns a list of bits, extracting eight bits from
+each byte in turn, in LSB to MSB order, and stopping after the requested
+number of bits. If the byte array has an incorrect length, or if unused
+bits in the last byte are not zero, it throws an error:<a href="#section-4.6.1-7" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.6.1-8">
+<pre>
+control_bits = []
+for i in range(length):
+    control_bits.append(bool(
+        (packed_control_bits[i // 8] &gt;&gt; (i % 8)) &amp; 1
+    ))
+leftover_bits = packed_control_bits[-1] &gt;&gt; (
+    (length + 7) % 8 + 1
+)
+if (length + 7) // 8 != len(packed_control_bits) or \
+        leftover_bits != 0:
+    raise ValueError('trailing bits')
+</pre><a href="#section-4.6.1-8" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="mastic-msg-input-share">
+<section id="section-4.6.2">
+          <h4 id="name-input-share">
+<a href="#section-4.6.2" class="section-number selfRef">4.6.2. </a><a href="#name-input-share" class="section-name selfRef">Input Share</a>
+          </h4>
+<p id="section-4.6.2-1">The contents of the input share depend on (1) which Aggregator is receiving
+the message and (2) whether joint randomness is required for the underlying
+FLP (i.e., <code>mastic.flp.JOINT_RAND_LEN &gt; 0</code>).<a href="#section-4.6.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.6.2-2">When joint randomness is not used, the Leader's share is structured as
+follows:<a href="#section-4.6.2-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.2-3">
+<pre>
+struct {
+    MasticVidpfKey key;
+    MasticField proof_share[F*mastic.flp.PROOF_LEN];
+} MasticLeaderShare;
+</pre><a href="#section-4.6.2-3" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.2-4">When joint randomness is not used, the Helper's share is structured as
+follows:<a href="#section-4.6.2-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.2-5">
+<pre>
+struct {
+    MasticVidpfKey key;
+    MasticSeed helper_seed;
+} MasticHelperShare;
+</pre><a href="#section-4.6.2-5" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.2-6">When joint randomness is used, the Leader's input share is structured as
+follows:<a href="#section-4.6.2-6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.2-7">
+<pre>
+struct {
+    MasticLeaderShare inner;
+    MasticSeed leader_seed;
+    MasticSeed peer_joint_rand_part;
+} MasticLeaderShareWithJointRand;
+</pre><a href="#section-4.6.2-7" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.2-8">When joint randomness is used, the Helper's input share is structured as
+follows:<a href="#section-4.6.2-8" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.2-9">
+<pre>
+struct {
+    MasticHelperShare inner;
+    MasticSeed peer_joint_rand_part;
+} MasticHelperShareWithJointRand;
+</pre><a href="#section-4.6.2-9" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.2-10">The interpretation of <code>leader_seed</code> and <code>helper_seed</code> depends on the
+Aggregator and on whether joint randomness is used:<a href="#section-4.6.2-10" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.6.2-11.1">
+              <p id="section-4.6.2-11.1.1">The Helper's <code>helper_seed</code> is always used to derive its FLP proof share
+(<a href="#sharding" class="auto internal xref">Section 4.1</a>). When joint randomness is used, the Helper additionally
+uses <code>helper_seed</code> to derive its FLP joint randomness part.<a href="#section-4.6.2-11.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4.6.2-11.2">
+              <p id="section-4.6.2-11.2.1">The Leader's <code>leader_seed</code> is present only when joint randomness is used,
+in which case it is used to derive the Leader's FLP joint randomness
+part.<a href="#section-4.6.2-11.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-4.6.2-12">In both cases, <code>peer_joint_rand_part</code> is the joint randomness part of the
+peer Aggregator, supplied by the Client so that each Aggregator can
+recompute the FLP joint randomness seed during verification.<a href="#section-4.6.2-12" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="mastic-msg-verifier-share">
+<section id="section-4.6.3">
+          <h4 id="name-verifier-share">
+<a href="#section-4.6.3" class="section-number selfRef">4.6.3. </a><a href="#name-verifier-share" class="section-name selfRef">Verifier Share</a>
+          </h4>
+<p id="section-4.6.3-1">The shape of the verifier share depends on whether the FLP weight check is
+being performed, as indicated by the <code>do_weight_check</code> component of the
+aggregation parameter (see <a href="#mastic-msg-agg-param" class="auto internal xref">Section 4.6.6</a>).<a href="#section-4.6.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.6.3-2">When the weight check is not performed, the verifier share consists only of
+the VIDPF evaluation proof:<a href="#section-4.6.3-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.3-3">
+<pre>
+struct {
+    MasticNodeProof eval_proof;
+} MasticVerifierShare;
+</pre><a href="#section-4.6.3-3" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.3-4">When the weight check is performed but joint randomness is not used, the
+verifier share additionally includes the FLP verifier share:<a href="#section-4.6.3-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.3-5">
+<pre>
+struct {
+    MasticNodeProof eval_proof;
+    MasticField flp_verifier_share[F*mastic.flp.VERIFIER_LEN];
+} MasticVerifierShareWithWeightCheck;
+</pre><a href="#section-4.6.3-5" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.3-6">When the weight check is performed and joint randomness is used, the
+verifier share additionally includes the Aggregator's joint randomness
+part:<a href="#section-4.6.3-6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.3-7">
+<pre>
+struct {
+    MasticNodeProof eval_proof;
+    MasticField flp_verifier_share[F*mastic.flp.VERIFIER_LEN];
+    MasticSeed joint_rand_part;
+} MasticVerifierShareWithJointRand;
+</pre><a href="#section-4.6.3-7" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="mastic-msg-verifier-message">
+<section id="section-4.6.4">
+          <h4 id="name-verifier-message">
+<a href="#section-4.6.4" class="section-number selfRef">4.6.4. </a><a href="#name-verifier-message" class="section-name selfRef">Verifier Message</a>
+          </h4>
+<p id="section-4.6.4-1">When the weight check is not performed, or when the FLP does not use joint
+randomness, the verifier message is the empty string. Otherwise the
+verifier message consists of the joint randomness seed computed by the
+Aggregators:<a href="#section-4.6.4-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.4-2">
+<pre>
+struct {
+    MasticSeed joint_rand_seed;
+} MasticVerifierMessageWithJointRand;
+</pre><a href="#section-4.6.4-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="mastic-msg-agg-share">
+<section id="section-4.6.5">
+          <h4 id="name-aggregate-share">
+<a href="#section-4.6.5" class="section-number selfRef">4.6.5. </a><a href="#name-aggregate-share" class="section-name selfRef">Aggregate Share</a>
+          </h4>
+<p id="section-4.6.5-1">The aggregate share is a flat vector of field elements: for each candidate
+prefix, the encoding contains the prefix's measurement counter followed by
+the prefix's truncated weight. Let <code>prefix_count</code> denote the number of
+candidate prefixes specified in the aggregation parameter. The aggregate
+share is structured as follows:<a href="#section-4.6.5-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.5-2">
+<pre>
+struct {
+    MasticField agg_share[F*prefix_count*(1+mastic.flp.OUTPUT_LEN)];
+} MasticAggShare;
+</pre><a href="#section-4.6.5-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.5-3">When <code>prefix_count</code> is <code>0</code>, the aggregate share is the empty string. The
+output share has the same structure and is encoded the same way:<a href="#section-4.6.5-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.5-4">
+<pre>
+struct {
+    MasticField out_share[F*prefix_count*(1+mastic.flp.OUTPUT_LEN)];
+} MasticOutShare;
+</pre><a href="#section-4.6.5-4" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="mastic-msg-agg-param">
+<section id="section-4.6.6">
+          <h4 id="name-aggregation-parameter">
+<a href="#section-4.6.6" class="section-number selfRef">4.6.6. </a><a href="#name-aggregation-parameter" class="section-name selfRef">Aggregation Parameter</a>
+          </h4>
+<p id="section-4.6.6-1">The aggregation parameter is encoded as follows:<a href="#section-4.6.6-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.6.6-2">
+<pre>
+struct {
+    uint16_t level;
+    uint32_t num_prefixes;
+    opaque encoded_prefixes[prefixes_len];
+    uint8_t do_weight_check;
+} MasticAggParam;
+</pre><a href="#section-4.6.6-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.6-3">The fields are: <code>level</code>, the level of the VIDPF tree being evaluated;
+<code>num_prefixes</code>, the number of candidate prefixes; <code>encoded_prefixes</code>, the
+sequence of prefixes encoded into a byte string of length <code>prefixes_len</code>;
+and <code>do_weight_check</code>, a byte that is <code>1</code> if the FLP weight check is to be
+performed and <code>0</code> otherwise. Any other value of <code>do_weight_check</code> <span class="bcp14">MUST</span> be
+rejected when decoding.<a href="#section-4.6.6-3" class="pilcrow">¶</a></p>
+<p id="section-4.6.6-4">The prefix encoding is identical to that used by Poplar1 (see <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8.2.6.6" class="relref">Section 8.2.6.6</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>). Each prefix is packed into a byte string with the
+bits assigned in MSB-to-LSB order, and the per-prefix byte strings are
+concatenated together. The encoding and decoding procedures are reproduced
+here for convenience:<a href="#section-4.6.6-4" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.6.6-5">
+<pre>
+prefixes_len = ((level + 1) + 7) // 8 * len(prefixes)
+encoded_prefixes = bytearray()
+for prefix in prefixes:
+    for chunk in itertools.batched(prefix, 8):
+        byte_out = 0
+        for (bit_position, bit) in enumerate(chunk):
+            byte_out |= bit &lt;&lt; (7 - bit_position)
+        encoded_prefixes.append(byte_out)
+</pre><a href="#section-4.6.6-5" class="pilcrow">¶</a>
+</div>
+<p id="section-4.6.6-6">Decoding involves the following procedure:<a href="#section-4.6.6-6" class="pilcrow">¶</a></p>
+<div class="lang-python sourcecode" id="section-4.6.6-7">
+<pre>
+prefixes = []
+
+last_byte_mask = 0
+leftover_bits = (level + 1) % 8
+if leftover_bits &gt; 0:
+    for bit_index in range(8 - leftover_bits, 8):
+        last_byte_mask |= 1 &lt;&lt; bit_index
+    last_byte_mask ^= 255
+
+bytes_per_prefix = ((level + 1) + 7) // 8
+for chunk in itertools.batched(encoded_prefixes, bytes_per_prefix):
+    if chunk[-1] &amp; last_byte_mask &gt; 0:
+        raise ValueError('trailing bits in prefix')
+
+    prefix = []
+    for i in range(level + 1):
+        byte_index = i // 8
+        bit_offset = 7 - (i % 8)
+        bit = (chunk[byte_index] &gt;&gt; bit_offset) &amp; 1 != 0
+        prefix.append(bit)
+    prefixes.append(tuple(prefix))
+</pre><a href="#section-4.6.6-7" class="pilcrow">¶</a>
+</div>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4.6.6-8.1">
+              <p id="section-4.6.6-8.1.1">NOTE The only difference between Mastic's and Poplar1's aggregation
+parameter encoding is the trailing <code>do_weight_check</code> byte.<a href="#section-4.6.6-8.1.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="mastic-aux">
+<section id="section-4.7">
+        <h3 id="name-auxiliary-functions-2">
+<a href="#section-4.7" class="section-number selfRef">4.7. </a><a href="#name-auxiliary-functions-2" class="section-name selfRef">Auxiliary Functions</a>
+        </h3>
+<div class="breakable lang-python sourcecode" id="section-4.7-1">
 <pre>
 def expand_input_share(
         self,
@@ -2807,7 +3268,7 @@ def expand_input_share(
         proof_share = self.helper_proof_share(ctx, seed)
     return (key, proof_share, seed, peer_joint_rand_part)
 
-def helper_proof_share(self, ctx, seed: bytes) -&gt; list[F]:
+def helper_proof_share(self, ctx: bytes, seed: bytes) -&gt; list[F]:
     return self.xof.expand_into_vec(
         self.field,
         seed,
@@ -2866,7 +3327,7 @@ def query_rand(self,
         nonce + to_le_bytes(level, 2),
         self.flp.QUERY_RAND_LEN,
     )
-</pre><a href="#section-4.6-1" class="pilcrow">¶</a>
+</pre><a href="#section-4.7-1" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
@@ -2877,11 +3338,11 @@ def query_rand(self,
       <h2 id="name-security-considerations">
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-5-1">Mastic inherits its security considerations from <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-9" class="relref">Section 9</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. A
+<p id="section-5-1">Mastic inherits its security considerations from <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-9" class="relref">Section 9</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. A
 security analysis of Mastic is provided in <span>[<a href="#MPDST25" class="cite xref">MPDST25</a>]</span>.<a href="#section-5-1" class="pilcrow">¶</a></p>
 <ul class="normal ulEmpty">
 <li class="normal ulEmpty" id="section-5-2.1">
-          <p id="section-5-2.1.1">TODO Contrast with Poplar1, especially <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-9.4.2" class="relref">Section 9.4.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> ("Safe
+          <p id="section-5-2.1.1">TODO Contrast with Poplar1, especially <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-9.5" class="relref">Section 9.5</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span> ("Safe
 Usage of IDPF Outputs"). In particular, it's perfectly safe to use Mastic's
 intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 </li>
@@ -2894,7 +3355,7 @@ intermediate outputs.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
 <p id="section-6-1">IANA is requested to add new identifiers to the "Verifiable Distributed
-Aggregation Functions (VDAF)" registry, that is described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-10" class="relref">Section 10</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The new entries to the VDAF Identifier registry are as follows:<a href="#section-6-1" class="pilcrow">¶</a></p>
+Aggregation Functions (VDAF)" registry, that is described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-10" class="relref">Section 10</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>. The new entries to the VDAF Identifier registry are as follows:<a href="#section-6-1" class="pilcrow">¶</a></p>
 <span id="name-additional-codepoints-for-t"></span><div id="codepoints">
 <table class="center" id="table-6">
         <caption>
@@ -2988,9 +3449,13 @@ this document.)<a href="#section-6-4" class="pilcrow">¶</a></p>
         <dd>
 <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC8446">[RFC8446]</dt>
+        <dd>
+<span class="refAuthor">Rescorla, E.</span>, <span class="refTitle">"The Transport Layer Security (TLS) Protocol Version 1.3"</span>, <span class="seriesInfo">RFC 8446</span>, <span class="seriesInfo">DOI 10.17487/RFC8446</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8446">https://www.rfc-editor.org/rfc/rfc8446</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="VDAF">[VDAF]</dt>
       <dd>
-<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Cook, D.</span>, <span class="refAuthor">Patton, C.</span>, and <span class="refAuthor">P. Schoppmann</span>, <span class="refTitle">"Verifiable Distributed Aggregation Functions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-irtf-cfrg-vdaf-14</span>, <time datetime="2025-01-10" class="refDate">10 January 2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14">https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14</a>&gt;</span>. </dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Cook, D.</span>, <span class="refAuthor">Patton, C.</span>, and <span class="refAuthor">P. Schoppmann</span>, <span class="refTitle">"Verifiable Distributed Aggregation Functions"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-irtf-cfrg-vdaf-19</span>, <time datetime="2026-04-14" class="refDate">14 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19">https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -3118,7 +3583,7 @@ represent the error variant <code>dom</code>. To compute the distribution of err
 would encode each error variant as a distinct bucket of a histogram so that
 <code>[1, 0, 0, ...]</code> represents "ok", <code>[0, 1, 0, ...]</code> represents
 "dns.unreachable", and so on. (See ection 6 of <span>[<a href="#W3C23" class="cite xref">W3C23</a>]</span>.), This is similar to
-Prio3Histogram (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.)<a href="#appendix-B.1-8" class="pilcrow">¶</a></p>
+Prio3Histogram (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>.)<a href="#appendix-B.1-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="attribute-based-telemetry">
@@ -3128,7 +3593,7 @@ Prio3Histogram (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-
         </h3>
 <p id="appendix-B.2-1">Web browsers collect telemetry generated by users as they navigate the web to
 gain insights into trends that guide product decisions. In many cases, Prio3
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) can be used to privately aggregate this telemetry.
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) can be used to privately aggregate this telemetry.
 However, this comes at the cost of flexibility.<a href="#appendix-B.2-1" class="pilcrow">¶</a></p>
 <p id="appendix-B.2-2">For example, Prio3 can be used to collect page load metrics from Browser for a
 list of known popular sites (e.g., "example.com"). The purpose of these metrics
@@ -3139,7 +3604,7 @@ by client attributes. Suppose for example that we want to aggregate by 1) the
 software version, and 2) the information about the client's location.<a href="#appendix-B.2-2" class="pilcrow">¶</a></p>
 <p id="appendix-B.2-3">Mastic provides a simple solution to this problem. For the sake of
 presentation, we consider a simplified use case (the same approach can be
-applied to any aggregation task for which Prio3 (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
+applied to any aggregation task for which Prio3 (<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7" class="relref">Section 7</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>) is
 suitable). Each client reports a tuple <code>(ver, loc, site, time)</code> where: <code>ver</code>
 is a string representing the client's software version (e.g.,
 "Browser/122.0"); <code>loc</code> is a string encoding its country code (e.g., "GR",
@@ -3201,9 +3666,9 @@ much money was spent.<a href="#appendix-C.1-2" class="pilcrow">¶</a></p>
 and the <code>beta</code> value as the measurement's "weight". The range of valid values
 for <code>beta</code> are therefore determined by the FLP with which Mastic is
 instantiated. Concretely, validity of <code>beta</code> is expressed by a validity circuit
-(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
+(<span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-7.3.2" class="relref">Section 7.3.2</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>).<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
 <p id="appendix-C.1-4">To compute the weighted heavy-hitters, the Collector and Aggregators proceed as
-described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-14#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>, except that the threshold represents a
+described in <span><a href="https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vdaf-19#section-8" class="relref">Section 8</a> of [<a href="#VDAF" class="cite xref">VDAF</a>]</span>, except that the threshold represents a
 minimum weight rather than a minimum count. In addition:<a href="#appendix-C.1-4" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="appendix-C.1-5">
 <li id="appendix-C.1-5.1">
