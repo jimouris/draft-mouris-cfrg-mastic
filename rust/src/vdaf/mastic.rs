@@ -7,7 +7,7 @@
 use crate::{
     bt::BinaryTree,
     codec::{CodecError, Decode, Encode, ParameterizedDecode},
-    field::{decode_fieldvec, Field64, FieldElement, FieldElementWithInteger},
+    field::{Field64, FieldElement, FieldElementWithInteger},
     flp::{types::Count, Type},
     vdaf::{
         poplar1::{Poplar1, Poplar1AggregationParam},
@@ -15,6 +15,7 @@ use crate::{
         Aggregatable, AggregateShare, Aggregator, Client, Collector, OutputShare, Vdaf, VdafError,
         VerifyTransition,
     },
+    vendor::{field::decode_fieldvec, xof::MasticXof},
     vidpf::{
         Vidpf, VidpfError, VidpfInput, VidpfKey, VidpfPublicShare, VidpfServerId, VidpfWeight,
         VIDPF_PROOF_SIZE,
@@ -180,7 +181,7 @@ pub struct MasticInputShare<F: FieldElement> {
 
 impl<F: FieldElement> Encode for MasticInputShare<F> {
     fn encode(&self, bytes: &mut Vec<u8>) -> Result<(), CodecError> {
-        bytes.extend_from_slice(&self.vidpf_key.0[..]);
+        bytes.extend_from_slice(self.vidpf_key.as_ref());
         self.proof_share.encode(bytes)?;
         Ok(())
     }
@@ -231,21 +232,41 @@ impl<F: FieldElement> ConstantTimeEq for MasticInputShare<F> {
 /// Mastic output share.
 ///
 /// Contains a flattened vector of VIDPF outputs: one for each prefix.
-pub type MasticOutputShare<V> = OutputShare<V>;
-
-/// Mastic aggregate share.
 ///
-/// Contains a flattened vector of VIDPF outputs to be aggregated by Mastic aggregators
-pub type MasticAggregateShare<V> = AggregateShare<V>;
+/// This is a local newtype wrapping `prio::vdaf::OutputShare` because
+/// orphan rules forbid implementing the foreign `ParameterizedDecode` trait
+/// directly on the foreign `OutputShare` type. All operations delegate to the
+/// inner share.
+#[derive(Clone, Debug)]
+pub struct MasticOutputShare<F: FieldElement>(pub OutputShare<F>);
 
-impl<'a, T: Type> ParameterizedDecode<(&'a Mastic<T>, &'a MasticAggregationParam)>
-    for MasticAggregateShare<T::Field>
-{
-    fn decode_with_param(
-        (mastic, agg_param): &(&Mastic<T>, &MasticAggregationParam),
-        bytes: &mut Cursor<&[u8]>,
-    ) -> Result<Self, CodecError> {
-        decode_fieldvec(mastic.agg_share_len(agg_param), bytes).map(AggregateShare)
+impl<F: FieldElement> From<Vec<F>> for MasticOutputShare<F> {
+    fn from(v: Vec<F>) -> Self {
+        Self(OutputShare::from(v))
+    }
+}
+
+impl<F: FieldElement> AsRef<[F]> for MasticOutputShare<F> {
+    fn as_ref(&self) -> &[F] {
+        self.0.as_ref()
+    }
+}
+
+impl<F: FieldElement> PartialEq for MasticOutputShare<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<F: FieldElement> Eq for MasticOutputShare<F> {}
+
+impl<F: FieldElement> Encode for MasticOutputShare<F> {
+    fn encode(&self, bytes: &mut Vec<u8>) -> Result<(), CodecError> {
+        self.0.encode(bytes)
+    }
+
+    fn encoded_len(&self) -> Option<usize> {
+        self.0.encoded_len()
     }
 }
 
@@ -256,7 +277,77 @@ impl<'a, T: Type> ParameterizedDecode<(&'a Mastic<T>, &'a MasticAggregationParam
         (mastic, agg_param): &(&Mastic<T>, &MasticAggregationParam),
         bytes: &mut Cursor<&[u8]>,
     ) -> Result<Self, CodecError> {
-        decode_fieldvec(mastic.agg_share_len(agg_param), bytes).map(OutputShare)
+        decode_fieldvec(mastic.agg_share_len(agg_param), bytes).map(MasticOutputShare::from)
+    }
+}
+
+/// Mastic aggregate share.
+///
+/// Contains a flattened vector of VIDPF outputs to be aggregated by Mastic aggregators.
+///
+/// This is a local newtype wrapping `prio::vdaf::AggregateShare` because
+/// orphan rules forbid implementing the foreign `ParameterizedDecode` trait
+/// directly on the foreign `AggregateShare` type. All operations delegate to
+/// the inner share.
+#[derive(Clone, Debug)]
+pub struct MasticAggregateShare<F: FieldElement>(pub AggregateShare<F>);
+
+impl<F: FieldElement> From<Vec<F>> for MasticAggregateShare<F> {
+    fn from(v: Vec<F>) -> Self {
+        Self(AggregateShare::from(v))
+    }
+}
+
+impl<F: FieldElement> From<MasticOutputShare<F>> for MasticAggregateShare<F> {
+    fn from(other: MasticOutputShare<F>) -> Self {
+        Self(AggregateShare::from(other.0))
+    }
+}
+
+impl<F: FieldElement> AsRef<[F]> for MasticAggregateShare<F> {
+    fn as_ref(&self) -> &[F] {
+        self.0.as_ref()
+    }
+}
+
+impl<F: FieldElement> PartialEq for MasticAggregateShare<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<F: FieldElement> Eq for MasticAggregateShare<F> {}
+
+impl<F: FieldElement> Encode for MasticAggregateShare<F> {
+    fn encode(&self, bytes: &mut Vec<u8>) -> Result<(), CodecError> {
+        self.0.encode(bytes)
+    }
+
+    fn encoded_len(&self) -> Option<usize> {
+        self.0.encoded_len()
+    }
+}
+
+impl<F: FieldElement> Aggregatable for MasticAggregateShare<F> {
+    type OutputShare = MasticOutputShare<F>;
+
+    fn merge(&mut self, agg_share: &Self) -> Result<(), VdafError> {
+        self.0.merge(&agg_share.0)
+    }
+
+    fn accumulate(&mut self, output_share: &Self::OutputShare) -> Result<(), VdafError> {
+        self.0.accumulate(&output_share.0)
+    }
+}
+
+impl<'a, T: Type> ParameterizedDecode<(&'a Mastic<T>, &'a MasticAggregationParam)>
+    for MasticAggregateShare<T::Field>
+{
+    fn decode_with_param(
+        (mastic, agg_param): &(&Mastic<T>, &MasticAggregationParam),
+        bytes: &mut Cursor<&[u8]>,
+    ) -> Result<Self, CodecError> {
+        decode_fieldvec(mastic.agg_share_len(agg_param), bytes).map(MasticAggregateShare::from)
     }
 }
 
@@ -316,15 +407,18 @@ impl<T: Type> Mastic<T> {
             nonce,
         )?;
 
-        let [leader_szk_proof_share, helper_szk_proof_share] = self.szk.prove(
-            ctx,
-            &leader_beta_share.as_ref()[1..],
-            &helper_beta_share.as_ref()[1..],
-            &beta.as_ref()[1..],
-            szk_random,
-            joint_random_opt,
-            nonce,
-        )?;
+        let [leader_szk_proof_share, helper_szk_proof_share] = self
+            .szk
+            .prove(
+                ctx,
+                &leader_beta_share.as_ref()[1..],
+                &helper_beta_share.as_ref()[1..],
+                &beta.as_ref()[1..],
+                szk_random,
+                joint_random_opt,
+                nonce,
+            )
+            .map_err(|e| VdafError::Other(Box::new(e)))?;
         let [leader_vidpf_key, helper_vidpf_key] = vidpf_keys;
         let leader_share = MasticInputShare {
             vidpf_key: leader_vidpf_key,
@@ -550,11 +644,11 @@ impl<T: Type> Aggregator<SEED_SIZE, NONCE_SIZE> for Mastic<T> {
 
         // Onehot and payload checks
         let (onehot_check, payload_check) = {
-            let mut onehot_check_xof = XofTurboShake128::from_seed_slice(
+            let mut onehot_check_xof = MasticXof::from_seed_slice(
                 &[],
                 &[&dst_usage(USAGE_ONEHOT_CHECK), &self.id, ctx],
             );
-            let mut payload_check_xof = XofTurboShake128::from_seed_slice(
+            let mut payload_check_xof = MasticXof::from_seed_slice(
                 &[],
                 &[&dst_usage(USAGE_PAYLOAD_CHECK), &self.id, ctx],
             );
@@ -589,8 +683,8 @@ impl<T: Type> Aggregator<SEED_SIZE, NONCE_SIZE> for Mastic<T> {
                 }
             }
 
-            let onehot_check = onehot_check_xof.into_seed().0;
-            let payload_check = payload_check_xof.into_seed().0;
+            let onehot_check = onehot_check_xof.into_seed_bytes();
+            let payload_check = payload_check_xof.into_seed_bytes();
 
             (onehot_check, payload_check)
         };
@@ -630,18 +724,21 @@ impl<T: Type> Aggregator<SEED_SIZE, NONCE_SIZE> for Mastic<T> {
             let VidpfWeight(beta_share) =
                 self.vidpf
                     .get_beta_share(ctx, id, public_share, &input_share.vidpf_key, nonce)?;
-            let (szk_query_share, szk_query_state) = self.szk.query(
-                ctx,
-                agg_param
-                    .level_and_prefixes
-                    .level()
-                    .try_into()
-                    .map_err(|_| VdafError::Vidpf(VidpfError::InvalidInputLength))?,
-                &beta_share[1..],
-                &input_share.proof_share,
-                verify_key,
-                nonce,
-            )?;
+            let (szk_query_share, szk_query_state) = self
+                .szk
+                .query(
+                    ctx,
+                    agg_param
+                        .level_and_prefixes
+                        .level()
+                        .try_into()
+                        .map_err(|_| VdafError::Vidpf(VidpfError::InvalidInputLength))?,
+                    &beta_share[1..],
+                    &input_share.proof_share,
+                    verify_key,
+                    nonce,
+                )
+                .map_err(|e| VdafError::Other(Box::new(e)))?;
 
             let verifier_len = szk_query_share.flp_verifier.len();
             (
@@ -700,7 +797,8 @@ impl<T: Type> Aggregator<SEED_SIZE, NONCE_SIZE> for Mastic<T> {
             // The SZK is only used once, during the first round of aggregation.
             (Some(leader_query_share), Some(helper_query_share)) => Ok(self
                 .szk
-                .merge_query_shares(ctx, leader_query_share, helper_query_share)?),
+                .merge_query_shares(ctx, leader_query_share, helper_query_share)
+                .map_err(|e| VdafError::Other(Box::new(e)))?),
             (None, None) => Ok(SzkJointShare::default()),
             (_, _) => Err(VdafError::Uncategorized(
                 "Only one of leader and helper query shares is present".to_string(),
@@ -719,7 +817,9 @@ impl<T: Type> Aggregator<SEED_SIZE, NONCE_SIZE> for Mastic<T> {
             szk_query_state,
             verifier_len: _,
         } = state;
-        self.szk.decide(szk_query_state, input)?;
+        self.szk
+            .decide(szk_query_state, input)
+            .map_err(|e| VdafError::Other(Box::new(e)))?;
         Ok(VerifyTransition::Finish(output_shares))
     }
 
@@ -757,13 +857,14 @@ impl<T: Type> Collector for Mastic<T> {
     ) -> Result<Self::AggregateResult, VdafError> {
         let num_prefixes = agg_param.level_and_prefixes.prefixes().len();
 
-        let AggregateShare(agg) = agg_shares.into_iter().try_fold(
-            AggregateShare(vec![T::Field::zero(); self.agg_share_len(agg_param)]),
+        let agg_share = agg_shares.into_iter().try_fold(
+            MasticAggregateShare::from(vec![T::Field::zero(); self.agg_share_len(agg_param)]),
             |mut agg, agg_share| {
                 agg.merge(&agg_share)?;
                 Result::<_, VdafError>::Ok(agg)
             },
         )?;
+        let agg: &[T::Field] = agg_share.as_ref();
 
         let mut result = Vec::with_capacity(num_prefixes);
         for agg_for_prefix in agg.chunks(1 + self.szk.typ.output_len()) {

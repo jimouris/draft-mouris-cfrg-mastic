@@ -24,29 +24,22 @@ use crate::{
     bt::{BinaryTree, Node},
     codec::{CodecError, Decode, Encode, ParameterizedDecode},
     field::FieldElement,
-    idpf::{conditional_swap_seed, conditional_xor_seeds, xor_seeds, IdpfInput, IdpfValue},
+    idpf::{IdpfInput, IdpfValue},
     vdaf::{
         mastic,
-        xof::{Seed, Xof, XofFixedKeyAes128, XofTurboShake128},
+        xof::{Seed, Xof, XofFixedKeyAes128},
+    },
+    vendor::{
+        idpf::{conditional_swap_seed, conditional_xor_seeds, xor_seeds},
+        xof::MasticXof,
     },
 };
 
-/// VIDPF errors.
-#[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum VidpfError {
-    /// Input is too long to be represented.
-    #[error("bit length too long")]
-    BitLengthTooLong,
-
-    /// Error when an input has an unexpected bit length.
-    #[error("invalid input length")]
-    InvalidInputLength,
-
-    /// Error when a weight has an unexpected length.
-    #[error("invalid weight length")]
-    InvalidWeightLength,
-}
+// Re-export `prio`'s `VidpfError` so that `?` can convert it into
+// `prio::vdaf::VdafError` via the `From` impl defined in `prio`. Defining a
+// local error enum would not be useful: `From<LocalError> for VdafError`
+// cannot be implemented from outside the `prio` crate (orphan rule).
+pub use prio::vidpf::VidpfError;
 
 /// Represents the domain of an incremental point function.
 pub type VidpfInput = IdpfInput;
@@ -113,7 +106,7 @@ impl<W: VidpfValue> Vidpf<W> {
         weight: &W,
         nonce: &[u8],
     ) -> Result<VidpfPublicShare<W>, VidpfError> {
-        let mut seed = [keys[0].0, keys[1].0];
+        let mut seed = [*keys[0].as_ref(), *keys[1].as_ref()];
         let mut ctrl = [
             Choice::from(VidpfServerId::S0),
             Choice::from(VidpfServerId::S1),
@@ -555,7 +548,7 @@ impl<W: VidpfValue> ParameterizedDecode<Vidpf<W>> for VidpfPublicShare<W> {
         }
 
         // Seeds
-        let seeds = std::iter::repeat_with(|| Seed::decode(bytes).map(|seed| seed.0))
+        let seeds = std::iter::repeat_with(|| Seed::decode(bytes).map(|seed| *seed.as_ref()))
             .take(bits)
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -605,7 +598,7 @@ pub(crate) struct VidpfEvalState {
 impl VidpfEvalState {
     fn init_from_key(id: VidpfServerId, key: &VidpfKey) -> Self {
         Self {
-            seed: key.0,
+            seed: *key.as_ref(),
             control_bit: Choice::from(id),
             node_proof: VidpfProof::default(), // not used
         }
@@ -810,7 +803,7 @@ impl VidpfEvalIndex<'_> {
     }
 
     fn node_proof(&self, seed: &VidpfSeed, ctx: &[u8]) -> VidpfProof {
-        let mut xof = XofTurboShake128::from_seed_slice(
+        let mut xof = MasticXof::from_seed_slice(
             &seed[..],
             &[&mastic::dst_usage(mastic::USAGE_NODE_PROOF), ctx],
         );
@@ -840,7 +833,7 @@ impl VidpfEvalIndex<'_> {
         {
             xof.update(&[byte]);
         }
-        xof.into_seed().0
+        xof.into_seed_bytes()
     }
 }
 

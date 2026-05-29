@@ -13,11 +13,15 @@
 
 use crate::{
     codec::{CodecError, Decode, Encode, ParameterizedDecode},
-    field::{add_assign_vector, decode_fieldvec, encode_fieldvec, sub_assign_vector, FieldElement},
+    field::{FieldElement},
     flp::{FlpError, Type},
     vdaf::{
         mastic::{self, NONCE_SIZE, SEED_SIZE, USAGE_PROOF_SHARE},
         xof::{IntoFieldVec, Seed, Xof, XofTurboShake128},
+    },
+    vendor::{
+        field::{add_assign_vector, decode_fieldvec, encode_fieldvec, sub_assign_vector},
+        xof::MasticXof,
     },
 };
 use std::borrow::Cow;
@@ -339,7 +343,7 @@ impl<T: Type> Szk<T> {
         helper_joint_rand_part: &Seed<SEED_SIZE>,
         ctx: &[u8],
     ) -> Seed<SEED_SIZE> {
-        let mut xof = XofTurboShake128::from_seed_slice(
+        let mut xof = MasticXof::from_seed_slice(
             &[],
             &[
                 &mastic::dst_usage(mastic::USAGE_JOINT_RAND_SEED),
@@ -347,9 +351,14 @@ impl<T: Type> Szk<T> {
                 ctx,
             ],
         );
-        xof.update(&leader_joint_rand_part.0);
-        xof.update(&helper_joint_rand_part.0);
-        xof.into_seed()
+        xof.update(leader_joint_rand_part.as_ref());
+        xof.update(helper_joint_rand_part.as_ref());
+        // `MasticXof::into_seed_bytes` returns the raw 32-byte seed; wrap it
+        // in `Seed` so the caller can keep using the public `Seed` API. The
+        // tuple-struct constructor `Seed(bytes)` is `pub(crate)` in `prio`
+        // so we go through the `Decode` impl, which simply reads the bytes.
+        Seed::<SEED_SIZE>::decode(&mut Cursor::new(&xof.into_seed_bytes()))
+            .expect("32-byte seed always decodes")
     }
 
     fn derive_joint_rand_and_seed(
@@ -657,12 +666,13 @@ where
 mod tests {
     use super::*;
     use crate::{
-        field::{sub_assign_vector, Field128, FieldElementWithInteger},
+        field::{Field128, FieldElementWithInteger},
         flp::{
             gadgets::{Mul, ParallelSum},
             types::{Count, Sum, SumVec},
             Flp, Type,
         },
+        vendor::field::sub_assign_vector,
     };
     use rand::{rng, RngExt};
 

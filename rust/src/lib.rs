@@ -25,5 +25,9 @@ pub use prio::idpf;
 // `bt` is a private module in `prio`, so we vendor it locally.
 pub(crate) mod bt;
 
+// Other helpers that are `pub(crate)` in `prio` and not accessible from
+// outside the crate. See `vendor/mod.rs` for provenance.
+pub(crate) mod vendor;
+
 pub mod vdaf;
 pub mod vidpf;
